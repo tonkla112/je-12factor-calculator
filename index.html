@@ -116,10 +116,44 @@
     border-radius:10px; padding:10px 12px; margin-top:10px; line-height:1.5;
   }
   @media print{
-    header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch{display:none !important;}
+    header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters{display:none !important;}
     .anchor-table{display:none !important;}
     .layout{grid-template-columns:1fr;}
+    .ref-table-wrap{max-height:none !important;}
+    #refTableCard{page-break-before:always;}
   }
+
+  /* Reference table */
+  .ref-filters{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+  .ref-filters input, .ref-filters select{
+    padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px;
+  }
+  .ref-search{flex:1; min-width:200px;}
+  .ref-table-wrap{max-height:520px; overflow-y:auto; border:1px solid var(--border); border-radius:10px;}
+  .ref-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .ref-table thead th{
+    position:sticky; top:0; background:var(--navy); color:#fff; text-align:left;
+    padding:8px 10px; font-weight:600; z-index:1;
+  }
+  .ref-table tbody td{padding:7px 10px; border-bottom:1px solid var(--border);}
+  .ref-table tbody tr:nth-child(even){background:#FAFBFD;}
+  .ref-table tbody tr:hover{background:var(--navy-light);}
+  .ref-table .lvl-badge{
+    display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;
+    background:var(--gold-light); color:#92400E;
+  }
+  .ref-count{font-size:12px; color:var(--grey); margin-top:8px; text-align:right;}
+
+  /* Signature section */
+  .sign-grid{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media (max-width:700px){ .sign-grid{grid-template-columns:1fr;} }
+  .sign-box{border:1px solid var(--border); border-radius:12px; padding:16px;}
+  .sign-role{font-weight:700; color:var(--navy); font-size:14px; margin-bottom:10px;}
+  .sign-field{margin-bottom:10px;}
+  .sign-field label{display:block; font-size:12px; color:var(--grey); margin-bottom:4px;}
+  .sign-field input{width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px;}
+  .sign-line{border-bottom:1.5px solid #94A3B8; height:56px; margin-top:8px;}
+  .sign-caption{text-align:center; font-size:11.5px; color:var(--grey); margin-top:4px; margin-bottom:10px;}
 </style>
 </head>
 <body>
@@ -179,6 +213,48 @@
         <div class="disclaimer" id="disclaimer">
           ⚠️ ช่วงคะแนนรวม→Job Level เป็นค่าอ้างอิงเบื้องต้น (Illustrative) ยังไม่ผ่านการปรับเทียบ (Calibration) กับโครงสร้างตำแหน่งจริงของบริษัท — คณะกรรมการควรตรวจสอบกับงานอ้างอิง (Benchmark Jobs) ก่อนใช้เป็นมาตรฐานทางการ
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meta-card" id="refTableCard">
+    <h2 id="refTableTitle">📋 ตารางอ้างอิงการประเมินค่างาน (100 ตำแหน่งอ้างอิง)</h2>
+    <div class="ref-filters">
+      <input type="text" id="refSearch" class="ref-search">
+      <select id="refDeptFilter"></select>
+      <select id="refLevelFilter"></select>
+    </div>
+    <div class="ref-table-wrap">
+      <table class="ref-table" id="refTable">
+        <thead><tr>
+          <th id="rthId">รหัสตำแหน่ง</th>
+          <th id="rthTitle">ชื่อตำแหน่ง</th>
+          <th id="rthDept">แผนก</th>
+          <th id="rthLevel">ระดับ</th>
+          <th id="rthScore">คะแนนรวม</th>
+        </tr></thead>
+        <tbody id="refTableBody"></tbody>
+      </table>
+    </div>
+    <div class="ref-count" id="refCount"></div>
+  </div>
+
+  <div class="meta-card" id="signCard">
+    <h2 id="signTitle">✍️ การลงนามรับรองผลการประเมิน</h2>
+    <div class="sign-grid">
+      <div class="sign-box">
+        <div class="sign-role" id="signEvaluatorRole">ผู้ประเมิน (Evaluator)</div>
+        <div class="sign-field"><label id="signEvaluatorNameL">ชื่อ-นามสกุล</label><input type="text" id="signEvaluatorName"></div>
+        <div class="sign-line"></div>
+        <div class="sign-caption" id="signHereEvaluator">ลงชื่อ</div>
+        <div class="sign-field"><label id="signEvaluatorDateL">วันที่</label><input type="date" id="signEvaluatorDate"></div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-role" id="signApproverRole">ผู้อนุมัติ (Approver)</div>
+        <div class="sign-field"><label id="signApproverNameL">ชื่อ-นามสกุล</label><input type="text" id="signApproverName"></div>
+        <div class="sign-line"></div>
+        <div class="sign-caption" id="signHereApprover">ลงชื่อ</div>
+        <div class="sign-field"><label id="signApproverDateL">วันที่</label><input type="date" id="signApproverDate"></div>
       </div>
     </div>
   </div>
@@ -507,6 +583,186 @@ const LEVELS = [
    real ZG Industries position data — purely a convenience list so the
    committee can pick a starting title instead of typing from scratch.
    ============================================================ */
+/* ============================================================
+   REFERENCE TABLE — 100 evaluated reference positions (as supplied)
+   ============================================================ */
+const REFERENCE_DATA = [
+  {id:'JOB-100', title:'MD - R&D 100', dept:'R&D', level:'L8', score:895},
+  {id:'JOB-091', title:'Director - Finance 91', dept:'Finance', level:'L7', score:860},
+  {id:'JOB-092', title:'Director - Marketing 92', dept:'Marketing', level:'L7', score:858},
+  {id:'JOB-099', title:'VP - Engineering 99', dept:'Engineering', level:'L8', score:849},
+  {id:'JOB-094', title:'Director - Engineering 94', dept:'Engineering', level:'L7', score:838},
+  {id:'JOB-093', title:'Director - Accounting 93', dept:'Accounting', level:'L7', score:834},
+  {id:'JOB-095', title:'Director - Executive 95', dept:'Executive', level:'L7', score:830},
+  {id:'JOB-097', title:'Director - Finance 97', dept:'Finance', level:'L7', score:810},
+  {id:'JOB-098', title:'Director - Sales (Domestic) 98', dept:'Sales (Domestic)', level:'L7', score:795},
+  {id:'JOB-088', title:'Senior Manager - R&D 88', dept:'R&D', level:'L6', score:787},
+  {id:'JOB-096', title:'Director - Maintenance 96', dept:'Maintenance', level:'L7', score:777},
+  {id:'JOB-076', title:'Senior Manager - Safety (SHE) 76', dept:'Safety (SHE)', level:'L6', score:771},
+  {id:'JOB-090', title:'Senior Manager - Accounting 90', dept:'Accounting', level:'L6', score:765},
+  {id:'JOB-079', title:'Senior Manager - Engineering 79', dept:'Engineering', level:'L6', score:751},
+  {id:'JOB-081', title:'Senior Manager - IT 81', dept:'IT', level:'L6', score:745},
+  {id:'JOB-075', title:'Senior Manager - Purchasing 75', dept:'Purchasing', level:'L6', score:739},
+  {id:'JOB-078', title:'Senior Manager - Production 78', dept:'Production', level:'L6', score:738},
+  {id:'JOB-085', title:'Senior Manager - IT 85', dept:'IT', level:'L6', score:737},
+  {id:'JOB-072', title:'Senior Manager - Engineering 72', dept:'Engineering', level:'L6', score:729},
+  {id:'JOB-077', title:'Senior Manager - Accounting 77', dept:'Accounting', level:'L6', score:725},
+  {id:'JOB-071', title:'Senior Manager - R&D 71', dept:'R&D', level:'L6', score:721},
+  {id:'JOB-083', title:'Senior Manager - HR 83', dept:'HR', level:'L6', score:718},
+  {id:'JOB-084', title:'Manager - Engineering 84', dept:'Engineering', level:'L5', score:717},
+  {id:'JOB-087', title:'Manager - Accounting 87', dept:'Accounting', level:'L5', score:709},
+  {id:'JOB-086', title:'Manager - Sales (Domestic) 86', dept:'Sales (Domestic)', level:'L5', score:703},
+  {id:'JOB-082', title:'Manager - Maintenance 82', dept:'Maintenance', level:'L5', score:690},
+  {id:'JOB-080', title:'Manager - Safety (SHE) 80', dept:'Safety (SHE)', level:'L5', score:689},
+  {id:'JOB-089', title:'Manager - Maintenance 89', dept:'Maintenance', level:'L5', score:669},
+  {id:'JOB-068', title:'Engineer - Purchasing 68', dept:'Purchasing', level:'L4', score:664},
+  {id:'JOB-069', title:'Engineer - Safety (SHE) 69', dept:'Safety (SHE)', level:'L4', score:664},
+  {id:'JOB-074', title:'Manager - R&D 74', dept:'R&D', level:'L5', score:663},
+  {id:'JOB-073', title:'Manager - Production 73', dept:'Production', level:'L5', score:650},
+  {id:'JOB-049', title:'Specialist - Marketing 49', dept:'Marketing', level:'L4', score:646},
+  {id:'JOB-070', title:'Engineer - Purchasing 70', dept:'Purchasing', level:'L4', score:646},
+  {id:'JOB-054', title:'Specialist - Warehouse 54', dept:'Warehouse', level:'L4', score:644},
+  {id:'JOB-043', title:'Engineer - R&D 43', dept:'R&D', level:'L4', score:633},
+  {id:'JOB-053', title:'Specialist - Sales (Domestic) 53', dept:'Sales (Domestic)', level:'L4', score:627},
+  {id:'JOB-066', title:'Engineer - Warehouse 66', dept:'Warehouse', level:'L4', score:623},
+  {id:'JOB-052', title:'Specialist - HR 52', dept:'HR', level:'L4', score:619},
+  {id:'JOB-056', title:'Specialist - Sales (Domestic) 56', dept:'Sales (Domestic)', level:'L4', score:616},
+  {id:'JOB-065', title:'Specialist - QA/QC 65', dept:'QA/QC', level:'L4', score:614},
+  {id:'JOB-047', title:'Specialist - HR 47', dept:'HR', level:'L4', score:612},
+  {id:'JOB-062', title:'Specialist - Maintenance 62', dept:'Maintenance', level:'L4', score:610},
+  {id:'JOB-058', title:'Specialist - Engineering 58', dept:'Engineering', level:'L4', score:593},
+  {id:'JOB-067', title:'Supervisor - IT 67', dept:'IT', level:'L3', score:590},
+  {id:'JOB-041', title:'Supervisor - Warehouse 41', dept:'Warehouse', level:'L3', score:584},
+  {id:'JOB-042', title:'Snr Officer - QA/QC 42', dept:'QA/QC', level:'L3', score:583},
+  {id:'JOB-051', title:'Snr Officer - Finance 51', dept:'Finance', level:'L3', score:579},
+  {id:'JOB-061', title:'Snr Officer - Sales (Domestic) 61', dept:'Sales (Domestic)', level:'L3', score:574},
+  {id:'JOB-048', title:'Snr Officer - HR 48', dept:'HR', level:'L3', score:572},
+  {id:'JOB-064', title:'Snr Officer - Engineering 64', dept:'Engineering', level:'L3', score:572},
+  {id:'JOB-057', title:'Snr Officer - Executive 57', dept:'Executive', level:'L3', score:571},
+  {id:'JOB-044', title:'Supervisor - Sales (Domestic) 44', dept:'Sales (Domestic)', level:'L3', score:568},
+  {id:'JOB-045', title:'Supervisor - Maintenance 45', dept:'Maintenance', level:'L3', score:567},
+  {id:'JOB-046', title:'Supervisor - Maintenance 46', dept:'Maintenance', level:'L3', score:566},
+  {id:'JOB-063', title:'Supervisor - Sales (Domestic) 63', dept:'Sales (Domestic)', level:'L3', score:566},
+  {id:'JOB-050', title:'Snr Officer - R&D 50', dept:'R&D', level:'L3', score:563},
+  {id:'JOB-059', title:'Snr Officer - HR 59', dept:'HR', level:'L3', score:553},
+  {id:'JOB-055', title:'Snr Officer - Sales (Export) 55', dept:'Sales (Export)', level:'L3', score:547},
+  {id:'JOB-060', title:'Snr Officer - Maintenance 60', dept:'Maintenance', level:'L3', score:544},
+  {id:'JOB-008', title:'Officer - R&D 8', dept:'R&D', level:'L2', score:524},
+  {id:'JOB-028', title:'Technician - Production 28', dept:'Production', level:'L2', score:507},
+  {id:'JOB-033', title:'Technician - Warehouse 33', dept:'Warehouse', level:'L2', score:501},
+  {id:'JOB-004', title:'Technician - Engineering 4', dept:'Engineering', level:'L2', score:499},
+  {id:'JOB-001', title:'Officer - Engineering 1', dept:'Engineering', level:'L2', score:498},
+  {id:'JOB-012', title:'Officer - Safety (SHE) 12', dept:'Safety (SHE)', level:'L2', score:497},
+  {id:'JOB-022', title:'Officer - Production 22', dept:'Production', level:'L2', score:497},
+  {id:'JOB-019', title:'Technician - Warehouse 19', dept:'Warehouse', level:'L2', score:494},
+  {id:'JOB-037', title:'Officer - Sales (Domestic) 37', dept:'Sales (Domestic)', level:'L2', score:493},
+  {id:'JOB-017', title:'Technician - Logistics 17', dept:'Logistics', level:'L2', score:487},
+  {id:'JOB-007', title:'Technician - Sales (Domestic) 7', dept:'Sales (Domestic)', level:'L2', score:485},
+  {id:'JOB-020', title:'Officer - Marketing 20', dept:'Marketing', level:'L2', score:483},
+  {id:'JOB-023', title:'Staff - Engineering 23', dept:'Engineering', level:'L1', score:479},
+  {id:'JOB-003', title:'Technician - Logistics 3', dept:'Logistics', level:'L2', score:478},
+  {id:'JOB-026', title:'Officer - IT 26', dept:'IT', level:'L2', score:477},
+  {id:'JOB-006', title:'Officer - IT 6', dept:'IT', level:'L2', score:474},
+  {id:'JOB-027', title:'Technician - Marketing 27', dept:'Marketing', level:'L2', score:462},
+  {id:'JOB-039', title:'Staff - Maintenance 39', dept:'Maintenance', level:'L1', score:459},
+  {id:'JOB-025', title:'Officer - Production 25', dept:'Production', level:'L2', score:454},
+  {id:'JOB-034', title:'Operator - Production 34', dept:'Production', level:'L1', score:451},
+  {id:'JOB-018', title:'Operator - Engineering 18', dept:'Engineering', level:'L1', score:441},
+  {id:'JOB-013', title:'Operator - HR 13', dept:'HR', level:'L1', score:439},
+  {id:'JOB-040', title:'Operator - R&D 40', dept:'R&D', level:'L1', score:436},
+  {id:'JOB-009', title:'Staff - Purchasing 9', dept:'Purchasing', level:'L1', score:434},
+  {id:'JOB-021', title:'Officer - Finance 21', dept:'Finance', level:'L2', score:433},
+  {id:'JOB-029', title:'Staff - Sales (Export) 29', dept:'Sales (Export)', level:'L1', score:433},
+  {id:'JOB-005', title:'Operator - Accounting 5', dept:'Accounting', level:'L1', score:432},
+  {id:'JOB-035', title:'Operator - QA/QC 35', dept:'QA/QC', level:'L1', score:429},
+  {id:'JOB-016', title:'Operator - QA/QC 16', dept:'QA/QC', level:'L1', score:427},
+  {id:'JOB-030', title:'Operator - Warehouse 30', dept:'Warehouse', level:'L1', score:425},
+  {id:'JOB-011', title:'Staff - IT 11', dept:'IT', level:'L1', score:424},
+  {id:'JOB-031', title:'Operator - HR 31', dept:'HR', level:'L1', score:424},
+  {id:'JOB-032', title:'Operator - Executive 32', dept:'Executive', level:'L1', score:424},
+  {id:'JOB-024', title:'Staff - HR 24', dept:'HR', level:'L1', score:419},
+  {id:'JOB-038', title:'Operator - Sales (Domestic) 38', dept:'Sales (Domestic)', level:'L1', score:416},
+  {id:'JOB-002', title:'Operator - Finance 2', dept:'Finance', level:'L1', score:413},
+  {id:'JOB-036', title:'Operator - Marketing 36', dept:'Marketing', level:'L1', score:412},
+  {id:'JOB-010', title:'Staff - HR 10', dept:'HR', level:'L1', score:411},
+  {id:'JOB-014', title:'Operator - QA/QC 14', dept:'QA/QC', level:'L1', score:406},
+  {id:'JOB-015', title:'Staff - Engineering 15', dept:'Engineering', level:'L1', score:397},
+];
+
+const REF_UI = {
+  th: { title: '📋 ตารางอ้างอิงการประเมินค่างาน (100 ตำแหน่งอ้างอิง)', search: 'ค้นหาชื่อตำแหน่งหรือรหัส...', allDept: 'ทุกแผนก', allLevel: 'ทุกระดับ',
+        colId: 'รหัสตำแหน่ง', colTitle: 'ชื่อตำแหน่ง', colDept: 'แผนก', colLevel: 'ระดับ', colScore: 'คะแนนรวม',
+        countTpl: (n) => `แสดง ${n} จาก 100 ตำแหน่ง`,
+        signTitle: '✍️ การลงนามรับรองผลการประเมิน', evaluatorRole: 'ผู้ประเมิน (Evaluator)', approverRole: 'ผู้อนุมัติ (Approver)',
+        nameLabel: 'ชื่อ-นามสกุล', dateLabel: 'วันที่', signHere: 'ลงชื่อ' },
+  en: { title: '📋 Job Evaluation Reference Table (100 Reference Positions)', search: 'Search title or job ID...', allDept: 'All Departments', allLevel: 'All Levels',
+        colId: 'Job ID', colTitle: 'Job Title', colDept: 'Department', colLevel: 'Level', colScore: 'Total Score',
+        countTpl: (n) => `Showing ${n} of 100 positions`,
+        signTitle: '✍️ Approval Signatures', evaluatorRole: 'Evaluator', approverRole: 'Approver',
+        nameLabel: 'Full Name', dateLabel: 'Date', signHere: 'Signature' },
+  zh: { title: '📋 职位评估参考表（100个参考职位）', search: '搜索职位名称或编号...', allDept: '全部部门', allLevel: '全部职级',
+        colId: '职位编号', colTitle: '职位名称', colDept: '部门', colLevel: '职级', colScore: '总分',
+        countTpl: (n) => `显示 ${n} / 共 100 个职位`,
+        signTitle: '✍️ 签核确认', evaluatorRole: '评估人 (Evaluator)', approverRole: '核准人 (Approver)',
+        nameLabel: '姓名', dateLabel: '日期', signHere: '签名' },
+};
+
+function populateRefFilters(){
+  const ui = REF_UI[currentLang] || REF_UI.en;
+  const deptSel = document.getElementById('refDeptFilter');
+  const lvlSel = document.getElementById('refLevelFilter');
+  const depts = [...new Set(REFERENCE_DATA.map(r => r.dept))].sort();
+  const levels = [...new Set(REFERENCE_DATA.map(r => r.level))].sort();
+  const prevDept = deptSel.value, prevLvl = lvlSel.value;
+  deptSel.innerHTML = `<option value="">${ui.allDept}</option>` + depts.map(d => `<option value="${d}">${d}</option>`).join('');
+  lvlSel.innerHTML = `<option value="">${ui.allLevel}</option>` + levels.map(l => `<option value="${l}">${l}</option>`).join('');
+  if (depts.includes(prevDept)) deptSel.value = prevDept;
+  if (levels.includes(prevLvl)) lvlSel.value = prevLvl;
+}
+
+function renderRefTable(){
+  const ui = REF_UI[currentLang] || REF_UI.en;
+  const q = (document.getElementById('refSearch').value || '').trim().toLowerCase();
+  const dept = document.getElementById('refDeptFilter').value;
+  const level = document.getElementById('refLevelFilter').value;
+  const rows = REFERENCE_DATA.filter(r => {
+    if (dept && r.dept !== dept) return false;
+    if (level && r.level !== level) return false;
+    if (q && !(r.title.toLowerCase().includes(q) || r.id.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  document.getElementById('refTableBody').innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.id}</td>
+      <td>${r.title}</td>
+      <td>${r.dept}</td>
+      <td><span class="lvl-badge">${r.level}</span></td>
+      <td>${r.score.toLocaleString()}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--grey);padding:20px;">—</td></tr>`;
+  document.getElementById('refCount').textContent = ui.countTpl(rows.length);
+}
+
+function applyRefStaticText(){
+  const ui = REF_UI[currentLang] || REF_UI.en;
+  document.getElementById('refTableTitle').textContent = ui.title;
+  document.getElementById('refSearch').placeholder = ui.search;
+  document.getElementById('rthId').textContent = ui.colId;
+  document.getElementById('rthTitle').textContent = ui.colTitle;
+  document.getElementById('rthDept').textContent = ui.colDept;
+  document.getElementById('rthLevel').textContent = ui.colLevel;
+  document.getElementById('rthScore').textContent = ui.colScore;
+  document.getElementById('signTitle').textContent = ui.signTitle;
+  document.getElementById('signEvaluatorRole').textContent = ui.evaluatorRole;
+  document.getElementById('signApproverRole').textContent = ui.approverRole;
+  document.getElementById('signEvaluatorNameL').textContent = ui.nameLabel;
+  document.getElementById('signApproverNameL').textContent = ui.nameLabel;
+  document.getElementById('signEvaluatorDateL').textContent = ui.dateLabel;
+  document.getElementById('signApproverDateL').textContent = ui.dateLabel;
+  document.getElementById('signHereEvaluator').textContent = ui.signHere;
+  document.getElementById('signHereApprover').textContent = ui.signHere;
+}
+
 const LEVEL_TITLES = {
   th: ['พนักงานปฏิบัติการ','พนักงานปฏิบัติการอาวุโส','เจ้าหน้าที่อาวุโส','หัวหน้างาน','ผู้จัดการแผนก','ผู้จัดการอาวุโส','ผู้อำนวยการ','ผู้บริหารระดับสูง'],
   en: ['Operator','Senior Operator','Senior Staff','Supervisor','Department Manager','Senior Manager','Director','Senior Executive'],
@@ -679,6 +935,9 @@ function setLang(lang){
   buildFactorsUI();
   FACTORS.forEach(f => renderFactor(f.key));
   renderSummary();
+  applyRefStaticText();
+  populateRefFilters();
+  renderRefTable();
 }
 
 document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn => {
@@ -686,6 +945,10 @@ document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn 
 });
 
 document.getElementById('jobTitle').addEventListener('input', handleJobTitleInput);
+
+document.getElementById('refSearch').addEventListener('input', renderRefTable);
+document.getElementById('refDeptFilter').addEventListener('change', renderRefTable);
+document.getElementById('refLevelFilter').addEventListener('change', renderRefTable);
 
 setLang('th');
 
