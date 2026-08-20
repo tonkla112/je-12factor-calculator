@@ -142,7 +142,7 @@
   <div class="meta-card">
     <h2 id="mJobInfo">ข้อมูลตำแหน่งงานที่ประเมิน</h2>
     <div class="meta-grid">
-      <div><label id="lJobTitle">ชื่อตำแหน่งงาน (Job Title)</label><input id="jobTitle" type="text"></div>
+      <div><label id="lJobTitle">ชื่อตำแหน่งงาน (Job Title)</label><input id="jobTitle" type="text" list="positionList"><datalist id="positionList"></datalist></div>
       <div><label id="lDept">แผนก (Department)</label><input id="dept" type="text"></div>
       <div><label id="lEvaluator">ผู้ประเมิน (Evaluator)</label><input id="evaluator" type="text"></div>
       <div><label id="lDate">วันที่ประเมิน</label><input id="evalDate" type="date"></div>
@@ -501,6 +501,59 @@ const LEVELS = [
   ['L8', 1065, 1200, {th:'ผู้บริหารระดับสูง (Executive/VP ขึ้นไป)', en:'Senior Executive (VP and above)', zh:'董事总经理'}],
 ];
 
+/* ============================================================
+   POSITION LIST — 100 sample job titles (12 depts × 8 levels + 4 executive)
+   for the Job Title autocomplete dropdown. Generic template titles, NOT
+   real ZG Industries position data — purely a convenience list so the
+   committee can pick a starting title instead of typing from scratch.
+   ============================================================ */
+const LEVEL_TITLES = {
+  th: ['พนักงานปฏิบัติการ','พนักงานปฏิบัติการอาวุโส','เจ้าหน้าที่อาวุโส','หัวหน้างาน','ผู้จัดการแผนก','ผู้จัดการอาวุโส','ผู้อำนวยการ','ผู้บริหารระดับสูง'],
+  en: ['Operator','Senior Operator','Senior Staff','Supervisor','Department Manager','Senior Manager','Director','Senior Executive'],
+  zh: ['操作员','高级操作员','高级专员','主管','部门经理','高级经理','总监','高级管理层'],
+};
+const POS_DEPTS = {
+  th: ['ฝ่ายผลิต','ฝ่ายประกันคุณภาพ (QA/QC)','ฝ่ายคลังสินค้าและโลจิสติกส์','ฝ่ายซ่อมบำรุงและวิศวกรรม','ฝ่ายทรัพยากรบุคคล','ฝ่ายบัญชีและการเงิน','ฝ่ายจัดซื้อและซัพพลายเชน','ฝ่ายขายและการตลาด','ฝ่ายเทคโนโลยีสารสนเทศ','ฝ่ายความปลอดภัยและสิ่งแวดล้อม','ฝ่ายวิจัยและพัฒนา','ฝ่ายธุรการทั่วไป'],
+  en: ['Production','Quality Assurance/QC','Warehouse & Logistics','Maintenance & Engineering','Human Resources','Finance & Accounting','Procurement & Supply Chain','Sales & Marketing','Information Technology','Safety & Environment (EHS)','Research & Development','General Administration'],
+  zh: ['生产部','品质保证部 (QA/QC)','仓储与物流部','维修与工程部','人力资源部','财务会计部','采购与供应链部','销售与市场部','信息技术部','安全与环境部 (EHS)','研发部','行政总务部'],
+};
+const EXTRA_POSITIONS = {
+  th: [['กรรมการผู้จัดการ (Managing Director)','ผู้บริหารระดับสูง'], ['ประธานเจ้าหน้าที่บริหารฝ่ายการเงิน (CFO)','ผู้บริหารระดับสูง'], ['ประธานเจ้าหน้าที่ฝ่ายปฏิบัติการ (COO)','ผู้บริหารระดับสูง'], ['ผู้จัดการทั่วไป (General Manager)','ผู้บริหารระดับสูง']],
+  en: [['Managing Director','Executive'], ['Chief Financial Officer (CFO)','Executive'], ['Chief Operating Officer (COO)','Executive'], ['General Manager','Executive']],
+  zh: [['董事总经理 (MD)','高层管理'], ['首席财务官 (CFO)','高层管理'], ['首席运营官 (COO)','高层管理'], ['总经理 (GM)','高层管理']],
+};
+
+function buildPositions(lang){
+  const levels = LEVEL_TITLES[lang] || LEVEL_TITLES.en;
+  const depts = POS_DEPTS[lang] || POS_DEPTS.en;
+  const sep = lang === 'zh' ? ' - ' : ' - ';
+  const list = [];
+  depts.forEach(dept => {
+    levels.forEach(lvl => {
+      const title = lang === 'zh' ? `${dept}${lvl}` : `${lvl}${sep}${dept}`;
+      list.push({ title, dept });
+    });
+  });
+  (EXTRA_POSITIONS[lang] || EXTRA_POSITIONS.en).forEach(([title, dept]) => list.push({ title, dept }));
+  return list;
+}
+
+function renderPositionList(){
+  const positions = buildPositions(currentLang);
+  const datalist = document.getElementById('positionList');
+  datalist.innerHTML = positions.map(p => `<option value="${p.title.replace(/"/g,'&quot;')}"></option>`).join('');
+  datalist.dataset.map = JSON.stringify(positions);
+}
+
+function handleJobTitleInput(){
+  const val = document.getElementById('jobTitle').value;
+  const deptField = document.getElementById('dept');
+  if (deptField.value) return; // don't overwrite a department the user already typed
+  const positions = JSON.parse(document.getElementById('positionList').dataset.map || '[]');
+  const match = positions.find(p => p.title === val);
+  if (match) deptField.value = match.dept;
+}
+
 function bandIndex(v){
   if(v<=20) return 0;
   if(v<=50) return 1;
@@ -622,6 +675,7 @@ function setLang(lang){
   currentLang = lang;
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
   applyStaticText();
+  renderPositionList();
   buildFactorsUI();
   FACTORS.forEach(f => renderFactor(f.key));
   renderSummary();
@@ -630,6 +684,8 @@ function setLang(lang){
 document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn => {
   btn.addEventListener('click', () => setLang(btn.dataset.lang));
 });
+
+document.getElementById('jobTitle').addEventListener('input', handleJobTitleInput);
 
 setLang('th');
 
