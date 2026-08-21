@@ -115,6 +115,10 @@
     font-size:11.5px; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A;
     border-radius:10px; padding:10px 12px; margin-top:10px; line-height:1.5;
   }
+  .model-note{
+    font-size:11.5px; color:#1F3A6B; background:#EAF0FB; border:1px solid #BFDBFE;
+    border-radius:10px; padding:9px 12px; margin-top:10px; line-height:1.5;
+  }
   @media print{
     header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters{display:none !important;}
     .anchor-table{display:none !important;}
@@ -216,8 +220,9 @@
         </div>
 
         <div class="disclaimer" id="disclaimer">
-          ⚠️ ช่วงคะแนนรวม→Job Level เป็นค่าอ้างอิงเบื้องต้น (Illustrative) ยังไม่ผ่านการปรับเทียบ (Calibration) กับโครงสร้างตำแหน่งจริงของบริษัท — คณะกรรมการควรตรวจสอบกับงานอ้างอิง (Benchmark Jobs) ก่อนใช้เป็นมาตรฐานทางการ
+          ⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ
         </div>
+        <div class="model-note" id="modelNote"></div>
       </div>
     </div>
   </div>
@@ -266,6 +271,7 @@
   </div>
 </div>
 
+<script src="je_score_grade_model.js"></script>
 <script>
 /* ============================================================
    UI STRINGS — TH / EN / ZH
@@ -284,7 +290,9 @@ const UI = {
     total: 'คะแนนรวม (Total Score / 1,200)',
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
     btnPrint: '🖨️ พิมพ์ / PDF', btnSave: '💾 บันทึกผล (JSON)', btnLoad: '📂 โหลดผลเดิม', btnReset: '↺ เริ่มใหม่',
-    disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level เป็นค่าอ้างอิงเบื้องต้น (Illustrative) ยังไม่ผ่านการปรับเทียบ (Calibration) กับโครงสร้างตำแหน่งจริงของบริษัท — คณะกรรมการควรตรวจสอบกับงานอ้างอิง (Benchmark Jobs) ก่อนใช้เป็นมาตรฐานทางการ',
+    disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ',
+    modelNote: 'ใช้โมเดล {version} · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
+    boundaryReview: 'คะแนนนี้อยู่ใกล้เส้นแบ่ง {lower}/{upper} ({boundary} คะแนน) ควรทบทวนกับงานอ้างอิงก่อนอนุมัติ',
     viewBands: '▸ ดูเกณฑ์ทั้ง 4 ระดับ', hideBands: '▾ ซ่อนเกณฑ์ทั้ง 4 ระดับ',
     anchorCol1: 'ระดับคะแนน', anchorCol2: 'คำอธิบายเกณฑ์',
     confirmReset: 'ต้องการล้างข้อมูลและเริ่มประเมินใหม่หรือไม่?',
@@ -303,7 +311,9 @@ const UI = {
     total: 'Total Score (out of 1,200)',
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
     btnPrint: '🖨️ Print / PDF', btnSave: '💾 Save Result (JSON)', btnLoad: '📂 Load Result', btnReset: '↺ Reset',
-    disclaimer: '⚠️ The Total Score → Job Level bands are an illustrative starting point and have not been calibrated against the company’s actual position structure — the committee should validate against real benchmark jobs before treating this as an official standard.',
+    disclaimer: '⚠️ The Total Score → Job Level bands use the calibrated 100-role benchmark model. Roles near a level boundary should still be reviewed by the JE Committee before final approval.',
+    modelNote: 'Using model {version} · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
+    boundaryReview: 'This score is close to the {lower}/{upper} boundary ({boundary} points). Review against benchmark jobs before approval.',
     viewBands: '▸ View all 4 score bands', hideBands: '▾ Hide score bands',
     anchorCol1: 'Score Band', anchorCol2: 'Anchor Description',
     confirmReset: 'Clear all data and start a new evaluation?',
@@ -322,7 +332,9 @@ const UI = {
     total: '总分（满分 1,200）',
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
     btnPrint: '🖨️ 打印 / PDF', btnSave: '💾 保存结果 (JSON)', btnLoad: '📂 加载已存结果', btnReset: '↺ 重新开始',
-    disclaimer: '⚠️ 总分对应职级的区间为初步参考值（尚未根据公司实际职位结构进行校准）——委员会应先以实际标杆职位进行验证，再将其作为正式标准使用。',
+    disclaimer: '⚠️ 总分对应职级使用已根据100个标杆职位校准的模型。接近职级边界的职位仍应由JE委员会复核后再正式批准。',
+    modelNote: '使用模型 {version} · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
+    boundaryReview: '该分数接近 {lower}/{upper} 边界（{boundary}分），批准前请结合标杆职位复核。',
     viewBands: '▸ 查看全部4个评分区间', hideBands: '▾ 隐藏评分区间',
     anchorCol1: '评分区间', anchorCol2: '评分标准说明',
     confirmReset: '确定要清除数据并重新开始评估吗？',
@@ -572,16 +584,7 @@ const FACTORS = [
     }},
 ];
 
-const LEVELS = [
-  ['L1', 120, 254, {th:'พนักงานปฏิบัติการ / เจ้าหน้าที่ระดับต้น', en:'Operator / Entry-level Staff', zh:'操作员 / 职员'}],
-  ['L2', 255, 389, {th:'พนักงานปฏิบัติการอาวุโส / เจ้าหน้าที่', en:'Senior Operator / Staff', zh:'专员 / 技术员'}],
-  ['L3', 390, 524, {th:'เจ้าหน้าที่อาวุโส / หัวหน้างาน (Supervisor)', en:'Senior Staff / Supervisor', zh:'高级专员'}],
-  ['L4', 525, 659, {th:'หัวหน้างานอาวุโส / ผู้ช่วยผู้จัดการ', en:'Senior Supervisor / Assistant Manager', zh:'专业人员'}],
-  ['L5', 660, 794, {th:'ผู้จัดการแผนก (Section/Department Manager)', en:'Section/Department Manager', zh:'经理'}],
-  ['L6', 795, 929, {th:'ผู้จัดการอาวุโส (Senior Manager)', en:'Senior Manager', zh:'高级经理'}],
-  ['L7', 930, 1064, {th:'ผู้อำนวยการ / ผู้จัดการโรงงาน (Director/Plant Manager)', en:'Director / Plant Manager', zh:'总监'}],
-  ['L8', 1065, 1200, {th:'ผู้บริหารระดับสูง (Executive/VP ขึ้นไป)', en:'Senior Executive (VP and above)', zh:'董事总经理'}],
-];
+const LEVELS = window.JE_SCORE_GRADE_MODEL.bands.map(b => [b.level, b.min, b.max, b.titles]);
 
 /* ============================================================
    POSITION LIST — 100 sample job titles (12 depts × 8 levels + 4 executive)
@@ -833,7 +836,7 @@ function bandIndex(v){
 
 let currentLang = 'th';
 const state = {};
-FACTORS.forEach(f => state[f.key] = 0);
+FACTORS.forEach(f => state[f.key] = 10);
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -848,7 +851,7 @@ function buildFactorsUI(){
         <div class="factor-title">${f.name[currentLang]}${currentLang !== 'en' ? ` <span>(${f.name.en})</span>` : ''}<small>${f.q[currentLang]}</small></div>
         <div class="factor-score" id="score-${f.key}">${state[f.key]}</div>
       </div>
-      <input type="range" min="0" max="100" step="5" value="${state[f.key]}" id="slider-${f.key}">
+      <input type="range" min="10" max="100" step="5" value="${state[f.key]}" id="slider-${f.key}">
       <span class="band-badge" id="badge-${f.key}"></span>
       <div class="band-desc" id="desc-${f.key}"></div>
       <span class="toggle-anchor" data-key="${f.key}">${ui.viewBands}</span>
@@ -889,8 +892,8 @@ function renderFactor(key){
 }
 
 function recommendedLevel(total){
-  if(total > LEVELS[LEVELS.length-1][2]) return LEVELS[LEVELS.length-1];
-  return LEVELS.find(l => total <= l[2]) || LEVELS[0];
+  const band = window.JE_SCORE_GRADE_MODEL.bandForScore(total);
+  return [band.level, band.min, band.max, band.titles];
 }
 
 function renderLevelTable(activeCode){
@@ -907,6 +910,19 @@ function renderSummary(){
   document.getElementById('levelPill').textContent = lvl[0];
   document.getElementById('levelSub').textContent = lvl[3][currentLang];
   renderLevelTable(lvl[0]);
+  const fit = window.JE_SCORE_GRADE_MODEL.benchmarkFit;
+  const review = window.JE_SCORE_GRADE_MODEL.boundaryReview(total);
+  let note = UI[currentLang].modelNote
+    .replaceAll('{version}', window.JE_SCORE_GRADE_MODEL.version)
+    .replaceAll('{count}', window.JE_SCORE_GRADE_MODEL.benchmarkRoleCount)
+    .replaceAll('{matches}', fit.exactMatches);
+  if (review) {
+    note += '<br>' + UI[currentLang].boundaryReview
+      .replaceAll('{lower}', review.lowerLevel)
+      .replaceAll('{upper}', review.upperLevel)
+      .replaceAll('{boundary}', review.boundary);
+  }
+  document.getElementById('modelNote').innerHTML = note;
 
   const bar = document.getElementById('barChart');
   bar.innerHTML = FACTORS.map(f => {
@@ -976,6 +992,10 @@ function exportJSON(){
     scores: state,
     total: FACTORS.reduce((s,f) => s + state[f.key], 0),
     level: recommendedLevel(FACTORS.reduce((s,f) => s + state[f.key], 0))[0],
+    scoreGradeModelVersion: window.JE_SCORE_GRADE_MODEL.version,
+    scoreGradeBands: window.JE_SCORE_GRADE_MODEL.bands,
+    scoreGradeModelBasis: window.JE_SCORE_GRADE_MODEL.basis,
+    benchmarkFit: window.JE_SCORE_GRADE_MODEL.benchmarkFit,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -997,7 +1017,8 @@ function importJSON(evt){
       document.getElementById('evaluator').value = data.evaluator || '';
       document.getElementById('evalDate').value = data.evalDate || '';
       FACTORS.forEach(f => {
-        const v = (data.scores && data.scores[f.key]) || 0;
+        const raw = data.scores && data.scores[f.key];
+        const v = Math.max(10, Math.min(100, Number(raw) || 10));
         state[f.key] = v;
         const slider = document.getElementById(`slider-${f.key}`);
         if (slider) slider.value = v;
@@ -1018,9 +1039,9 @@ function resetAll(){
   document.getElementById('evaluator').value = '';
   document.getElementById('evalDate').value = '';
   FACTORS.forEach(f => {
-    state[f.key] = 0;
+    state[f.key] = 10;
     const slider = document.getElementById(`slider-${f.key}`);
-    if (slider) slider.value = 0;
+    if (slider) slider.value = 10;
     renderFactor(f.key);
   });
   renderSummary();
