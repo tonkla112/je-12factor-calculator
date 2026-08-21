@@ -124,6 +124,11 @@
   }
 
   /* Reference table */
+  .ref-sample-note{
+    background:#fff7ed; border:1px solid #fdba74; color:#9a3412; font-size:12.5px;
+    padding:8px 12px; border-radius:8px; margin-bottom:12px; font-weight:600;
+  }
+  .pos-sample-note{display:block; color:var(--grey); font-size:11.5px; margin-top:3px; font-weight:400;}
   .ref-filters{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
   .ref-filters input, .ref-filters select{
     padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px;
@@ -176,7 +181,7 @@
   <div class="meta-card">
     <h2 id="mJobInfo">ข้อมูลตำแหน่งงานที่ประเมิน</h2>
     <div class="meta-grid">
-      <div><label id="lJobTitle">ชื่อตำแหน่งงาน (Job Title)</label><input id="jobTitle" type="text" list="positionList"><datalist id="positionList"></datalist></div>
+      <div><label id="lJobTitle">ชื่อตำแหน่งงาน (Job Title)</label><input id="jobTitle" type="text" list="positionList"><datalist id="positionList"></datalist><small class="pos-sample-note" id="posSampleNote">ตัวเลือกในรายการเป็นชื่อตำแหน่งตัวอย่าง พิมพ์ชื่อตำแหน่งจริงได้โดยตรง</small></div>
       <div><label id="lDept">แผนก (Department)</label><input id="dept" type="text"></div>
       <div><label id="lEvaluator">ผู้ประเมิน (Evaluator)</label><input id="evaluator" type="text"></div>
       <div><label id="lDate">วันที่ประเมิน</label><input id="evalDate" type="date"></div>
@@ -219,6 +224,7 @@
 
   <div class="meta-card" id="refTableCard">
     <h2 id="refTableTitle">📋 ตารางอ้างอิงการประเมินค่างาน (100 ตำแหน่งอ้างอิง)</h2>
+    <div class="ref-sample-note" id="refSampleNote">⚠️ ข้อมูลตัวอย่าง/จำลอง — ไม่ใช่ตำแหน่งหรือคะแนนจริงของบริษัท ใช้เพื่อสาธิตการใช้งานเท่านั้น</div>
     <div class="ref-filters">
       <input type="text" id="refSearch" class="ref-search">
       <select id="refDeptFilter"></select>
@@ -694,17 +700,23 @@ const REF_UI = {
         colId: 'รหัสตำแหน่ง', colTitle: 'ชื่อตำแหน่ง', colDept: 'แผนก', colLevel: 'ระดับ', colScore: 'คะแนนรวม',
         countTpl: (n) => `แสดง ${n} จาก 100 ตำแหน่ง`,
         signTitle: '✍️ การลงนามรับรองผลการประเมิน', evaluatorRole: 'ผู้ประเมิน (Evaluator)', approverRole: 'ผู้อนุมัติ (Approver)',
-        nameLabel: 'ชื่อ-นามสกุล', dateLabel: 'วันที่', signHere: 'ลงชื่อ' },
+        nameLabel: 'ชื่อ-นามสกุล', dateLabel: 'วันที่', signHere: 'ลงชื่อ',
+        sampleNote: '⚠️ ข้อมูลตัวอย่าง/จำลอง — ไม่ใช่ตำแหน่งหรือคะแนนจริงของบริษัท ใช้เพื่อสาธิตการใช้งานเท่านั้น',
+        posSampleNote: 'ตัวเลือกในรายการเป็นชื่อตำแหน่งตัวอย่าง พิมพ์ชื่อตำแหน่งจริงได้โดยตรง' },
   en: { title: '📋 Job Evaluation Reference Table (100 Reference Positions)', search: 'Search title or job ID...', allDept: 'All Departments', allLevel: 'All Levels',
         colId: 'Job ID', colTitle: 'Job Title', colDept: 'Department', colLevel: 'Level', colScore: 'Total Score',
         countTpl: (n) => `Showing ${n} of 100 positions`,
         signTitle: '✍️ Approval Signatures', evaluatorRole: 'Evaluator', approverRole: 'Approver',
-        nameLabel: 'Full Name', dateLabel: 'Date', signHere: 'Signature' },
+        nameLabel: 'Full Name', dateLabel: 'Date', signHere: 'Signature',
+        sampleNote: '⚠️ Sample/simulated data — not the company\'s real positions or scores. For demonstration only.',
+        posSampleNote: 'Options in this list are sample job titles. You can type a real title directly.' },
   zh: { title: '📋 职位评估参考表（100个参考职位）', search: '搜索职位名称或编号...', allDept: '全部部门', allLevel: '全部职级',
         colId: '职位编号', colTitle: '职位名称', colDept: '部门', colLevel: '职级', colScore: '总分',
         countTpl: (n) => `显示 ${n} / 共 100 个职位`,
         signTitle: '✍️ 签核确认', evaluatorRole: '评估人 (Evaluator)', approverRole: '核准人 (Approver)',
-        nameLabel: '姓名', dateLabel: '日期', signHere: '签名' },
+        nameLabel: '姓名', dateLabel: '日期', signHere: '签名',
+        sampleNote: '⚠️ 示例/模拟数据 — 并非公司真实职位或分数，仅供演示使用。',
+        posSampleNote: '列表中的选项为示例职位名称，您可以直接输入真实职位名称。' },
 };
 
 function populateRefFilters(){
@@ -746,6 +758,8 @@ function renderRefTable(){
 function applyRefStaticText(){
   const ui = REF_UI[currentLang] || REF_UI.en;
   document.getElementById('refTableTitle').textContent = ui.title;
+  document.getElementById('refSampleNote').textContent = ui.sampleNote;
+  document.getElementById('posSampleNote').textContent = ui.posSampleNote;
   document.getElementById('refSearch').placeholder = ui.search;
   document.getElementById('rthId').textContent = ui.colId;
   document.getElementById('rthTitle').textContent = ui.colTitle;
