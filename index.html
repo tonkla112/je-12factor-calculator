@@ -41,9 +41,12 @@
   .meta-card h2, .summary-card h2{font-size:15px; color:var(--navy); margin:0 0 12px;}
   .meta-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
   .meta-grid label{display:block; font-size:12px; color:var(--grey); margin-bottom:4px;}
-  .meta-grid input, .meta-grid select{
+  .meta-grid input, .meta-grid select, .meta-grid textarea{
     width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px;
+    font-family:inherit;
   }
+  .meta-grid textarea{min-height:70px; resize:vertical; line-height:1.45;}
+  .meta-grid .span-2{grid-column:1 / -1;}
 
   .factor-card{position:relative;}
   .factor-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;}
@@ -72,6 +75,18 @@
     border-radius:999px; margin-bottom:8px;
   }
   .band-desc{font-size:13px; line-height:1.55; color:#374151; background:var(--navy-light); border-radius:8px; padding:10px 12px;}
+  .rationale-wrap{margin-top:10px;}
+  .rationale-label{display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--grey); margin-bottom:4px;}
+  .rationale-required{color:var(--red); font-weight:700;}
+  .rationale-input{
+    width:100%; min-height:68px; resize:vertical; border:1px solid var(--border); border-radius:8px;
+    padding:8px 10px; font-family:inherit; font-size:12.5px; line-height:1.45;
+  }
+  .rationale-input.invalid{border-color:var(--red); background:#FEF2F2;}
+  .completion-note{
+    font-size:11.5px; color:#991B1B; background:#FEF2F2; border:1px solid #FECACA;
+    border-radius:10px; padding:9px 12px; margin-top:10px; line-height:1.5;
+  }
 
   .toggle-anchor{
     font-size:12px; color:var(--navy2); cursor:pointer; user-select:none; margin-top:8px; display:inline-block;
@@ -189,6 +204,7 @@
       <div><label id="lDept">แผนก (Department)</label><input id="dept" type="text"></div>
       <div><label id="lEvaluator">ผู้ประเมิน (Evaluator)</label><input id="evaluator" type="text"></div>
       <div><label id="lDate">วันที่ประเมิน</label><input id="evalDate" type="date"></div>
+      <div class="span-2"><label id="lJobEvidence">หลักฐานจาก Job Description</label><textarea id="jobEvidence"></textarea></div>
     </div>
   </div>
 
@@ -286,6 +302,7 @@ const UI = {
     dept: 'แผนก (Department)', deptPh: 'เช่น Production',
     evaluator: 'ผู้ประเมิน (Evaluator)', evaluatorPh: 'ชื่อกรรมการผู้ให้คะแนน',
     date: 'วันที่ประเมิน',
+    jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
     summary: '📊 สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
@@ -293,6 +310,12 @@ const UI = {
     disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ',
     modelNote: 'ใช้โมเดล {version} · คะแนนรวมเป็นคะแนนถ่วงน้ำหนักตามกลุ่มปัจจัย · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
     boundaryReview: 'คะแนนนี้อยู่ใกล้เส้นแบ่ง {lower}/{upper} ({boundary} คะแนน) ควรทบทวนกับงานอ้างอิงก่อนอนุมัติ',
+    rationaleLabel: 'เหตุผล/หลักฐานประกอบคะแนน',
+    rationalePlaceholder: 'อ้างอิง JD หรือหลักฐานงานที่สนับสนุนคะแนนนี้...',
+    rationaleMissing: 'ต้องใส่เหตุผลครบทุกปัจจัยก่อนแนะนำ Job Level อย่างเป็นทางการ: เหลือ {count}/12 ปัจจัย',
+    incompleteLevel: 'ยังไม่สมบูรณ์',
+    incompleteSub: 'กรอกเหตุผลประกอบคะแนนให้ครบทุกปัจจัย',
+    exportBlocked: 'กรุณากรอกเหตุผล/หลักฐานประกอบคะแนนให้ครบทั้ง 12 ปัจจัยก่อนบันทึกผล',
     viewBands: '▸ ดูเกณฑ์ทั้ง 4 ระดับ', hideBands: '▾ ซ่อนเกณฑ์ทั้ง 4 ระดับ',
     anchorCol1: 'ระดับคะแนน', anchorCol2: 'คำอธิบายเกณฑ์',
     confirmReset: 'ต้องการล้างข้อมูลและเริ่มประเมินใหม่หรือไม่?',
@@ -307,6 +330,7 @@ const UI = {
     dept: 'Department', deptPh: 'e.g. Production',
     evaluator: 'Evaluator', evaluatorPh: 'Name of the scoring committee member',
     date: 'Evaluation Date',
+    jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
     summary: '📊 Evaluation Summary',
     total: 'Total Score (out of 1,200)',
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
@@ -314,6 +338,12 @@ const UI = {
     disclaimer: '⚠️ The Total Score → Job Level bands use the calibrated 100-role benchmark model. Roles near a level boundary should still be reviewed by the JE Committee before final approval.',
     modelNote: 'Using model {version} · total score is factor-group weighted · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
     boundaryReview: 'This score is close to the {lower}/{upper} boundary ({boundary} points). Review against benchmark jobs before approval.',
+    rationaleLabel: 'Score rationale / JD evidence',
+    rationalePlaceholder: 'Cite the JD or work evidence supporting this score...',
+    rationaleMissing: 'Complete all factor rationales before a formal Job Level recommendation: {count}/12 remaining',
+    incompleteLevel: 'Incomplete',
+    incompleteSub: 'Add score rationale for every factor',
+    exportBlocked: 'Please complete rationale/evidence for all 12 factor scores before saving the result.',
     viewBands: '▸ View all 4 score bands', hideBands: '▾ Hide score bands',
     anchorCol1: 'Score Band', anchorCol2: 'Anchor Description',
     confirmReset: 'Clear all data and start a new evaluation?',
@@ -328,6 +358,7 @@ const UI = {
     dept: '部门 (Department)', deptPh: '例如：生产部',
     evaluator: '评估人 (Evaluator)', evaluatorPh: '评分委员会成员姓名',
     date: '评估日期',
+    jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
     summary: '📊 评估结果汇总',
     total: '总分（满分 1,200）',
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
@@ -335,6 +366,12 @@ const UI = {
     disclaimer: '⚠️ 总分对应职级使用已根据100个标杆职位校准的模型。接近职级边界的职位仍应由JE委员会复核后再正式批准。',
     modelNote: '使用模型 {version} · 总分按要素组加权 · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
     boundaryReview: '该分数接近 {lower}/{upper} 边界（{boundary}分），批准前请结合标杆职位复核。',
+    rationaleLabel: '评分理由 / JD证据',
+    rationalePlaceholder: '引用支持该评分的JD或工作证据...',
+    rationaleMissing: '正式推荐职级前必须完成所有要素的评分理由：还剩 {count}/12 项',
+    incompleteLevel: '未完成',
+    incompleteSub: '请为每个要素填写评分理由',
+    exportBlocked: '保存结果前，请完成全部12个要素的评分理由/证据。',
     viewBands: '▸ 查看全部4个评分区间', hideBands: '▾ 隐藏评分区间',
     anchorCol1: '评分区间', anchorCol2: '评分标准说明',
     confirmReset: '确定要清除数据并重新开始评估吗？',
@@ -854,6 +891,8 @@ function bandIndex(v){
 let currentLang = 'th';
 const state = {};
 FACTORS.forEach(f => state[f.key] = 10);
+const rationales = {};
+FACTORS.forEach(f => rationales[f.key] = '');
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -871,6 +910,13 @@ function buildFactorsUI(){
       <input type="range" min="10" max="100" step="5" value="${state[f.key]}" id="slider-${f.key}">
       <span class="band-badge" id="badge-${f.key}"></span>
       <div class="band-desc" id="desc-${f.key}"></div>
+      <div class="rationale-wrap">
+        <label class="rationale-label" for="rationale-${f.key}">
+          <span>${ui.rationaleLabel}</span>
+          <span class="rationale-required">*</span>
+        </label>
+        <textarea class="rationale-input" id="rationale-${f.key}" data-key="${f.key}" placeholder="${ui.rationalePlaceholder}">${escapeHtml(rationales[f.key] || '')}</textarea>
+      </div>
       <span class="toggle-anchor" data-key="${f.key}">${ui.viewBands}</span>
       <table class="anchor-table" id="anchor-${f.key}">
         <tr><th style="width:130px">${ui.anchorCol1}</th><th>${ui.anchorCol2}</th></tr>
@@ -883,10 +929,32 @@ function buildFactorsUI(){
       renderFactor(f.key);
       renderSummary();
     });
+    document.getElementById(`rationale-${f.key}`).addEventListener('input', e => {
+      rationales[f.key] = e.target.value;
+      renderRationaleState(f.key);
+      renderSummary();
+    });
   });
   factorsCol.querySelectorAll('.toggle-anchor').forEach(el => {
     el.addEventListener('click', () => toggleAnchor(el.dataset.key));
   });
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function missingRationales(){
+  return FACTORS.filter(f => !(rationales[f.key] || '').trim());
+}
+
+function renderRationaleState(key){
+  const el = document.getElementById(`rationale-${key}`);
+  if (el) el.classList.toggle('invalid', !(rationales[key] || '').trim());
 }
 
 function toggleAnchor(key){
@@ -925,9 +993,11 @@ function renderSummary(){
   const total = result.weightedTotal;
   document.getElementById('totalScore').textContent = total.toLocaleString();
   const lvl = [result.band.level, result.band.min, result.band.max, result.band.titles];
-  document.getElementById('levelPill').textContent = lvl[0];
-  document.getElementById('levelSub').textContent = lvl[3][currentLang];
-  renderLevelTable(lvl[0]);
+  const missing = missingRationales();
+  const isComplete = missing.length === 0;
+  document.getElementById('levelPill').textContent = isComplete ? lvl[0] : UI[currentLang].incompleteLevel;
+  document.getElementById('levelSub').textContent = isComplete ? lvl[3][currentLang] : UI[currentLang].incompleteSub;
+  renderLevelTable(isComplete ? lvl[0] : null);
   const fit = window.JE_SCORE_GRADE_MODEL.benchmarkFit;
   const review = result.boundaryReview;
   let note = UI[currentLang].modelNote
@@ -944,7 +1014,11 @@ function renderSummary(){
     const hazardText = HAZARD_TEXT[currentLang] || HAZARD_TEXT.en;
     note += '<br>' + hazardText[result.hazardPremiumReview.tier];
   }
+  if (!isComplete) {
+    note += `<div class="completion-note">${UI[currentLang].rationaleMissing.replaceAll('{count}', missing.length)}</div>`;
+  }
   document.getElementById('modelNote').innerHTML = note;
+  FACTORS.forEach(f => renderRationaleState(f.key));
 
   const bar = document.getElementById('barChart');
   bar.innerHTML = FACTORS.map(f => {
@@ -968,6 +1042,8 @@ function applyStaticText(){
   document.getElementById('lEvaluator').textContent = ui.evaluator;
   document.getElementById('evaluator').placeholder = ui.evaluatorPh;
   document.getElementById('lDate').textContent = ui.date;
+  document.getElementById('lJobEvidence').textContent = ui.jobEvidence;
+  document.getElementById('jobEvidence').placeholder = ui.jobEvidencePh;
   document.getElementById('mSummary').textContent = ui.summary;
   document.getElementById('lTotal').textContent = ui.total;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
@@ -1005,23 +1081,40 @@ document.getElementById('refLevelFilter').addEventListener('change', renderRefTa
 setLang('th');
 
 function exportJSON(){
+  const missing = missingRationales();
+  if (missing.length) {
+    alert(UI[currentLang].exportBlocked);
+    const first = document.getElementById(`rationale-${missing[0].key}`);
+    if (first) first.focus();
+    renderSummary();
+    return;
+  }
+  const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
   const data = {
     jobTitle: document.getElementById('jobTitle').value,
     dept: document.getElementById('dept').value,
     evaluator: document.getElementById('evaluator').value,
     evalDate: document.getElementById('evalDate').value,
+    jobDescriptionEvidence: document.getElementById('jobEvidence').value,
     lang: currentLang,
     scores: state,
-    total: window.JE_SCORE_GRADE_MODEL.calculate(state).weightedTotal,
-    unweightedTotal: window.JE_SCORE_GRADE_MODEL.calculate(state).unweightedTotal,
-    level: window.JE_SCORE_GRADE_MODEL.calculate(state).level,
+    factorRationales: rationales,
+    factorEvidence: FACTORS.map(f => ({
+      key: f.key,
+      factor: f.name.en,
+      score: state[f.key],
+      rationale: rationales[f.key],
+    })),
+    total: result.weightedTotal,
+    unweightedTotal: result.unweightedTotal,
+    level: result.level,
     scoreGradeModelVersion: window.JE_SCORE_GRADE_MODEL.version,
     scoreGradeBands: window.JE_SCORE_GRADE_MODEL.bands,
     scoreGradeModelBasis: window.JE_SCORE_GRADE_MODEL.basis,
     benchmarkFit: window.JE_SCORE_GRADE_MODEL.benchmarkFit,
     factorWeights: window.JE_SCORE_GRADE_MODEL.factorWeights,
-    factorGroupContributions: window.JE_SCORE_GRADE_MODEL.calculate(state).groupContributions,
-    hazardPremiumReview: window.JE_SCORE_GRADE_MODEL.calculate(state).hazardPremiumReview,
+    factorGroupContributions: result.groupContributions,
+    hazardPremiumReview: result.hazardPremiumReview,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -1042,13 +1135,18 @@ function importJSON(evt){
       document.getElementById('dept').value = data.dept || '';
       document.getElementById('evaluator').value = data.evaluator || '';
       document.getElementById('evalDate').value = data.evalDate || '';
+      document.getElementById('jobEvidence').value = data.jobDescriptionEvidence || data.jobEvidence || '';
       FACTORS.forEach(f => {
         const raw = data.scores && data.scores[f.key];
         const v = Math.max(10, Math.min(100, Number(raw) || 10));
         state[f.key] = v;
         const slider = document.getElementById(`slider-${f.key}`);
         if (slider) slider.value = v;
+        rationales[f.key] = (data.factorRationales && data.factorRationales[f.key]) || '';
+        const rationale = document.getElementById(`rationale-${f.key}`);
+        if (rationale) rationale.value = rationales[f.key];
         renderFactor(f.key);
+        renderRationaleState(f.key);
       });
       renderSummary();
     }catch(err){
@@ -1064,11 +1162,16 @@ function resetAll(){
   document.getElementById('dept').value = '';
   document.getElementById('evaluator').value = '';
   document.getElementById('evalDate').value = '';
+  document.getElementById('jobEvidence').value = '';
   FACTORS.forEach(f => {
     state[f.key] = 10;
+    rationales[f.key] = '';
     const slider = document.getElementById(`slider-${f.key}`);
     if (slider) slider.value = 10;
+    const rationale = document.getElementById(`rationale-${f.key}`);
+    if (rationale) rationale.value = '';
     renderFactor(f.key);
+    renderRationaleState(f.key);
   });
   renderSummary();
 }
