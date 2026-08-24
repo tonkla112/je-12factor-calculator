@@ -291,7 +291,7 @@ const UI = {
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
     btnPrint: '🖨️ พิมพ์ / PDF', btnSave: '💾 บันทึกผล (JSON)', btnLoad: '📂 โหลดผลเดิม', btnReset: '↺ เริ่มใหม่',
     disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ',
-    modelNote: 'ใช้โมเดล {version} · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
+    modelNote: 'ใช้โมเดล {version} · คะแนนรวมเป็นคะแนนถ่วงน้ำหนักตามกลุ่มปัจจัย · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
     boundaryReview: 'คะแนนนี้อยู่ใกล้เส้นแบ่ง {lower}/{upper} ({boundary} คะแนน) ควรทบทวนกับงานอ้างอิงก่อนอนุมัติ',
     viewBands: '▸ ดูเกณฑ์ทั้ง 4 ระดับ', hideBands: '▾ ซ่อนเกณฑ์ทั้ง 4 ระดับ',
     anchorCol1: 'ระดับคะแนน', anchorCol2: 'คำอธิบายเกณฑ์',
@@ -312,7 +312,7 @@ const UI = {
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
     btnPrint: '🖨️ Print / PDF', btnSave: '💾 Save Result (JSON)', btnLoad: '📂 Load Result', btnReset: '↺ Reset',
     disclaimer: '⚠️ The Total Score → Job Level bands use the calibrated 100-role benchmark model. Roles near a level boundary should still be reviewed by the JE Committee before final approval.',
-    modelNote: 'Using model {version} · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
+    modelNote: 'Using model {version} · total score is factor-group weighted · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
     boundaryReview: 'This score is close to the {lower}/{upper} boundary ({boundary} points). Review against benchmark jobs before approval.',
     viewBands: '▸ View all 4 score bands', hideBands: '▾ Hide score bands',
     anchorCol1: 'Score Band', anchorCol2: 'Anchor Description',
@@ -333,7 +333,7 @@ const UI = {
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
     btnPrint: '🖨️ 打印 / PDF', btnSave: '💾 保存结果 (JSON)', btnLoad: '📂 加载已存结果', btnReset: '↺ 重新开始',
     disclaimer: '⚠️ 总分对应职级使用已根据100个标杆职位校准的模型。接近职级边界的职位仍应由JE委员会复核后再正式批准。',
-    modelNote: '使用模型 {version} · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
+    modelNote: '使用模型 {version} · 总分按要素组加权 · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
     boundaryReview: '该分数接近 {lower}/{upper} 边界（{boundary}分），批准前请结合标杆职位复核。',
     viewBands: '▸ 查看全部4个评分区间', hideBands: '▾ 隐藏评分区间',
     anchorCol1: '评分区间', anchorCol2: '评分标准说明',
@@ -904,14 +904,15 @@ function renderLevelTable(activeCode){
 }
 
 function renderSummary(){
-  const total = FACTORS.reduce((s,f) => s + state[f.key], 0);
+  const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
+  const total = result.weightedTotal;
   document.getElementById('totalScore').textContent = total.toLocaleString();
-  const lvl = recommendedLevel(total);
+  const lvl = [result.band.level, result.band.min, result.band.max, result.band.titles];
   document.getElementById('levelPill').textContent = lvl[0];
   document.getElementById('levelSub').textContent = lvl[3][currentLang];
   renderLevelTable(lvl[0]);
   const fit = window.JE_SCORE_GRADE_MODEL.benchmarkFit;
-  const review = window.JE_SCORE_GRADE_MODEL.boundaryReview(total);
+  const review = result.boundaryReview;
   let note = UI[currentLang].modelNote
     .replaceAll('{version}', window.JE_SCORE_GRADE_MODEL.version)
     .replaceAll('{count}', window.JE_SCORE_GRADE_MODEL.benchmarkRoleCount)
@@ -990,12 +991,15 @@ function exportJSON(){
     evalDate: document.getElementById('evalDate').value,
     lang: currentLang,
     scores: state,
-    total: FACTORS.reduce((s,f) => s + state[f.key], 0),
-    level: recommendedLevel(FACTORS.reduce((s,f) => s + state[f.key], 0))[0],
+    total: window.JE_SCORE_GRADE_MODEL.calculate(state).weightedTotal,
+    unweightedTotal: window.JE_SCORE_GRADE_MODEL.calculate(state).unweightedTotal,
+    level: window.JE_SCORE_GRADE_MODEL.calculate(state).level,
     scoreGradeModelVersion: window.JE_SCORE_GRADE_MODEL.version,
     scoreGradeBands: window.JE_SCORE_GRADE_MODEL.bands,
     scoreGradeModelBasis: window.JE_SCORE_GRADE_MODEL.basis,
     benchmarkFit: window.JE_SCORE_GRADE_MODEL.benchmarkFit,
+    factorWeights: window.JE_SCORE_GRADE_MODEL.factorWeights,
+    factorGroupContributions: window.JE_SCORE_GRADE_MODEL.calculate(state).groupContributions,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
