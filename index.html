@@ -134,6 +134,25 @@
     font-size:11.5px; color:#1F3A6B; background:#EAF0FB; border:1px solid #BFDBFE;
     border-radius:10px; padding:9px 12px; margin-top:10px; line-height:1.5;
   }
+  .workflow-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .workflow-grid label{display:block; font-size:12px; color:var(--grey); margin-bottom:4px;}
+  .workflow-grid input, .workflow-grid select, .workflow-grid textarea{
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px;
+    font-family:inherit; font-size:13px;
+  }
+  .workflow-grid textarea{min-height:64px; resize:vertical; line-height:1.45;}
+  .workflow-grid .span-2{grid-column:1 / -1;}
+  .audit-log{
+    max-height:180px; overflow:auto; border:1px solid var(--border); border-radius:10px;
+    background:#F8FAFC; padding:8px 10px; font-size:11.5px; line-height:1.45;
+  }
+  .audit-entry{padding:6px 0; border-bottom:1px solid var(--border);}
+  .audit-entry:last-child{border-bottom:none;}
+  .locked-note{
+    display:none; font-size:11.5px; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A;
+    border-radius:10px; padding:8px 10px; margin-top:8px; line-height:1.45;
+  }
+  .locked-note.show{display:block;}
   @media print{
     header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters{display:none !important;}
     .anchor-table{display:none !important;}
@@ -207,6 +226,28 @@
       <div><label id="lEvalStatus">สถานะการประเมิน</label><select id="evalStatus"></select></div>
       <div class="span-2"><label id="lJobEvidence">หลักฐานจาก Job Description</label><textarea id="jobEvidence"></textarea></div>
     </div>
+  </div>
+
+  <div class="meta-card">
+    <h2 id="mWorkflow">Approval Workflow & Audit Trail</h2>
+    <div class="workflow-grid">
+      <div><label id="lEvaluationId">Evaluation ID</label><input id="evaluationId" type="text" readonly></div>
+      <div><label id="lVersionNumber">Version</label><input id="versionNumber" type="text" readonly></div>
+      <div><label id="lWorkflowActor">Action By</label><input id="workflowActor" type="text"></div>
+      <div><label id="lFinalApprovedLevel">Final Approved Level</label><select id="finalApprovedLevel"></select></div>
+      <div><label id="lApprovedBy">Approved / Decided By</label><input id="approvedBy" type="text"></div>
+      <div><label id="lDecisionDate">Decision Date</label><input id="decisionDate" type="date"></div>
+      <div class="span-2"><label id="lCommitteeReviewers">Committee Reviewers</label><input id="committeeReviewers" type="text"></div>
+      <div class="span-2"><label id="lCommitteeNotes">Committee Consensus Notes</label><textarea id="committeeNotes"></textarea></div>
+      <div class="span-2"><label id="lBenchmarkNotes">Benchmark / Boundary Notes</label><textarea id="benchmarkNotes"></textarea></div>
+      <div class="span-2"><label id="lTransitionComment">Transition Comment</label><textarea id="transitionComment"></textarea></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnApplyStatus" onclick="applyStatusTransition()">Apply Status Change</button>
+      <button class="btn-secondary" id="btnForkVersion" onclick="forkRecalibratedVersion()">Fork Recalibrated Version</button>
+    </div>
+    <div class="locked-note" id="lockedNote"></div>
+    <div class="audit-log" id="auditLog"></div>
   </div>
 
   <div class="layout">
@@ -304,6 +345,25 @@ const UI = {
     evaluator: 'ผู้ประเมิน (Evaluator)', evaluatorPh: 'ชื่อกรรมการผู้ให้คะแนน',
     date: 'วันที่ประเมิน',
     evalStatus: 'สถานะการประเมิน',
+    workflow: 'Approval Workflow & Audit Trail',
+    evaluationId: 'Evaluation ID',
+    versionNumber: 'Version',
+    workflowActor: 'Action By',
+    finalApprovedLevel: 'Final Approved Level',
+    approvedBy: 'Approved / Decided By',
+    decisionDate: 'Decision Date',
+    committeeReviewers: 'Committee Reviewers',
+    committeeNotes: 'Committee Consensus Notes',
+    benchmarkNotes: 'Benchmark / Boundary Notes',
+    transitionComment: 'Transition Comment',
+    applyStatus: 'Apply Status Change',
+    forkVersion: 'Fork Recalibrated Version',
+    lockedNote: 'Record is locked for score/JD editing after submission. Use Rejected to return to evaluator or fork a recalibrated version when the model changes.',
+    auditEmpty: 'ยังไม่มีประวัติการเปลี่ยนสถานะ',
+    invalidTransition: 'ไม่สามารถเปลี่ยนสถานะจาก {from} ไป {to} ได้ตาม workflow',
+    approvalNeedsLevel: 'กรุณาเลือก Final Approved Level ก่อนอนุมัติ',
+    transitionNeedsActor: 'กรุณาระบุผู้ดำเนินการในช่อง Action By',
+    recalibrationNeedsApproved: 'สามารถ fork เป็น Recalibrated version ได้จากสถานะ Approved เท่านั้น',
     jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
     summary: '📊 สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
@@ -333,6 +393,25 @@ const UI = {
     evaluator: 'Evaluator', evaluatorPh: 'Name of the scoring committee member',
     date: 'Evaluation Date',
     evalStatus: 'Evaluation Status',
+    workflow: 'Approval Workflow & Audit Trail',
+    evaluationId: 'Evaluation ID',
+    versionNumber: 'Version',
+    workflowActor: 'Action By',
+    finalApprovedLevel: 'Final Approved Level',
+    approvedBy: 'Approved / Decided By',
+    decisionDate: 'Decision Date',
+    committeeReviewers: 'Committee Reviewers',
+    committeeNotes: 'Committee Consensus Notes',
+    benchmarkNotes: 'Benchmark / Boundary Notes',
+    transitionComment: 'Transition Comment',
+    applyStatus: 'Apply Status Change',
+    forkVersion: 'Fork Recalibrated Version',
+    lockedNote: 'Record is locked for score/JD editing after submission. Use Rejected to return to evaluator or fork a recalibrated version when the model changes.',
+    auditEmpty: 'No status changes recorded yet.',
+    invalidTransition: 'Cannot change status from {from} to {to} under the configured workflow.',
+    approvalNeedsLevel: 'Select a Final Approved Level before approval.',
+    transitionNeedsActor: 'Enter an Action By value before changing status.',
+    recalibrationNeedsApproved: 'Only Approved records can be forked into a recalibrated version.',
     jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
     summary: '📊 Evaluation Summary',
     total: 'Total Score (out of 1,200)',
@@ -362,6 +441,25 @@ const UI = {
     evaluator: '评估人 (Evaluator)', evaluatorPh: '评分委员会成员姓名',
     date: '评估日期',
     evalStatus: '评估状态',
+    workflow: '审批流程与审计记录',
+    evaluationId: '评估编号',
+    versionNumber: '版本',
+    workflowActor: '操作人',
+    finalApprovedLevel: '最终批准职级',
+    approvedBy: '批准/决定人',
+    decisionDate: '决定日期',
+    committeeReviewers: '委员会复核人',
+    committeeNotes: '委员会共识意见',
+    benchmarkNotes: '基准/边界说明',
+    transitionComment: '状态变更说明',
+    applyStatus: '应用状态变更',
+    forkVersion: '创建重新校准版本',
+    lockedNote: '提交后，评分/JD编辑将被锁定。可使用 Rejected 退回给评估人，或在模型变化时创建重新校准版本。',
+    auditEmpty: '暂无状态变更记录。',
+    invalidTransition: '根据当前流程，不能从 {from} 变更为 {to}。',
+    approvalNeedsLevel: '批准前请选择最终批准职级。',
+    transitionNeedsActor: '变更状态前请填写操作人。',
+    recalibrationNeedsApproved: '只有已批准记录才能创建重新校准版本。',
     jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
     summary: '📊 评估结果汇总',
     total: '总分（满分 1,200）',
@@ -416,6 +514,16 @@ const WORKFLOW_STATUS_LABELS = {
   Rejected: { th: 'Rejected - ไม่อนุมัติ', en: 'Rejected', zh: '已驳回' },
   Recalibrated: { th: 'Recalibrated - ปรับเทียบใหม่', en: 'Recalibrated', zh: '已重新校准' },
 };
+const ALLOWED_TRANSITIONS = {
+  Draft: ['Submitted'],
+  Submitted: ['Committee Reviewed', 'Rejected'],
+  'Committee Reviewed': ['Approved', 'Rejected'],
+  Approved: ['Recalibrated'],
+  Rejected: ['Draft', 'Submitted'],
+  Recalibrated: [],
+};
+const EDITABLE_STATUSES = ['Draft', 'Rejected'];
+const LEVEL_CODES = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8'];
 
 /* ============================================================
    FACTORS — name / key question / 4 score-band anchors, per language
@@ -906,8 +1014,203 @@ const state = {};
 FACTORS.forEach(f => state[f.key] = 10);
 const rationales = {};
 FACTORS.forEach(f => rationales[f.key] = '');
+const workflowState = {
+  id: uuid(),
+  evaluationId: generateEvaluationId(),
+  versionNumber: 1,
+  isLatestVersion: true,
+  currentStatus: 'Draft',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  submittedBy: null,
+  submittedAt: null,
+  committeeReviewedAt: null,
+  approvedBy: null,
+  decisionDate: null,
+  finalApprovedLevel: '',
+  supersededVersionSnapshot: null,
+  auditTrail: [],
+};
 
 const factorsCol = document.getElementById('factorsCol');
+
+function uuid(){
+  if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function generateEvaluationId(){
+  const year = new Date().getFullYear();
+  const suffix = String(Math.floor(Math.random() * 900) + 100);
+  return `JE-${year}-${suffix}`;
+}
+
+function currentActor(){
+  return (document.getElementById('workflowActor').value || document.getElementById('evaluator').value || '').trim();
+}
+
+function setCurrentStatus(status){
+  workflowState.currentStatus = status;
+  workflowState.updatedAt = new Date().toISOString();
+  const statusSelect = document.getElementById('evalStatus');
+  if (statusSelect) statusSelect.value = status;
+  applyEditLock();
+}
+
+function applyEditLock(){
+  const locked = !EDITABLE_STATUSES.includes(workflowState.currentStatus);
+  ['jobTitle', 'dept', 'evaluator', 'evalDate', 'jobEvidence'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = locked;
+  });
+  FACTORS.forEach(f => {
+    const slider = document.getElementById(`slider-${f.key}`);
+    const rationale = document.getElementById(`rationale-${f.key}`);
+    if (slider) slider.disabled = locked;
+    if (rationale) rationale.disabled = locked;
+  });
+  const lockedNote = document.getElementById('lockedNote');
+  if (lockedNote) {
+    lockedNote.textContent = UI[currentLang].lockedNote;
+    lockedNote.classList.toggle('show', locked);
+  }
+}
+
+function collectWorkflowMetadata(){
+  const finalApprovedLevel = document.getElementById('finalApprovedLevel').value;
+  return {
+    committee_reviewers: document.getElementById('committeeReviewers').value.split(',').map(v => v.trim()).filter(Boolean),
+    consensus_notes: document.getElementById('committeeNotes').value,
+    benchmark_notes: document.getElementById('benchmarkNotes').value,
+    approved_by: document.getElementById('approvedBy').value,
+    decision_date: document.getElementById('decisionDate').value,
+    final_approved_level: finalApprovedLevel,
+    score_snapshot: window.JE_SCORE_GRADE_MODEL.calculate(state),
+  };
+}
+
+function addAuditLog(fromStatus, toStatus, comments, metadata = {}){
+  workflowState.auditTrail.push({
+    id: uuid(),
+    evaluation_id: workflowState.evaluationId,
+    record_id: workflowState.id,
+    version_number: workflowState.versionNumber,
+    changed_at: new Date().toISOString(),
+    changed_by: currentActor() || 'Unspecified',
+    from_status: fromStatus,
+    to_status: toStatus,
+    comments: comments || '',
+    metadata,
+  });
+  workflowState.updatedAt = new Date().toISOString();
+  renderAuditLog();
+}
+
+function renderAuditLog(){
+  const audit = document.getElementById('auditLog');
+  if (!audit) return;
+  if (!workflowState.auditTrail.length) {
+    audit.textContent = UI[currentLang].auditEmpty;
+    return;
+  }
+  audit.innerHTML = workflowState.auditTrail.slice().reverse().map(log => `
+    <div class="audit-entry">
+      <strong>${escapeHtml(log.from_status || 'New')} → ${escapeHtml(log.to_status)}</strong>
+      <div>${new Date(log.changed_at).toLocaleString()} · ${escapeHtml(log.changed_by)}</div>
+      <div>${escapeHtml(log.comments || '')}</div>
+    </div>
+  `).join('');
+}
+
+function renderWorkflowFields(){
+  document.getElementById('evaluationId').value = workflowState.evaluationId;
+  document.getElementById('versionNumber').value = `v${workflowState.versionNumber}`;
+  document.getElementById('evalStatus').value = workflowState.currentStatus;
+  document.getElementById('finalApprovedLevel').innerHTML = [''].concat(LEVEL_CODES).map(level => `<option value="${level}" ${level === workflowState.finalApprovedLevel ? 'selected' : ''}>${level || '-'}</option>`).join('');
+  renderAuditLog();
+  applyEditLock();
+}
+
+function applyStatusTransition(){
+  const fromStatus = workflowState.currentStatus;
+  const toStatus = document.getElementById('evalStatus').value;
+  if (fromStatus === toStatus) return;
+  const actor = currentActor();
+  if (!actor) {
+    alert(UI[currentLang].transitionNeedsActor);
+    document.getElementById('evalStatus').value = fromStatus;
+    return;
+  }
+  const allowed = ALLOWED_TRANSITIONS[fromStatus] || [];
+  if (!allowed.includes(toStatus)) {
+    alert(UI[currentLang].invalidTransition.replaceAll('{from}', fromStatus).replaceAll('{to}', toStatus));
+    document.getElementById('evalStatus').value = fromStatus;
+    return;
+  }
+  if (['Submitted', 'Committee Reviewed', 'Approved'].includes(toStatus) && missingRationales().length) {
+    alert(UI[currentLang].exportBlocked);
+    document.getElementById('evalStatus').value = fromStatus;
+    renderSummary();
+    return;
+  }
+  const metadata = collectWorkflowMetadata();
+  if (toStatus === 'Approved' && !metadata.final_approved_level) {
+    alert(UI[currentLang].approvalNeedsLevel);
+    document.getElementById('evalStatus').value = fromStatus;
+    return;
+  }
+  if (toStatus === 'Submitted') {
+    workflowState.submittedBy = actor;
+    workflowState.submittedAt = new Date().toISOString();
+  }
+  if (toStatus === 'Committee Reviewed') {
+    workflowState.committeeReviewedAt = new Date().toISOString();
+  }
+  if (['Approved', 'Rejected'].includes(toStatus)) {
+    workflowState.approvedBy = metadata.approved_by || actor;
+    workflowState.decisionDate = metadata.decision_date || new Date().toISOString().slice(0, 10);
+    workflowState.finalApprovedLevel = toStatus === 'Approved' ? metadata.final_approved_level : '';
+  }
+  setCurrentStatus(toStatus);
+  addAuditLog(fromStatus, toStatus, document.getElementById('transitionComment').value, metadata);
+  renderWorkflowFields();
+}
+
+function forkRecalibratedVersion(){
+  if (workflowState.currentStatus !== 'Approved') {
+    alert(UI[currentLang].recalibrationNeedsApproved);
+    return;
+  }
+  const oldSnapshot = buildEvaluationSnapshot();
+  const oldVersion = workflowState.versionNumber;
+  document.getElementById('evalStatus').value = 'Recalibrated';
+  applyStatusTransition();
+  if (workflowState.currentStatus !== 'Recalibrated') return;
+  workflowState.supersededVersionSnapshot = oldSnapshot;
+  workflowState.id = uuid();
+  workflowState.versionNumber = oldVersion + 1;
+  workflowState.isLatestVersion = true;
+  workflowState.currentStatus = 'Draft';
+  workflowState.createdAt = new Date().toISOString();
+  workflowState.updatedAt = workflowState.createdAt;
+  workflowState.submittedBy = null;
+  workflowState.submittedAt = null;
+  workflowState.committeeReviewedAt = null;
+  workflowState.approvedBy = null;
+  workflowState.decisionDate = null;
+  workflowState.finalApprovedLevel = '';
+  workflowState.auditTrail = [];
+  addAuditLog(null, 'Draft', `Forked from ${workflowState.evaluationId} v${oldVersion} for recalibration`, {
+    superseded_record_id: oldSnapshot.id,
+    superseded_version_number: oldVersion,
+    score_model_version: window.JE_SCORE_GRADE_MODEL.version,
+  });
+  renderWorkflowFields();
+}
 
 function buildFactorsUI(){
   const ui = UI[currentLang];
@@ -1083,6 +1386,7 @@ function setLang(lang){
   applyRefStaticText();
   populateRefFilters();
   renderRefTable();
+  renderWorkflowFields();
 }
 
 document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn => {
@@ -1096,27 +1400,49 @@ document.getElementById('refDeptFilter').addEventListener('change', renderRefTab
 document.getElementById('refLevelFilter').addEventListener('change', renderRefTable);
 
 setLang('th');
+renderWorkflowFields();
 
-function exportJSON(){
-  const missing = missingRationales();
-  if (missing.length) {
-    alert(UI[currentLang].exportBlocked);
-    const first = document.getElementById(`rationale-${missing[0].key}`);
-    if (first) first.focus();
-    renderSummary();
-    return;
-  }
+function buildEvaluationSnapshot(){
   const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
-  const data = {
+  const now = new Date().toISOString();
+  workflowState.updatedAt = now;
+  return {
+    id: workflowState.id,
+    evaluation_id: workflowState.evaluationId,
+    version_number: workflowState.versionNumber,
+    is_latest_version: workflowState.isLatestVersion,
+    score_model_version: window.JE_SCORE_GRADE_MODEL.version,
+    job_title: document.getElementById('jobTitle').value,
+    department: document.getElementById('dept').value,
+    jd_reference_text: document.getElementById('jobEvidence').value,
+    factor_scores: { ...state },
+    factor_rationales: { ...rationales },
+    total_score: result.weightedTotal,
+    recommended_level: result.level,
+    final_approved_level: workflowState.finalApprovedLevel || null,
+    current_status: workflowState.currentStatus,
+    created_by: document.getElementById('evaluator').value,
+    created_at: workflowState.createdAt,
+    updated_at: now,
+    submitted_by: workflowState.submittedBy,
+    submitted_at: workflowState.submittedAt,
+    committee_reviewed_at: workflowState.committeeReviewedAt,
+    approved_by: workflowState.approvedBy,
+    decision_date: workflowState.decisionDate,
+    approval_metadata: collectWorkflowMetadata(),
+    audit_trail: workflowState.auditTrail,
+    job_evaluation_audit_logs: workflowState.auditTrail,
+    superseded_version_snapshot: workflowState.supersededVersionSnapshot,
+    // Backward-compatible aliases for earlier calculator exports.
     jobTitle: document.getElementById('jobTitle').value,
     dept: document.getElementById('dept').value,
     evaluator: document.getElementById('evaluator').value,
     evalDate: document.getElementById('evalDate').value,
-    evaluationStatus: document.getElementById('evalStatus').value,
+    evaluationStatus: workflowState.currentStatus,
     jobDescriptionEvidence: document.getElementById('jobEvidence').value,
     lang: currentLang,
-    scores: state,
-    factorRationales: rationales,
+    scores: { ...state },
+    factorRationales: { ...rationales },
     factorEvidence: FACTORS.map(f => ({
       key: f.key,
       factor: f.name.en,
@@ -1134,6 +1460,18 @@ function exportJSON(){
     factorGroupContributions: result.groupContributions,
     hazardPremiumReview: result.hazardPremiumReview,
   };
+}
+
+function exportJSON(){
+  const missing = missingRationales();
+  if (missing.length) {
+    alert(UI[currentLang].exportBlocked);
+    const first = document.getElementById(`rationale-${missing[0].key}`);
+    if (first) first.focus();
+    renderSummary();
+    return;
+  }
+  const data = buildEvaluationSnapshot();
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1149,24 +1487,47 @@ function importJSON(evt){
   reader.onload = e => {
     try{
       const data = JSON.parse(e.target.result);
-      document.getElementById('jobTitle').value = data.jobTitle || '';
-      document.getElementById('dept').value = data.dept || '';
-      document.getElementById('evaluator').value = data.evaluator || '';
+      document.getElementById('jobTitle').value = data.job_title || data.jobTitle || '';
+      document.getElementById('dept').value = data.department || data.dept || '';
+      document.getElementById('evaluator').value = data.created_by || data.evaluator || '';
       document.getElementById('evalDate').value = data.evalDate || '';
-      document.getElementById('evalStatus').value = WORKFLOW_STATUS_ORDER.includes(data.evaluationStatus) ? data.evaluationStatus : 'Draft';
-      document.getElementById('jobEvidence').value = data.jobDescriptionEvidence || data.jobEvidence || '';
+      workflowState.id = data.id || uuid();
+      workflowState.evaluationId = data.evaluation_id || data.evaluationId || generateEvaluationId();
+      workflowState.versionNumber = Number(data.version_number || data.versionNumber || 1);
+      workflowState.isLatestVersion = data.is_latest_version !== undefined ? Boolean(data.is_latest_version) : true;
+      workflowState.currentStatus = WORKFLOW_STATUS_ORDER.includes(data.current_status || data.evaluationStatus) ? (data.current_status || data.evaluationStatus) : 'Draft';
+      workflowState.createdAt = data.created_at || data.createdAt || new Date().toISOString();
+      workflowState.updatedAt = data.updated_at || data.updatedAt || new Date().toISOString();
+      workflowState.submittedBy = data.submitted_by || null;
+      workflowState.submittedAt = data.submitted_at || null;
+      workflowState.committeeReviewedAt = data.committee_reviewed_at || null;
+      workflowState.approvedBy = data.approved_by || null;
+      workflowState.decisionDate = data.decision_date || null;
+      workflowState.finalApprovedLevel = data.final_approved_level || '';
+      workflowState.supersededVersionSnapshot = data.superseded_version_snapshot || null;
+      workflowState.auditTrail = Array.isArray(data.audit_trail) ? data.audit_trail : (Array.isArray(data.job_evaluation_audit_logs) ? data.job_evaluation_audit_logs : []);
+      document.getElementById('evalStatus').value = workflowState.currentStatus;
+      document.getElementById('jobEvidence').value = data.jd_reference_text || data.jobDescriptionEvidence || data.jobEvidence || '';
+      document.getElementById('approvedBy').value = data.approved_by || (data.approval_metadata && data.approval_metadata.approved_by) || '';
+      document.getElementById('decisionDate').value = data.decision_date || (data.approval_metadata && data.approval_metadata.decision_date) || '';
+      document.getElementById('committeeReviewers').value = data.approval_metadata && Array.isArray(data.approval_metadata.committee_reviewers) ? data.approval_metadata.committee_reviewers.join(', ') : '';
+      document.getElementById('committeeNotes').value = data.approval_metadata ? data.approval_metadata.consensus_notes || '' : '';
+      document.getElementById('benchmarkNotes').value = data.approval_metadata ? data.approval_metadata.benchmark_notes || '' : '';
       FACTORS.forEach(f => {
-        const raw = data.scores && data.scores[f.key];
+        const sourceScores = data.factor_scores || data.scores || {};
+        const raw = sourceScores[f.key];
         const v = Math.max(10, Math.min(100, Number(raw) || 10));
         state[f.key] = v;
         const slider = document.getElementById(`slider-${f.key}`);
         if (slider) slider.value = v;
-        rationales[f.key] = (data.factorRationales && data.factorRationales[f.key]) || '';
+        const sourceRationales = data.factor_rationales || data.factorRationales || {};
+        rationales[f.key] = sourceRationales[f.key] || '';
         const rationale = document.getElementById(`rationale-${f.key}`);
         if (rationale) rationale.value = rationales[f.key];
         renderFactor(f.key);
         renderRationaleState(f.key);
       });
+      renderWorkflowFields();
       renderSummary();
     }catch(err){
       alert(UI[currentLang].importError);
@@ -1181,8 +1542,26 @@ function resetAll(){
   document.getElementById('dept').value = '';
   document.getElementById('evaluator').value = '';
   document.getElementById('evalDate').value = '';
-  document.getElementById('evalStatus').value = 'Draft';
   document.getElementById('jobEvidence').value = '';
+  workflowState.id = uuid();
+  workflowState.evaluationId = generateEvaluationId();
+  workflowState.versionNumber = 1;
+  workflowState.isLatestVersion = true;
+  workflowState.currentStatus = 'Draft';
+  workflowState.createdAt = new Date().toISOString();
+  workflowState.updatedAt = workflowState.createdAt;
+  workflowState.submittedBy = null;
+  workflowState.submittedAt = null;
+  workflowState.committeeReviewedAt = null;
+  workflowState.approvedBy = null;
+  workflowState.decisionDate = null;
+  workflowState.finalApprovedLevel = '';
+  workflowState.supersededVersionSnapshot = null;
+  workflowState.auditTrail = [];
+  ['workflowActor','approvedBy','decisionDate','committeeReviewers','committeeNotes','benchmarkNotes','transitionComment'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   FACTORS.forEach(f => {
     state[f.key] = 10;
     rationales[f.key] = '';
@@ -1193,6 +1572,7 @@ function resetAll(){
     renderFactor(f.key);
     renderRationaleState(f.key);
   });
+  renderWorkflowFields();
   renderSummary();
 }
 </script>
