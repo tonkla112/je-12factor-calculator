@@ -1185,11 +1185,11 @@ function forkRecalibratedVersion(){
     alert(UI[currentLang].recalibrationNeedsApproved);
     return;
   }
-  const oldSnapshot = buildEvaluationSnapshot();
   const oldVersion = workflowState.versionNumber;
   document.getElementById('evalStatus').value = 'Recalibrated';
   applyStatusTransition();
   if (workflowState.currentStatus !== 'Recalibrated') return;
+  const oldSnapshot = buildEvaluationSnapshot();
   workflowState.supersededVersionSnapshot = oldSnapshot;
   workflowState.id = uuid();
   workflowState.versionNumber = oldVersion + 1;
