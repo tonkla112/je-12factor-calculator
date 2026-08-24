@@ -349,6 +349,23 @@ const BAND_LABELS = {
 };
 const BAND_COLORS = ['#FEF3C7','#FDE68A','#BFDBFE','#BBF7D0'];
 const BAND_TEXT   = ['#92400E','#92400E','#1E40AF','#065F46'];
+const HAZARD_TEXT = {
+  th: {
+    monitor: 'สภาพการทำงานควรติดตาม แต่ยังไม่จำเป็นต้องปรับ Job Level จากเหตุนี้เพียงอย่างเดียว',
+    hazardReview: 'ควรทบทวนเบี้ย/ค่าตอบแทนสภาพงาน แยกจาก Job Level พื้นฐาน',
+    premiumReview: 'ควรพิจารณาเบี้ยอันตราย/สภาพงานอย่างเป็นทางการ แยกจาก Job Level พื้นฐาน',
+  },
+  en: {
+    monitor: 'Working-condition exposure should be monitored, but should not by itself raise the base job level.',
+    hazardReview: 'Review hardship, safety, shift, PPE, or environment premium separately from base job level.',
+    premiumReview: 'Formal hazard/hardship premium review is recommended separately from base job level.',
+  },
+  zh: {
+    monitor: '工作条件暴露需持续关注，但不应单独提高基础职级。',
+    hazardReview: '建议将艰苦、安环、轮班、PPE或环境津贴与基础职级分开复核。',
+    premiumReview: '建议正式复核危险/艰苦津贴，并与基础职级分开处理。',
+  },
+};
 
 /* ============================================================
    FACTORS — name / key question / 4 score-band anchors, per language
@@ -923,6 +940,10 @@ function renderSummary(){
       .replaceAll('{upper}', review.upperLevel)
       .replaceAll('{boundary}', review.boundary);
   }
+  if (result.hazardPremiumReview && result.hazardPremiumReview.tier !== 'none') {
+    const hazardText = HAZARD_TEXT[currentLang] || HAZARD_TEXT.en;
+    note += '<br>' + hazardText[result.hazardPremiumReview.tier];
+  }
   document.getElementById('modelNote').innerHTML = note;
 
   const bar = document.getElementById('barChart');
@@ -1000,6 +1021,7 @@ function exportJSON(){
     benchmarkFit: window.JE_SCORE_GRADE_MODEL.benchmarkFit,
     factorWeights: window.JE_SCORE_GRADE_MODEL.factorWeights,
     factorGroupContributions: window.JE_SCORE_GRADE_MODEL.calculate(state).groupContributions,
+    hazardPremiumReview: window.JE_SCORE_GRADE_MODEL.calculate(state).hazardPremiumReview,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
