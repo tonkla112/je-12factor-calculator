@@ -204,6 +204,7 @@
       <div><label id="lDept">แผนก (Department)</label><input id="dept" type="text"></div>
       <div><label id="lEvaluator">ผู้ประเมิน (Evaluator)</label><input id="evaluator" type="text"></div>
       <div><label id="lDate">วันที่ประเมิน</label><input id="evalDate" type="date"></div>
+      <div><label id="lEvalStatus">สถานะการประเมิน</label><select id="evalStatus"></select></div>
       <div class="span-2"><label id="lJobEvidence">หลักฐานจาก Job Description</label><textarea id="jobEvidence"></textarea></div>
     </div>
   </div>
@@ -302,6 +303,7 @@ const UI = {
     dept: 'แผนก (Department)', deptPh: 'เช่น Production',
     evaluator: 'ผู้ประเมิน (Evaluator)', evaluatorPh: 'ชื่อกรรมการผู้ให้คะแนน',
     date: 'วันที่ประเมิน',
+    evalStatus: 'สถานะการประเมิน',
     jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
     summary: '📊 สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
@@ -330,6 +332,7 @@ const UI = {
     dept: 'Department', deptPh: 'e.g. Production',
     evaluator: 'Evaluator', evaluatorPh: 'Name of the scoring committee member',
     date: 'Evaluation Date',
+    evalStatus: 'Evaluation Status',
     jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
     summary: '📊 Evaluation Summary',
     total: 'Total Score (out of 1,200)',
@@ -358,6 +361,7 @@ const UI = {
     dept: '部门 (Department)', deptPh: '例如：生产部',
     evaluator: '评估人 (Evaluator)', evaluatorPh: '评分委员会成员姓名',
     date: '评估日期',
+    evalStatus: '评估状态',
     jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
     summary: '📊 评估结果汇总',
     total: '总分（满分 1,200）',
@@ -402,6 +406,15 @@ const HAZARD_TEXT = {
     hazardReview: '建议将艰苦、安环、轮班、PPE或环境津贴与基础职级分开复核。',
     premiumReview: '建议正式复核危险/艰苦津贴，并与基础职级分开处理。',
   },
+};
+const WORKFLOW_STATUS_ORDER = ['Draft', 'Submitted', 'Committee Reviewed', 'Approved', 'Rejected', 'Recalibrated'];
+const WORKFLOW_STATUS_LABELS = {
+  Draft: { th: 'Draft - ร่าง', en: 'Draft', zh: '草稿' },
+  Submitted: { th: 'Submitted - ส่งให้พิจารณา', en: 'Submitted', zh: '已提交' },
+  'Committee Reviewed': { th: 'Committee Reviewed - คณะกรรมการทบทวนแล้ว', en: 'Committee Reviewed', zh: '委员会已复核' },
+  Approved: { th: 'Approved - อนุมัติ', en: 'Approved', zh: '已批准' },
+  Rejected: { th: 'Rejected - ไม่อนุมัติ', en: 'Rejected', zh: '已驳回' },
+  Recalibrated: { th: 'Recalibrated - ปรับเทียบใหม่', en: 'Recalibrated', zh: '已重新校准' },
 };
 
 /* ============================================================
@@ -1030,6 +1043,8 @@ function renderSummary(){
 
 function applyStaticText(){
   const ui = UI[currentLang];
+  const statusSelect = document.getElementById('evalStatus');
+  const currentStatus = statusSelect.value || 'Draft';
   document.getElementById('pageTitle').textContent = ui.pageTitle;
   document.title = ui.pageTitle;
   document.getElementById('hTitle').textContent = ui.hTitle;
@@ -1042,6 +1057,8 @@ function applyStaticText(){
   document.getElementById('lEvaluator').textContent = ui.evaluator;
   document.getElementById('evaluator').placeholder = ui.evaluatorPh;
   document.getElementById('lDate').textContent = ui.date;
+  document.getElementById('lEvalStatus').textContent = ui.evalStatus;
+  statusSelect.innerHTML = WORKFLOW_STATUS_ORDER.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${WORKFLOW_STATUS_LABELS[status][currentLang]}</option>`).join('');
   document.getElementById('lJobEvidence').textContent = ui.jobEvidence;
   document.getElementById('jobEvidence').placeholder = ui.jobEvidencePh;
   document.getElementById('mSummary').textContent = ui.summary;
@@ -1095,6 +1112,7 @@ function exportJSON(){
     dept: document.getElementById('dept').value,
     evaluator: document.getElementById('evaluator').value,
     evalDate: document.getElementById('evalDate').value,
+    evaluationStatus: document.getElementById('evalStatus').value,
     jobDescriptionEvidence: document.getElementById('jobEvidence').value,
     lang: currentLang,
     scores: state,
@@ -1135,6 +1153,7 @@ function importJSON(evt){
       document.getElementById('dept').value = data.dept || '';
       document.getElementById('evaluator').value = data.evaluator || '';
       document.getElementById('evalDate').value = data.evalDate || '';
+      document.getElementById('evalStatus').value = WORKFLOW_STATUS_ORDER.includes(data.evaluationStatus) ? data.evaluationStatus : 'Draft';
       document.getElementById('jobEvidence').value = data.jobDescriptionEvidence || data.jobEvidence || '';
       FACTORS.forEach(f => {
         const raw = data.scores && data.scores[f.key];
@@ -1162,6 +1181,7 @@ function resetAll(){
   document.getElementById('dept').value = '';
   document.getElementById('evaluator').value = '';
   document.getElementById('evalDate').value = '';
+  document.getElementById('evalStatus').value = 'Draft';
   document.getElementById('jobEvidence').value = '';
   FACTORS.forEach(f => {
     state[f.key] = 10;
