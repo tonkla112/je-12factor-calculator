@@ -316,6 +316,8 @@
       <button class="btn-primary" id="btnHistorySignIn" onclick="signInPersistentHistory()">Sign In</button>
       <button class="btn-secondary" id="btnHistorySignUp" onclick="signUpPersistentHistory()">Create Account</button>
       <button class="btn-secondary" id="btnHistoryResendConfirm" onclick="resendSignupConfirmation()">Resend Confirm Email</button>
+      <button class="btn-secondary" id="btnHistoryResetPassword" onclick="requestPasswordReset()">Reset Password Email</button>
+      <button class="btn-secondary" id="btnHistorySetPassword" onclick="updateRecoveredPassword()">Set New Password</button>
       <button class="btn-secondary" id="btnHistorySignOut" onclick="signOutPersistentHistory()">Sign Out</button>
     </div>
     <div class="btn-row">
@@ -491,6 +493,8 @@ const UI = {
     historySignIn: 'Sign In',
     historySignUp: 'สร้างบัญชี',
     historyResendConfirm: 'ส่งเมลยืนยันอีกครั้ง',
+    historyResetPassword: 'ส่งลิงก์ตั้งรหัสใหม่',
+    historySetPassword: 'ตั้งรหัสใหม่',
     historySignOut: 'Sign Out',
     historySave: 'บันทึก Evaluation นี้ลงฐานข้อมูล',
     historyLoad: 'โหลดประวัติย้อนหลังถาวร',
@@ -520,6 +524,10 @@ const UI = {
     historyAuditEmpty: 'ยังไม่มี audit log ในฐานข้อมูลสำหรับ record นี้',
     historyConfirmResent: 'ส่งเมลยืนยันอีกครั้งแล้ว กรุณากดลิงก์ใหม่จากอีเมลล่าสุด',
     historyConfirmRedirectHelp: 'ลิงก์ยืนยันจะกลับมาที่ระบบนี้: {url}',
+    historyResetSent: 'ส่งลิงก์ตั้งรหัสใหม่แล้ว กรุณาเปิดอีเมลล่าสุด',
+    historyRecoveryReady: 'โหมดตั้งรหัสใหม่พร้อมแล้ว ใส่รหัสใหม่ในช่อง Password แล้วกด ตั้งรหัสใหม่',
+    historyPasswordUpdated: 'ตั้งรหัสใหม่สำเร็จแล้ว ตอนนี้สามารถ Sign In ด้วยรหัสใหม่ได้',
+    historyPasswordTooShort: 'รหัสผ่านควรมีอย่างน้อย 6 ตัวอักษร',
     adminUsers: 'Admin / User Management',
     adminHelp: 'HR Head สามารถเพิ่มอีเมลผู้ใช้และกำหนด JE role ได้ที่นี่ ผู้ใช้ต้องสร้างบัญชี/เข้าสู่ระบบด้วยอีเมลเดียวกันเพื่อรับสิทธิ์',
     adminEmail: 'อีเมลผู้ใช้',
@@ -596,6 +604,8 @@ const UI = {
     historySignIn: 'Sign In',
     historySignUp: 'Create Account',
     historyResendConfirm: 'Resend Confirm Email',
+    historyResetPassword: 'Reset Password Email',
+    historySetPassword: 'Set New Password',
     historySignOut: 'Sign Out',
     historySave: 'Save Current Evaluation to Database',
     historyLoad: 'Load Permanent History',
@@ -625,6 +635,10 @@ const UI = {
     historyAuditEmpty: 'No database audit log exists for this record yet.',
     historyConfirmResent: 'Confirmation email resent. Please use the newest email link.',
     historyConfirmRedirectHelp: 'Confirmation will return to this system: {url}',
+    historyResetSent: 'Password reset link sent. Please open the newest email.',
+    historyRecoveryReady: 'Password recovery is ready. Enter a new password, then click Set New Password.',
+    historyPasswordUpdated: 'Password updated. You can now sign in with the new password.',
+    historyPasswordTooShort: 'Password should be at least 6 characters.',
     adminUsers: 'Admin / User Management',
     adminHelp: 'HR Head can authorize user emails and assign JE roles here. Users sign up or sign in with the same email to receive access.',
     adminEmail: 'User Email',
@@ -701,6 +715,8 @@ const UI = {
     historySignIn: '登录',
     historySignUp: '创建账户',
     historyResendConfirm: '重新发送确认邮件',
+    historyResetPassword: '发送重置密码邮件',
+    historySetPassword: '设置新密码',
     historySignOut: '退出',
     historySave: '保存当前评估到数据库',
     historyLoad: '加载永久历史',
@@ -730,6 +746,10 @@ const UI = {
     historyAuditEmpty: '该记录暂无数据库审计日志。',
     historyConfirmResent: '确认邮件已重新发送。请使用最新邮件中的链接。',
     historyConfirmRedirectHelp: '确认后将返回此系统：{url}',
+    historyResetSent: '重置密码链接已发送。请打开最新邮件。',
+    historyRecoveryReady: '密码恢复已准备好。请输入新密码，然后点击设置新密码。',
+    historyPasswordUpdated: '密码已更新。现在可以使用新密码登录。',
+    historyPasswordTooShort: '密码至少需要 6 个字符。',
     adminUsers: '管理员 / 用户管理',
     adminHelp: 'HR Head 可在此授权用户邮箱并分配 JE 角色。用户需使用同一邮箱注册或登录以获得访问权限。',
     adminEmail: '用户邮箱',
@@ -1335,6 +1355,8 @@ const workflowState = {
 let jeDbClient = null;
 let jeDbSession = null;
 let currentJeRoles = [];
+let jeAuthListenerBound = false;
+let isPasswordRecoverySession = false;
 let persistentHistoryRows = [];
 let currentPersistentAuditRecordId = null;
 let adminUserRows = [];
@@ -1554,7 +1576,22 @@ function getJeDbClient(){
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
   });
   window.jeDbClient = jeDbClient;
+  bindJeAuthStateListener();
   return jeDbClient;
+}
+
+function bindJeAuthStateListener(){
+  if (!jeDbClient || jeAuthListenerBound) return;
+  jeAuthListenerBound = true;
+  jeDbClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      isPasswordRecoverySession = true;
+      jeDbSession = session;
+      await refreshCurrentUserRoles(session);
+      renderJeRoleBadge(session);
+      renderPersistentHistoryStatus(UI[currentLang].historyRecoveryReady, 'ok');
+    }
+  });
 }
 
 function renderPersistentHistoryStatus(message, kind = 'warn'){
@@ -1730,6 +1767,55 @@ async function resendSignupConfirmation(){
     `${UI[currentLang].historyConfirmResent} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`,
     'ok'
   );
+}
+
+async function requestPasswordReset(){
+  const client = getJeDbClient();
+  if (!client) {
+    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return;
+  }
+  const email = document.getElementById('historyEmail').value.trim();
+  if (!email || !email.includes('@')) {
+    renderPersistentHistoryStatus(UI[currentLang].adminBadEmail, 'error');
+    return;
+  }
+  const redirectUrl = getAuthRedirectUrl();
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectUrl,
+  });
+  if (error) {
+    renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
+    return;
+  }
+  renderPersistentHistoryStatus(
+    `${UI[currentLang].historyResetSent} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`,
+    'ok'
+  );
+}
+
+async function updateRecoveredPassword(){
+  const client = getJeDbClient();
+  if (!client) {
+    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return;
+  }
+  const password = document.getElementById('historyPassword').value;
+  if (!password || password.length < 6) {
+    renderPersistentHistoryStatus(UI[currentLang].historyPasswordTooShort, 'error');
+    return;
+  }
+  const { data, error } = await client.auth.updateUser({ password });
+  if (error) {
+    renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
+    return;
+  }
+  document.getElementById('historyPassword').value = '';
+  isPasswordRecoverySession = false;
+  if (data.user) {
+    await refreshPersistentHistorySession();
+  }
+  renderPersistentHistoryStatus(UI[currentLang].historyPasswordUpdated, 'ok');
 }
 
 async function signOutPersistentHistory(){
@@ -2388,6 +2474,8 @@ function applyStaticText(){
   document.getElementById('btnHistorySignIn').textContent = ui.historySignIn;
   document.getElementById('btnHistorySignUp').textContent = ui.historySignUp;
   document.getElementById('btnHistoryResendConfirm').textContent = ui.historyResendConfirm;
+  document.getElementById('btnHistoryResetPassword').textContent = ui.historyResetPassword;
+  document.getElementById('btnHistorySetPassword').textContent = ui.historySetPassword;
   document.getElementById('btnHistorySignOut').textContent = ui.historySignOut;
   document.getElementById('btnHistorySave').textContent = ui.historySave;
   document.getElementById('btnHistoryLoad').textContent = ui.historyLoad;
