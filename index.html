@@ -92,9 +92,9 @@
   .workspace-main.evaluation-mode{display:flex; flex-direction:column;}
   .workspace-main.evaluation-mode [data-section-panel="job"]{order:1;}
   .workspace-main.evaluation-mode [data-section-panel="score"]{order:2;}
-  .workspace-main.evaluation-mode [data-section-panel="workflow"]{order:3;}
-  .workspace-main.evaluation-mode [data-section-panel="reference"]{order:4;}
-  .workspace-main.evaluation-mode [data-section-panel="signatures"]{order:5;}
+  .workspace-main.evaluation-mode [data-section-panel="signatures"]{order:3;}
+  .workspace-main.evaluation-mode [data-section-panel="workflow"]{order:4;}
+  .workspace-main.evaluation-mode [data-section-panel="reference"]{order:5;}
   .app-section{display:none;}
   .app-section.active{display:block;}
   .workspace-main.evaluation-mode .app-section.active{display:block;}
@@ -311,11 +311,16 @@
   @media print{
     header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters, .side-nav, .section-intro{display:none !important;}
     .workspace-shell, .layout{display:block !important;}
-    .workspace-main, .app-section{display:block !important;}
+    .workspace-main{display:flex !important; flex-direction:column !important;}
+    .app-section{display:block !important;}
+    [data-section-panel="job"]{order:1 !important;}
+    [data-section-panel="score"]{order:2 !important;}
+    [data-section-panel="signatures"]{order:3 !important;}
+    [data-section-panel="workflow"]{order:4 !important; break-before:page; page-break-before:always;}
+    [data-section-panel="reference"]{order:5 !important; break-before:page; page-break-before:always;}
     [data-section-panel="history"], [data-section-panel="admin"]{display:none !important;}
     .anchor-table{display:none !important;}
     .ref-table-wrap{max-height:none !important;}
-    #refTableCard{page-break-before:always;}
   }
 
   /* Reference table */
