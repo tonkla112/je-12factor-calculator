@@ -121,7 +121,9 @@
   .print-sheet-header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; border-bottom:2px solid var(--navy); padding-bottom:8px; margin-bottom:9px;}
   .print-sheet-header h1{margin:0; color:var(--navy); font-size:18px; line-height:1.2;}
   .print-sheet-header p{margin:3px 0 0; color:#475569; font-size:10.5px;}
+  .print-sheet-meta-wrap{display:flex; align-items:flex-start; gap:8px;}
   .print-sheet-meta{font-size:10.5px; line-height:1.45; text-align:right; color:#334155; white-space:nowrap;}
+  .print-sheet-qr{width:62px; height:62px; object-fit:contain; border:1px solid #CBD5E1; border-radius:4px; padding:3px;}
   .print-sheet-grid{display:grid; grid-template-columns:1.45fr .85fr; gap:9px; margin-bottom:9px;}
   .print-sheet-box{border:1px solid #CBD5E1; border-radius:4px; padding:8px 9px; break-inside:avoid; page-break-inside:avoid;}
   .print-sheet-box h2{margin:0 0 6px; color:var(--navy); font-size:12px;}
@@ -271,6 +273,35 @@
   }
   .btn-danger{background:#FEE2E2; color:#991B1B;}
   .action-help{font-size:11.5px; color:var(--grey); line-height:1.45; margin-top:8px;}
+  .record-link-card{
+    display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
+    border:1px solid var(--border); border-radius:10px; background:#F8FAFC; padding:10px 12px; margin-top:12px;
+  }
+  .record-link-card h3{margin:0 0 6px; color:var(--navy); font-size:13px;}
+  .record-link-row{display:flex; gap:8px; align-items:center;}
+  .record-link-row input{
+    flex:1; min-width:0; padding:8px 10px; border:1px solid var(--border); border-radius:7px; font-size:12px; color:#334155;
+  }
+  .record-link-qr{
+    width:92px; height:92px; border:1px solid var(--border); border-radius:6px; background:#fff; padding:4px; object-fit:contain;
+  }
+  .pending-chip{
+    display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 9px;
+    background:#ECFDF5; color:#166534; font-size:11px; font-weight:800;
+  }
+  .record-link-card .pending-chip{margin-bottom:8px;}
+  .register-wrap{overflow:auto; margin-top:12px; border:1px solid var(--border); border-radius:10px; background:#fff;}
+  .register-table{width:100%; border-collapse:collapse; font-size:12px; min-width:920px;}
+  .register-table th{
+    background:#F1F5F9; color:var(--navy); text-align:left; padding:9px 10px; border-bottom:1px solid var(--border);
+    font-size:11px; text-transform:uppercase; letter-spacing:.02em;
+  }
+  .register-table td{padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  .register-table tr:last-child td{border-bottom:0;}
+  .register-id{font-weight:800; color:var(--navy);}
+  .register-sub{color:var(--grey); font-size:11px; margin-top:2px;}
+  .register-status{font-weight:800; color:#334155;}
+  .register-link-btn{background:#EAF0FB; color:var(--navy);}
   @media (max-width: 760px){.workflow-actions{grid-template-columns:1fr;}}
   .audit-log{
     max-height:180px; overflow:auto; border:1px solid var(--border); border-radius:10px;
@@ -530,6 +561,18 @@
       <button class="btn-secondary" id="btnStartRecalibration" onclick="forkRecalibratedVersion()">Start Recalibration</button>
     </div>
     <div class="action-help" id="workflowActionHelp"></div>
+    <div class="record-link-card" id="recordLinkCard">
+      <div>
+        <h3 id="recordLinkTitle">Record Link / QR</h3>
+        <div class="pending-chip" id="currentPendingWith">Pending With: -</div>
+        <div class="record-link-row">
+          <input id="recordLinkInput" type="text" readonly>
+          <button class="btn-secondary register-link-btn" id="btnCopyRecordLink" onclick="copyRecordLink()">Copy Link</button>
+        </div>
+        <div class="action-help" id="recordLinkHelp"></div>
+      </div>
+      <img class="record-link-qr" id="recordQrImage" alt="Record QR">
+    </div>
     <div class="locked-note" id="lockedNote"></div>
     <div class="audit-log" id="auditLog"></div>
     <div class="notification-log">
@@ -730,7 +773,10 @@
         <h1 id="printSheetTitle">Job Evaluation Approval Sheet</h1>
         <p id="printSheetSubtitle">12-Factor Job Evaluation Summary</p>
       </div>
-      <div class="print-sheet-meta" id="printSheetMeta"></div>
+      <div class="print-sheet-meta-wrap">
+        <div class="print-sheet-meta" id="printSheetMeta"></div>
+        <img class="print-sheet-qr" id="printSheetQr" alt="Record QR">
+      </div>
     </div>
     <div class="print-sheet-grid">
       <div class="print-sheet-box">
@@ -819,8 +865,8 @@ const UI = {
     sectionWorkflowTitle: 'Workflow อนุมัติ',
     sectionWorkflowDesc: 'ส่งงานให้คณะกรรมการ ทบทวน อนุมัติ ตีกลับ หรือปรับเทียบเวอร์ชันใหม่',
     sectionWorkflowChip: 'Governance',
-    sectionHistoryTitle: 'ประวัติย้อนหลังถาวร',
-    sectionHistoryDesc: 'เข้าสู่ระบบ บันทึก evaluation และดูประวัติ/audit trail จากฐานข้อมูล',
+    sectionHistoryTitle: 'Evaluation Register',
+    sectionHistoryDesc: 'ทะเบียนติดตาม evaluation, pending with, record link และ audit trail จากฐานข้อมูล',
     sectionHistoryChip: 'Database',
     sectionAdminTitle: 'จัดการผู้ใช้',
     sectionAdminDesc: 'HR Head เพิ่มผู้ใช้ กำหนด role เปิด/ปิดสิทธิ์ และตรวจ audit การเปลี่ยนสิทธิ์',
@@ -865,6 +911,17 @@ const UI = {
     startRecalibration: 'Start Recalibration',
     workflowActionHelp: 'กดปุ่มตามขั้นตอนเพื่อเปลี่ยนสถานะ ระบบจะบันทึก audit trail และ queue อีเมล To/CC อัตโนมัติ',
     noWorkflowAction: 'ยังไม่มี action ที่ role ปัจจุบันทำได้ในสถานะนี้',
+    pendingWith: 'Pending With',
+    pendingHrAnalyst: 'HR Analyst',
+    pendingCommittee: 'JE Committee',
+    pendingHrHead: 'HR Head',
+    pendingComplete: 'Completed',
+    pendingArchived: 'Archived',
+    recordLinkTitle: 'Record Link / QR',
+    recordLinkHelp: 'ใช้ลิงก์หรือ QR นี้เพื่อเปิด record เดิมหลัง login',
+    recordLinkCopied: 'คัดลอก Record Link แล้ว',
+    recordLinkCopyFailed: 'คัดลอกลิงก์ไม่สำเร็จ กรุณาคัดลอกจากช่องด้านบน',
+    recordLinkMissing: 'ยังไม่มี record id สำหรับสร้างลิงก์',
     lockedNote: 'Record is locked for score/JD editing after submission. Use Rejected to return to evaluator or fork a recalibrated version when the model changes.',
     auditEmpty: 'ยังไม่มีประวัติการเปลี่ยนสถานะ',
     invalidTransition: 'ไม่สามารถเปลี่ยนสถานะจาก {from} ไป {to} ได้ตาม workflow',
@@ -872,7 +929,7 @@ const UI = {
     transitionNeedsActor: 'กรุณาระบุผู้ดำเนินการในช่อง Action By',
     recalibrationNeedsApproved: 'สามารถ fork เป็น Recalibrated version ได้จากสถานะ Approved เท่านั้น',
     transitionRoleDenied: 'Role ของผู้ใช้ปัจจุบันไม่สามารถเปลี่ยนสถานะจาก {from} ไป {to} ได้',
-    persistentHistory: 'ประวัติย้อนหลังถาวร',
+    persistentHistory: 'Evaluation Register',
     historyEmail: 'อีเมลผู้ใช้',
     historyPassword: 'รหัสผ่าน',
     historySignIn: 'Sign In',
@@ -889,6 +946,16 @@ const UI = {
     historyEmpty: 'ยังไม่มีประวัติถาวรในฐานข้อมูล',
     historyOpen: 'เปิด',
     historyAudit: 'ดู Audit',
+    historyCopyLink: 'Copy Link',
+    historyQr: 'QR',
+    historyColRecord: 'Record',
+    historyColJob: 'Job / Department',
+    historyColStatus: 'Status',
+    historyColPending: 'Pending With',
+    historyColLevel: 'Level',
+    historyColScore: 'Score',
+    historyColUpdated: 'Updated',
+    historyColActions: 'Actions',
     historySearchPh: 'ค้นหา Job, Department, Evaluation ID',
     historyAllStatuses: 'ทุกสถานะ',
     historyAllLevels: 'ทุก Level',
@@ -1016,8 +1083,8 @@ const UI = {
     sectionWorkflowTitle: 'Approval Workflow',
     sectionWorkflowDesc: 'Submit, review, approve, reject, or recalibrate an evaluation version.',
     sectionWorkflowChip: 'Governance',
-    sectionHistoryTitle: 'Permanent History',
-    sectionHistoryDesc: 'Sign in, save evaluations, and review database audit trail records.',
+    sectionHistoryTitle: 'Evaluation Register',
+    sectionHistoryDesc: 'Track evaluations, pending owner, record links, and database audit trails.',
     sectionHistoryChip: 'Database',
     sectionAdminTitle: 'User Management',
     sectionAdminDesc: 'HR Head can add users, assign roles, deactivate access, and review role audit history.',
@@ -1062,6 +1129,17 @@ const UI = {
     startRecalibration: 'Start Recalibration',
     workflowActionHelp: 'Use the action buttons to move the workflow. The system records audit trail and queues To/CC email notifications automatically.',
     noWorkflowAction: 'No action is available for the current role and status.',
+    pendingWith: 'Pending With',
+    pendingHrAnalyst: 'HR Analyst',
+    pendingCommittee: 'JE Committee',
+    pendingHrHead: 'HR Head',
+    pendingComplete: 'Completed',
+    pendingArchived: 'Archived',
+    recordLinkTitle: 'Record Link / QR',
+    recordLinkHelp: 'Use this link or QR to reopen the same record after sign-in.',
+    recordLinkCopied: 'Record Link copied.',
+    recordLinkCopyFailed: 'Could not copy the link. Please copy it from the field.',
+    recordLinkMissing: 'No record id is available for a link yet.',
     lockedNote: 'Record is locked for score/JD editing after submission. Use Rejected to return to evaluator or fork a recalibrated version when the model changes.',
     auditEmpty: 'No status changes recorded yet.',
     invalidTransition: 'Cannot change status from {from} to {to} under the configured workflow.',
@@ -1069,7 +1147,7 @@ const UI = {
     transitionNeedsActor: 'Enter an Action By value before changing status.',
     recalibrationNeedsApproved: 'Only Approved records can be forked into a recalibrated version.',
     transitionRoleDenied: 'The current user role cannot change status from {from} to {to}.',
-    persistentHistory: 'Permanent Evaluation History',
+    persistentHistory: 'Evaluation Register',
     historyEmail: 'User Email',
     historyPassword: 'Password',
     historySignIn: 'Sign In',
@@ -1086,6 +1164,16 @@ const UI = {
     historyEmpty: 'No permanent history records found.',
     historyOpen: 'Open',
     historyAudit: 'View Audit',
+    historyCopyLink: 'Copy Link',
+    historyQr: 'QR',
+    historyColRecord: 'Record',
+    historyColJob: 'Job / Department',
+    historyColStatus: 'Status',
+    historyColPending: 'Pending With',
+    historyColLevel: 'Level',
+    historyColScore: 'Score',
+    historyColUpdated: 'Updated',
+    historyColActions: 'Actions',
     historySearchPh: 'Search job, department, evaluation ID',
     historyAllStatuses: 'All statuses',
     historyAllLevels: 'All levels',
@@ -1213,8 +1301,8 @@ const UI = {
     sectionWorkflowTitle: '审批流程',
     sectionWorkflowDesc: '提交、复核、批准、驳回或重新校准评估版本。',
     sectionWorkflowChip: '治理',
-    sectionHistoryTitle: '永久历史',
-    sectionHistoryDesc: '登录、保存评估，并查看数据库审计记录。',
+    sectionHistoryTitle: '评估登记表',
+    sectionHistoryDesc: '跟踪评估、待处理人、记录链接和数据库审计轨迹。',
     sectionHistoryChip: '数据库',
     sectionAdminTitle: '用户管理',
     sectionAdminDesc: 'HR Head 可新增用户、分配角色、停用权限并查看角色审计历史。',
@@ -1259,6 +1347,17 @@ const UI = {
     startRecalibration: '开始重新校准',
     workflowActionHelp: '使用操作按钮推进流程。系统会自动记录审计轨迹并排队 To/CC 邮件通知。',
     noWorkflowAction: '当前角色和状态没有可用操作。',
+    pendingWith: '待处理人',
+    pendingHrAnalyst: 'HR Analyst',
+    pendingCommittee: 'JE委员会',
+    pendingHrHead: 'HR Head',
+    pendingComplete: '已完成',
+    pendingArchived: '已归档',
+    recordLinkTitle: '记录链接 / QR',
+    recordLinkHelp: '使用此链接或QR登录后重新打开同一记录。',
+    recordLinkCopied: '记录链接已复制。',
+    recordLinkCopyFailed: '无法复制链接，请从上方字段复制。',
+    recordLinkMissing: '尚无记录ID可生成链接。',
     lockedNote: '提交后，评分/JD编辑将被锁定。可使用 Rejected 退回给评估人，或在模型变化时创建重新校准版本。',
     auditEmpty: '暂无状态变更记录。',
     invalidTransition: '根据当前流程，不能从 {from} 变更为 {to}。',
@@ -1266,7 +1365,7 @@ const UI = {
     transitionNeedsActor: '变更状态前请填写操作人。',
     recalibrationNeedsApproved: '只有已批准记录才能创建重新校准版本。',
     transitionRoleDenied: '当前用户角色不能从 {from} 变更为 {to}。',
-    persistentHistory: '永久评估历史',
+    persistentHistory: '评估登记表',
     historyEmail: '用户邮箱',
     historyPassword: '密码',
     historySignIn: '登录',
@@ -1283,6 +1382,16 @@ const UI = {
     historyEmpty: '数据库中暂无永久历史记录。',
     historyOpen: '打开',
     historyAudit: '查看审计',
+    historyCopyLink: '复制链接',
+    historyQr: 'QR',
+    historyColRecord: '记录',
+    historyColJob: '职位 / 部门',
+    historyColStatus: '状态',
+    historyColPending: '待处理人',
+    historyColLevel: '职级',
+    historyColScore: '分数',
+    historyColUpdated: '更新日期',
+    historyColActions: '操作',
     historySearchPh: '搜索职位、部门、评估编号',
     historyAllStatuses: '所有状态',
     historyAllLevels: '所有职级',
@@ -1983,6 +2092,7 @@ let jeAuthListenerBound = false;
 let isPasswordRecoverySession = false;
 let persistentHistoryRows = [];
 let currentPersistentAuditRecordId = null;
+let handledRecordLinkId = '';
 let adminUserRows = [];
 let notificationLogRows = [];
 
@@ -2087,6 +2197,7 @@ function renderWorkflowFields(){
   document.getElementById('finalApprovedLevel').innerHTML = [''].concat(LEVEL_CODES).map(level => `<option value="${level}" ${level === workflowState.finalApprovedLevel ? 'selected' : ''}>${level || '-'}</option>`).join('');
   renderAuditLog();
   renderWorkflowActionButtons();
+  renderRecordLinkCard();
   applyEditLock();
 }
 
@@ -2337,6 +2448,79 @@ function getAuthRedirectUrl(){
     return `${window.location.origin}${window.location.pathname}`;
   }
   return 'https://tonkla112.github.io/je-12factor-calculator/';
+}
+
+function getRecordUrl(recordId = workflowState.id){
+  const url = new URL(getAuthRedirectUrl());
+  if (recordId) url.searchParams.set('record', recordId);
+  return url.toString();
+}
+
+function getQrCodeUrl(recordUrl){
+  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=1&data=${encodeURIComponent(recordUrl)}`;
+}
+
+function pendingWithForStatus(status){
+  const ui = UI[currentLang];
+  const pendingMap = {
+    Draft: ui.pendingHrAnalyst,
+    Submitted: ui.pendingCommittee,
+    'Committee Reviewed': ui.pendingHrHead,
+    Approved: ui.pendingComplete,
+    Rejected: ui.pendingHrAnalyst,
+    Recalibrated: ui.pendingArchived,
+  };
+  return pendingMap[status] || '-';
+}
+
+function pendingWithForRow(row){
+  return pendingWithForStatus(row?.current_status || 'Draft');
+}
+
+function renderRecordLinkCard(){
+  const input = document.getElementById('recordLinkInput');
+  const qr = document.getElementById('recordQrImage');
+  const help = document.getElementById('recordLinkHelp');
+  if (!input || !qr) return;
+  const link = getRecordUrl();
+  input.value = link;
+  qr.src = getQrCodeUrl(link);
+  qr.alt = UI[currentLang].recordLinkTitle;
+  const pending = document.getElementById('currentPendingWith');
+  if (pending) pending.textContent = `${UI[currentLang].pendingWith}: ${pendingWithForStatus(workflowState.currentStatus)}`;
+  if (help) help.textContent = UI[currentLang].recordLinkHelp;
+}
+
+async function copyTextToClipboard(text){
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+  const tmp = document.createElement('textarea');
+  tmp.value = text;
+  tmp.setAttribute('readonly', '');
+  tmp.style.position = 'fixed';
+  tmp.style.left = '-9999px';
+  document.body.appendChild(tmp);
+  tmp.select();
+  const ok = document.execCommand('copy');
+  tmp.remove();
+  return ok;
+}
+
+async function copyRecordLink(recordId = workflowState.id){
+  const link = getRecordUrl(recordId);
+  try {
+    const ok = await copyTextToClipboard(link);
+    renderPersistentHistoryStatus(ok ? UI[currentLang].recordLinkCopied : UI[currentLang].recordLinkCopyFailed, ok ? 'ok' : 'warn');
+  } catch (error) {
+    renderPersistentHistoryStatus(UI[currentLang].recordLinkCopyFailed, 'warn');
+  }
+}
+
+function recordIdFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get('record') || params.get('evaluation_record_id') || '';
 }
 
 function getJeRolesFromSession(session){
@@ -2808,7 +2992,7 @@ function buildNotificationContent(fromStatus, toStatus, toEmails, ccEmails){
   const actor = currentActor() || jeDbSession?.user?.email || '-';
   const comment = document.getElementById('transitionComment').value || '-';
   const level = workflowState.finalApprovedLevel || window.JE_SCORE_GRADE_MODEL.calculate(state).level;
-  const url = getAuthRedirectUrl();
+  const url = getRecordUrl(workflowState.id);
   const subject = `[JE] ${workflowState.evaluationId} ${jobTitle} - ${toStatus}`;
   const body = [
     `Action required: ${toStatus}`,
@@ -2820,7 +3004,7 @@ function buildNotificationContent(fromStatus, toStatus, toEmails, ccEmails){
     `Recommended/Approved Level: ${level}`,
     `Changed by: ${actor}`,
     `Comment: ${comment}`,
-    `Open system: ${url}`,
+    `Open record: ${url}`,
     '',
     `To: ${toEmails.join(', ') || '-'}`,
     `CC: ${ccEmails.join(', ') || '-'}`,
@@ -2863,7 +3047,8 @@ async function queueWorkflowNotification(client, evaluationRecordId, fromStatus,
         to_roles: rule.toRoles || [],
         cc_roles: rule.ccRoles || [],
         action: rule.action,
-        app_url: getAuthRedirectUrl(),
+        app_url: getRecordUrl(workflowState.id),
+        pending_with: pendingWithForStatus(toStatus),
       },
     }).select('*').single();
     if (error) throw error;
@@ -3012,7 +3197,7 @@ function getFilteredHistoryRows(){
   const level = document.getElementById('historyLevelFilter')?.value || '';
   const latestOnly = document.getElementById('historyLatestOnly')?.checked ?? true;
   return persistentHistoryRows.filter(row => {
-    const haystack = [row.job_title, row.department, row.evaluation_id, row.created_by, row.current_status]
+    const haystack = [row.job_title, row.department, row.evaluation_id, row.created_by, row.current_status, pendingWithForRow(row)]
       .map(v => String(v || '').toLowerCase())
       .join(' ');
     const rowLevel = row.final_approved_level || row.recommended_level || '';
@@ -3051,26 +3236,67 @@ function renderPersistentHistoryList(rows){
     list.innerHTML = `<div class="history-row">${UI[currentLang].historyEmpty}</div>`;
     return;
   }
-  list.innerHTML = rows.map(row => `
-    <div class="history-row">
-      <div>
-        <div class="history-title">${escapeHtml(row.job_title || '-')}</div>
-        <div class="history-meta">${escapeHtml(row.evaluation_id)} · v${escapeHtml(String(row.version_number))}${row.is_latest_version === false ? ' · archived' : ''} · ${escapeHtml(row.department || '-')}</div>
-      </div>
-      <div>${escapeHtml(row.current_status || '-')}</div>
-      <div>${escapeHtml(row.final_approved_level || row.recommended_level || '-')}</div>
-      <div>${escapeHtml(row.updated_at ? new Date(row.updated_at).toLocaleString() : '-')}</div>
-      <div class="history-actions">
-        <button class="btn-secondary" data-open-record="${escapeHtml(row.id)}">${UI[currentLang].historyOpen}</button>
-        <button class="btn-primary" data-view-audit="${escapeHtml(row.id)}">${UI[currentLang].historyAudit}</button>
-      </div>
+  const ui = UI[currentLang];
+  list.innerHTML = `
+    <div class="register-wrap">
+      <table class="register-table">
+        <thead>
+          <tr>
+            <th>${ui.historyColRecord}</th>
+            <th>${ui.historyColJob}</th>
+            <th>${ui.historyColStatus}</th>
+            <th>${ui.historyColPending}</th>
+            <th>${ui.historyColLevel}</th>
+            <th>${ui.historyColScore}</th>
+            <th>${ui.historyColUpdated}</th>
+            <th>${ui.historyColActions}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(row => {
+            const level = row.final_approved_level || row.recommended_level || '-';
+            const updated = row.updated_at ? new Date(row.updated_at).toLocaleString() : '-';
+            return `
+              <tr>
+                <td>
+                  <div class="register-id">${escapeHtml(row.evaluation_id || '-')}</div>
+                  <div class="register-sub">v${escapeHtml(String(row.version_number || 1))}${row.is_latest_version === false ? ' · archived' : ''}</div>
+                </td>
+                <td>
+                  <div class="history-title">${escapeHtml(row.job_title || '-')}</div>
+                  <div class="register-sub">${escapeHtml(row.department || '-')} · ${escapeHtml(row.created_by || '-')}</div>
+                </td>
+                <td><span class="register-status">${escapeHtml(row.current_status || '-')}</span></td>
+                <td><span class="pending-chip">${escapeHtml(pendingWithForRow(row))}</span></td>
+                <td>${escapeHtml(level)}</td>
+                <td>${escapeHtml(String(row.total_score || '-'))}</td>
+                <td>${escapeHtml(updated)}</td>
+                <td>
+                  <div class="history-actions">
+                    <button class="btn-secondary" data-open-record="${escapeHtml(row.id)}">${ui.historyOpen}</button>
+                    <button class="btn-primary" data-view-audit="${escapeHtml(row.id)}">${ui.historyAudit}</button>
+                    <button class="btn-secondary register-link-btn" data-copy-record-link="${escapeHtml(row.id)}">${ui.historyCopyLink}</button>
+                    <button class="btn-secondary register-link-btn" data-open-record-qr="${escapeHtml(row.id)}">${ui.historyQr}</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
     </div>
-  `).join('');
+  `;
   list.querySelectorAll('[data-open-record]').forEach(btn => {
     btn.addEventListener('click', () => openPermanentRecord(btn.dataset.openRecord));
   });
   list.querySelectorAll('[data-view-audit]').forEach(btn => {
     btn.addEventListener('click', () => loadPermanentAudit(btn.dataset.viewAudit));
+  });
+  list.querySelectorAll('[data-copy-record-link]').forEach(btn => {
+    btn.addEventListener('click', () => copyRecordLink(btn.dataset.copyRecordLink));
+  });
+  list.querySelectorAll('[data-open-record-qr]').forEach(btn => {
+    btn.addEventListener('click', () => window.open(getQrCodeUrl(getRecordUrl(btn.dataset.openRecordQr)), '_blank', 'noopener'));
   });
 }
 
@@ -3086,13 +3312,24 @@ async function loadPermanentHistory(){
     .from('job_evaluations')
     .select('id,evaluation_id,version_number,is_latest_version,job_title,department,total_score,recommended_level,final_approved_level,current_status,updated_at,created_by,score_model_version')
     .order('updated_at', { ascending: false })
-    .limit(50);
+    .limit(200);
   if (error) {
     renderPersistentHistoryStatus(error.message || UI[currentLang].historyLoadError, 'error');
     return;
   }
   persistentHistoryRows = data || [];
   renderPersistentHistory();
+  await maybeOpenRecordFromUrl();
+}
+
+async function maybeOpenRecordFromUrl(){
+  const recordId = recordIdFromUrl();
+  if (!recordId || handledRecordLinkId === recordId) return;
+  const client = getJeDbClient();
+  const session = await getCurrentDbSessionSilently();
+  if (!client || !session || isPasswordRecoverySession) return;
+  handledRecordLinkId = recordId;
+  await openPermanentRecord(recordId);
 }
 
 function renderPersistentAudit(logs){
@@ -3199,6 +3436,7 @@ async function openPermanentRecord(recordId){
     UI[currentLang].historyLoaded.replaceAll('{evaluationId}', data.evaluation_id).replaceAll('{version}', data.version_number),
     'ok'
   );
+  switchSection('evaluation');
 }
 
 function buildFactorsUI(){
@@ -3344,6 +3582,7 @@ function renderOnePagePrintSheet(){
   const finalLevelText = workflowState.finalApprovedLevel || '-';
   const statusText = WORKFLOW_STATUS_LABELS[workflowState.currentStatus]?.[currentLang] || workflowState.currentStatus;
   const evalDate = document.getElementById('evalDate').value || new Date().toISOString().slice(0, 10);
+  const recordUrl = getRecordUrl();
 
   document.getElementById('printSheetTitle').textContent = ui.onePageTitle;
   document.getElementById('printSheetSubtitle').textContent = ui.onePageSubtitle;
@@ -3353,6 +3592,8 @@ function renderOnePagePrintSheet(){
     `${ui.onePageStatus}: ${escapeHtml(statusText)}`,
     `${ui.onePageDate}: ${escapeHtml(evalDate)}`,
   ].join('<br>');
+  document.getElementById('printSheetQr').src = getQrCodeUrl(recordUrl);
+  document.getElementById('printSheetQr').alt = ui.recordLinkTitle;
   document.getElementById('printSheetJobTitle').textContent = ui.onePageJobInfo;
   document.getElementById('printSheetResultTitle').textContent = ui.onePageResult;
   document.getElementById('printSheetTotalScore').textContent = result.weightedTotal.toLocaleString();
@@ -3388,6 +3629,7 @@ function renderOnePagePrintSheet(){
     `${ui.onePageModel}: ${escapeHtml(window.JE_SCORE_GRADE_MODEL.version)}`,
     `${ui.onePageRecommended}: ${escapeHtml(recommendedLevelText)}`,
     `${ui.onePageFinal}: ${escapeHtml(finalLevelText)}`,
+    `${ui.pendingWith}: ${escapeHtml(pendingWithForStatus(workflowState.currentStatus))}`,
   ].join('<br>');
 
   document.getElementById('printSheetFactorRows').innerHTML = FACTORS.map((f, index) => `
@@ -3524,6 +3766,9 @@ function applyStaticText(){
   document.getElementById('btnReturnToDraft').textContent = ui.returnToDraft;
   document.getElementById('btnStartRecalibration').textContent = ui.startRecalibration;
   document.getElementById('workflowActionHelp').textContent = ui.workflowActionHelp;
+  document.getElementById('recordLinkTitle').textContent = ui.recordLinkTitle;
+  document.getElementById('btnCopyRecordLink').textContent = ui.historyCopyLink;
+  document.getElementById('recordLinkHelp').textContent = ui.recordLinkHelp;
   document.getElementById('mPersistentHistory').textContent = ui.persistentHistory;
   document.getElementById('lHistoryEmail').textContent = ui.historyEmail;
   document.getElementById('lHistoryPassword').textContent = ui.historyPassword;
@@ -3624,7 +3869,8 @@ window.addEventListener('beforeprint', renderOnePagePrintSheet);
 setLang('th');
 switchSection(activeSection);
 renderWorkflowFields();
-refreshPersistentHistorySession().then(() => {
+refreshPersistentHistorySession().then(async session => {
+  if (session) await loadPermanentHistory();
   if (isCurrentHrHead()) loadAdminUsers();
 });
 
@@ -3657,6 +3903,8 @@ function buildEvaluationSnapshot(){
     recommended_level: result.level,
     final_approved_level: workflowState.finalApprovedLevel || null,
     current_status: workflowState.currentStatus,
+    pending_with: pendingWithForStatus(workflowState.currentStatus),
+    record_url: getRecordUrl(),
     created_by: document.getElementById('evaluator').value,
     created_at: workflowState.createdAt,
     updated_at: now,
