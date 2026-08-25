@@ -105,13 +105,15 @@
   .section-intro h2{margin:0; color:var(--navy); font-size:16px;}
   .section-intro p{margin:3px 0 0; color:var(--grey); font-size:12.5px; line-height:1.45;}
   .section-chip{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:5px 10px; font-size:11.5px; color:var(--navy); background:var(--navy-light); font-weight:800; white-space:nowrap;}
+  .section-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+  .section-print-btn{padding:8px 12px; white-space:nowrap;}
   .layout{display:grid; grid-template-columns: 1fr 340px; gap:20px;}
   @media (max-width: 900px){
     .layout{grid-template-columns:1fr;} .header-row{flex-direction:column;}
     .workspace-shell{grid-template-columns:1fr;}
     .side-nav{position:static; display:grid; grid-template-columns:repeat(2,1fr); gap:6px;}
   }
-  @media (max-width: 560px){ .side-nav{grid-template-columns:1fr;} .section-intro{flex-direction:column;} }
+  @media (max-width: 560px){ .side-nav{grid-template-columns:1fr;} .section-intro{flex-direction:column;} .section-actions{justify-content:flex-start;} }
 
   .meta-card, .summary-card, .factor-card{
     background:#fff; border:1px solid var(--border); border-radius:8px;
@@ -413,7 +415,10 @@
   <section class="app-section active" data-section-panel="job">
     <div class="section-intro">
       <div><h2 id="sectionJobTitle">Job Setup</h2><p id="sectionJobDesc">Capture the job context and JD evidence before scoring.</p></div>
-      <span class="section-chip" id="sectionJobChip">Start here</span>
+      <div class="section-actions">
+        <span class="section-chip" id="sectionJobChip">Start here</span>
+        <button class="btn-secondary section-print-btn" id="btnPrintFormTop" onclick="printEvaluationForm()">พิมพ์แบบฟอร์ม</button>
+      </div>
     </div>
   <div class="meta-card">
     <h2 id="mJobInfo">ข้อมูลตำแหน่งงานที่ประเมิน</h2>
@@ -560,7 +565,7 @@
         <table class="level-table" id="levelTable"></table>
 
         <div class="btn-row">
-          <button class="btn-secondary" id="btnPrint" onclick="window.print()">🖨️ พิมพ์ / PDF</button>
+          <button class="btn-secondary" id="btnPrint" onclick="printEvaluationForm()">🖨️ พิมพ์ / PDF</button>
           <button class="btn-primary" id="btnSave" onclick="exportJSON()">💾 บันทึกผล (JSON)</button>
         </div>
         <div class="btn-row">
@@ -803,6 +808,7 @@ const UI = {
     summary: 'สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
+    btnPrintForm: 'พิมพ์แบบฟอร์ม',
     btnPrint: 'พิมพ์ / PDF', btnSave: 'บันทึกผล (JSON)', btnLoad: 'โหลดผลเดิม', btnReset: 'เริ่มใหม่',
     disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ',
     modelNote: 'ใช้โมเดล {version} · คะแนนรวมเป็นคะแนนถ่วงน้ำหนักตามกลุ่มปัจจัย · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
@@ -972,6 +978,7 @@ const UI = {
     summary: 'Evaluation Summary',
     total: 'Total Score (out of 1,200)',
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
+    btnPrintForm: 'Print Form',
     btnPrint: 'Print / PDF', btnSave: 'Save Result (JSON)', btnLoad: 'Load Result', btnReset: 'Reset',
     disclaimer: '⚠️ The Total Score → Job Level bands use the calibrated 100-role benchmark model. Roles near a level boundary should still be reviewed by the JE Committee before final approval.',
     modelNote: 'Using model {version} · total score is factor-group weighted · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
@@ -1141,6 +1148,7 @@ const UI = {
     summary: '评估结果汇总',
     total: '总分（满分 1,200）',
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
+    btnPrintForm: '打印表单',
     btnPrint: '打印 / PDF', btnSave: '保存结果 (JSON)', btnLoad: '加载已存结果', btnReset: '重新开始',
     disclaimer: '⚠️ 总分对应职级使用已根据100个标杆职位校准的模型。接近职级边界的职位仍应由JE委员会复核后再正式批准。',
     modelNote: '使用模型 {version} · 总分按要素组加权 · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
@@ -3248,6 +3256,7 @@ function applyStaticText(){
   document.getElementById('btnAdminClear').textContent = ui.adminClear;
   document.getElementById('mSummary').textContent = ui.summary;
   document.getElementById('lTotal').textContent = ui.total;
+  document.getElementById('btnPrintFormTop').textContent = ui.btnPrintForm;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
   document.getElementById('btnSave').textContent = ui.btnSave;
   document.getElementById('btnLoad').textContent = ui.btnLoad;
@@ -3306,6 +3315,15 @@ renderWorkflowFields();
 refreshPersistentHistorySession().then(() => {
   if (isCurrentHrHead()) loadAdminUsers();
 });
+
+function printEvaluationForm(){
+  const previousSection = activeSection;
+  switchSection('evaluation');
+  window.setTimeout(() => {
+    window.print();
+    if (previousSection !== 'evaluation') switchSection(previousSection);
+  }, 50);
+}
 
 function buildEvaluationSnapshot(){
   const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
