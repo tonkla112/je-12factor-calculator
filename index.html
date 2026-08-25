@@ -107,6 +107,16 @@
   .section-chip{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:5px 10px; font-size:11.5px; color:var(--navy); background:var(--navy-light); font-weight:800; white-space:nowrap;}
   .section-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
   .section-print-btn{padding:8px 12px; white-space:nowrap;}
+  .print-only{display:none;}
+  .print-factor-summary table{width:100%; border-collapse:collapse; font-size:11px;}
+  .print-factor-summary th{
+    background:var(--navy-light); color:var(--navy); padding:5px 6px; text-align:left; border:1px solid var(--border);
+  }
+  .print-factor-summary td{padding:5px 6px; border:1px solid var(--border); vertical-align:top;}
+  .print-factor-summary .score-cell{font-weight:800; text-align:center; white-space:nowrap; color:var(--navy);}
+  .print-factor-summary .rationale-cell{
+    line-height:1.35; max-height:34px; overflow:hidden;
+  }
   .layout{display:grid; grid-template-columns: 1fr 340px; gap:20px;}
   @media (max-width: 900px){
     .layout{grid-template-columns:1fr;} .header-row{flex-direction:column;}
@@ -309,18 +319,39 @@
   }
   .locked-note.show{display:block;}
   @media print{
+    @page{size:A4; margin:10mm;}
     header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters, .side-nav, .section-intro{display:none !important;}
+    body{background:#fff; font-size:10.5px;}
+    .wrap{max-width:none; margin:0; padding:0;}
+    .print-only{display:block !important;}
     .workspace-shell, .layout{display:block !important;}
     .workspace-main{display:flex !important; flex-direction:column !important;}
     .app-section{display:block !important;}
     [data-section-panel="job"]{order:1 !important;}
     [data-section-panel="score"]{order:2 !important;}
     [data-section-panel="signatures"]{order:3 !important;}
-    [data-section-panel="workflow"]{order:4 !important; break-before:page; page-break-before:always;}
-    [data-section-panel="reference"]{order:5 !important; break-before:page; page-break-before:always;}
+    [data-section-panel="workflow"], [data-section-panel="reference"],
     [data-section-panel="history"], [data-section-panel="admin"]{display:none !important;}
-    .anchor-table{display:none !important;}
-    .ref-table-wrap{max-height:none !important;}
+    #factorsCol, .anchor-table, #barChart, #levelTable{display:none !important;}
+    .meta-card, .summary-card{
+      box-shadow:none; border:1px solid #CBD5E1; border-radius:4px; padding:10px 12px; margin-bottom:8px;
+      break-inside:avoid; page-break-inside:avoid;
+    }
+    .meta-card h2, .summary-card h2{font-size:13px; margin-bottom:7px;}
+    .meta-grid, .workflow-grid{grid-template-columns:1fr 1fr; gap:6px;}
+    .meta-grid input, .meta-grid select, .meta-grid textarea,
+    .workflow-grid input, .workflow-grid select, .workflow-grid textarea{
+      padding:4px 6px; border-radius:3px; font-size:10.5px;
+    }
+    .meta-grid textarea{min-height:42px;}
+    .summary-card{position:static;}
+    .total-score{font-size:26px; margin:0;}
+    .total-label, .level-sub{font-size:10px; margin-bottom:6px;}
+    .level-pill{font-size:14px; padding:6px; margin-bottom:7px;}
+    .model-note{font-size:10px; padding:6px 8px; margin-top:6px; border-radius:4px;}
+    .sign-grid{gap:8px !important;}
+    .sign-box{padding:10px !important; break-inside:avoid; page-break-inside:avoid;}
+    .sign-line{height:34px !important; margin-top:6px !important;}
   }
 
   /* Reference table */
@@ -588,6 +619,20 @@
       </div>
     </div>
   </div>
+  <div class="meta-card print-factor-summary print-only">
+    <h2 id="printFactorTitle">สรุปคะแนน 12 ปัจจัย</h2>
+    <table>
+      <thead>
+        <tr>
+          <th id="printFactorNo">#</th>
+          <th id="printFactorName">ปัจจัย</th>
+          <th id="printFactorScore">คะแนน</th>
+          <th id="printFactorRationale">เหตุผล/หลักฐาน</th>
+        </tr>
+      </thead>
+      <tbody id="printFactorRows"></tbody>
+    </table>
+  </div>
   </section>
 
   <section class="app-section" data-section-panel="reference">
@@ -815,6 +860,12 @@ const UI = {
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
     btnPrintForm: 'พิมพ์แบบฟอร์ม',
     btnPrint: 'พิมพ์ / PDF', btnSave: 'บันทึกผล (JSON)', btnLoad: 'โหลดผลเดิม', btnReset: 'เริ่มใหม่',
+    printFactorTitle: 'สรุปคะแนน 12 ปัจจัยสำหรับอนุมัติ',
+    printFactorNo: '#',
+    printFactorName: 'ปัจจัย',
+    printFactorScore: 'คะแนน',
+    printFactorRationale: 'เหตุผล/หลักฐาน',
+    printRationaleEmpty: '-',
     disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ',
     modelNote: 'ใช้โมเดล {version} · คะแนนรวมเป็นคะแนนถ่วงน้ำหนักตามกลุ่มปัจจัย · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
     boundaryReview: 'คะแนนนี้อยู่ใกล้เส้นแบ่ง {lower}/{upper} ({boundary} คะแนน) ควรทบทวนกับงานอ้างอิงก่อนอนุมัติ',
@@ -985,6 +1036,12 @@ const UI = {
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
     btnPrintForm: 'Print Form',
     btnPrint: 'Print / PDF', btnSave: 'Save Result (JSON)', btnLoad: 'Load Result', btnReset: 'Reset',
+    printFactorTitle: '12-Factor Approval Summary',
+    printFactorNo: '#',
+    printFactorName: 'Factor',
+    printFactorScore: 'Score',
+    printFactorRationale: 'Rationale / Evidence',
+    printRationaleEmpty: '-',
     disclaimer: '⚠️ The Total Score → Job Level bands use the calibrated 100-role benchmark model. Roles near a level boundary should still be reviewed by the JE Committee before final approval.',
     modelNote: 'Using model {version} · total score is factor-group weighted · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
     boundaryReview: 'This score is close to the {lower}/{upper} boundary ({boundary} points). Review against benchmark jobs before approval.',
@@ -1155,6 +1212,12 @@ const UI = {
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
     btnPrintForm: '打印表单',
     btnPrint: '打印 / PDF', btnSave: '保存结果 (JSON)', btnLoad: '加载已存结果', btnReset: '重新开始',
+    printFactorTitle: '12要素审批摘要',
+    printFactorNo: '#',
+    printFactorName: '要素',
+    printFactorScore: '分数',
+    printFactorRationale: '理由/证据',
+    printRationaleEmpty: '-',
     disclaimer: '⚠️ 总分对应职级使用已根据100个标杆职位校准的模型。接近职级边界的职位仍应由JE委员会复核后再正式批准。',
     modelNote: '使用模型 {version} · 总分按要素组加权 · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
     boundaryReview: '该分数接近 {lower}/{upper} 边界（{boundary}分），批准前请结合标杆职位复核。',
@@ -3105,6 +3168,23 @@ function renderLevelTable(activeCode){
     LEVELS.map(l => `<tr class="${l[0]===activeCode ? 'active':''}"><td>${l[0]}</td><td>${l[1].toLocaleString()}–${l[2].toLocaleString()}</td><td>${l[3][currentLang]}</td></tr>`).join('');
 }
 
+function renderPrintFactorSummary(){
+  const rows = document.getElementById('printFactorRows');
+  if (!rows) return;
+  rows.innerHTML = FACTORS.map((f, index) => {
+    const rationaleText = (rationales[f.key] || '').trim() || UI[currentLang].printRationaleEmpty;
+    const compactRationale = rationaleText.length > 180 ? `${rationaleText.slice(0, 177)}...` : rationaleText;
+    return `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(f.name[currentLang])}</td>
+        <td class="score-cell">${state[f.key]}</td>
+        <td class="rationale-cell">${escapeHtml(compactRationale)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
 function renderSummary(){
   const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
   const total = result.weightedTotal;
@@ -3143,6 +3223,7 @@ function renderSummary(){
     const pct = (v/100*100).toFixed(0);
     return `<div class="bar-row"><div class="name">${f.name.en}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-val">${v}</div></div>`;
   }).join('');
+  renderPrintFactorSummary();
 }
 
 function applyStaticText(){
@@ -3263,6 +3344,11 @@ function applyStaticText(){
   document.getElementById('lTotal').textContent = ui.total;
   document.getElementById('btnPrintFormTop').textContent = ui.btnPrintForm;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
+  document.getElementById('printFactorTitle').textContent = ui.printFactorTitle;
+  document.getElementById('printFactorNo').textContent = ui.printFactorNo;
+  document.getElementById('printFactorName').textContent = ui.printFactorName;
+  document.getElementById('printFactorScore').textContent = ui.printFactorScore;
+  document.getElementById('printFactorRationale').textContent = ui.printFactorRationale;
   document.getElementById('btnSave').textContent = ui.btnSave;
   document.getElementById('btnLoad').textContent = ui.btnLoad;
   document.getElementById('btnReset').textContent = ui.btnReset;
