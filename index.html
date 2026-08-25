@@ -117,6 +117,31 @@
   .print-factor-summary .rationale-cell{
     line-height:1.35; max-height:34px; overflow:hidden;
   }
+  .one-page-print-sheet{display:none;}
+  .print-sheet-header{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; border-bottom:2px solid var(--navy); padding-bottom:6px; margin-bottom:7px;}
+  .print-sheet-header h1{margin:0; color:var(--navy); font-size:16px; line-height:1.2;}
+  .print-sheet-header p{margin:2px 0 0; color:#475569; font-size:9.5px;}
+  .print-sheet-meta{font-size:9.5px; line-height:1.35; text-align:right; color:#334155; white-space:nowrap;}
+  .print-sheet-grid{display:grid; grid-template-columns:1.45fr .85fr; gap:7px; margin-bottom:7px;}
+  .print-sheet-box{border:1px solid #CBD5E1; border-radius:4px; padding:6px 7px; break-inside:avoid; page-break-inside:avoid;}
+  .print-sheet-box h2{margin:0 0 5px; color:var(--navy); font-size:11px;}
+  .print-sheet-table{width:100%; border-collapse:collapse; font-size:9.2px; line-height:1.22;}
+  .print-sheet-table th, .print-sheet-table td{border:1px solid #CBD5E1; padding:3px 4px; vertical-align:top;}
+  .print-sheet-table th{background:#F1F5F9; color:#334155; text-align:left; font-weight:800;}
+  .print-sheet-kpi{display:grid; grid-template-columns:1fr 1fr; gap:5px;}
+  .print-sheet-kpi div{border:1px solid #CBD5E1; border-radius:4px; padding:5px; text-align:center;}
+  .print-sheet-kpi strong{display:block; color:var(--navy); font-size:18px; line-height:1;}
+  .print-sheet-kpi span{display:block; color:#64748B; font-size:8.5px; margin-top:2px;}
+  .print-sheet-note{font-size:8.6px; color:#334155; line-height:1.25; margin-top:5px;}
+  .print-sheet-factor-table{font-size:8.4px; line-height:1.18;}
+  .print-sheet-factor-table th, .print-sheet-factor-table td{padding:2.5px 3.5px;}
+  .print-sheet-factor-table .num{width:18px; text-align:center;}
+  .print-sheet-factor-table .score{width:34px; text-align:center; font-weight:800; color:var(--navy);}
+  .print-sheet-sign-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
+  .print-sheet-sign{border:1px solid #CBD5E1; border-radius:4px; padding:6px; min-height:58px;}
+  .print-sheet-sign strong{display:block; font-size:9px; color:var(--navy);}
+  .print-sheet-line{border-bottom:1px solid #94A3B8; height:22px; margin:5px 0 3px;}
+  .print-sheet-caption{font-size:8px; color:#64748B; text-align:center;}
   .layout{display:grid; grid-template-columns: 1fr 340px; gap:20px;}
   @media (max-width: 900px){
     .layout{grid-template-columns:1fr;} .header-row{flex-direction:column;}
@@ -319,12 +344,12 @@
   }
   .locked-note.show{display:block;}
   @media print{
-    @page{size:A4; margin:10mm;}
-    header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters, .side-nav, .section-intro{display:none !important;}
-    body{background:#fff; font-size:10.5px;}
+    @page{size:A4; margin:7mm;}
+    header, .auth-screen, .workspace-shell, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters, .side-nav, .section-intro{display:none !important;}
+    body{background:#fff; font-size:9px;}
     .wrap{max-width:none; margin:0; padding:0;}
-    .print-only{display:block !important;}
-    .workspace-shell, .layout{display:block !important;}
+    .one-page-print-sheet{display:block !important;}
+    .print-only, .layout{display:block !important;}
     .workspace-main{display:flex !important; flex-direction:column !important;}
     .app-section{display:block !important;}
     [data-section-panel="job"]{order:1 !important;}
@@ -691,6 +716,53 @@
   </section>
     </main>
   </div>
+  <section class="one-page-print-sheet" id="onePagePrintSheet">
+    <div class="print-sheet-header">
+      <div>
+        <h1 id="printSheetTitle">Job Evaluation Approval Sheet</h1>
+        <p id="printSheetSubtitle">12-Factor Job Evaluation Summary</p>
+      </div>
+      <div class="print-sheet-meta" id="printSheetMeta"></div>
+    </div>
+    <div class="print-sheet-grid">
+      <div class="print-sheet-box">
+        <h2 id="printSheetJobTitle">Job Information</h2>
+        <table class="print-sheet-table">
+          <tbody id="printSheetJobRows"></tbody>
+        </table>
+      </div>
+      <div class="print-sheet-box">
+        <h2 id="printSheetResultTitle">Evaluation Result</h2>
+        <div class="print-sheet-kpi">
+          <div><strong id="printSheetTotalScore">0</strong><span id="printSheetTotalLabel">Total Score</span></div>
+          <div><strong id="printSheetLevel">-</strong><span id="printSheetLevelLabel">Job Level</span></div>
+        </div>
+        <div class="print-sheet-note" id="printSheetModelNote"></div>
+      </div>
+    </div>
+    <div class="print-sheet-box">
+      <h2 id="printSheetFactorTitle">12-Factor Score Summary</h2>
+      <table class="print-sheet-table print-sheet-factor-table">
+        <thead>
+          <tr>
+            <th class="num" id="printSheetFactorNo">#</th>
+            <th id="printSheetFactorName">Factor</th>
+            <th class="score" id="printSheetFactorScore">Score</th>
+            <th id="printSheetFactorEvidence">Key Evidence</th>
+          </tr>
+        </thead>
+        <tbody id="printSheetFactorRows"></tbody>
+      </table>
+    </div>
+    <div class="print-sheet-box">
+      <h2 id="printSheetSignTitle">Approval Signatures</h2>
+      <div class="print-sheet-sign-grid">
+        <div class="print-sheet-sign"><strong id="printSheetEvaluatorRole">Evaluator / HR Analyst</strong><div class="print-sheet-line"></div><div class="print-sheet-caption" id="printSheetEvaluatorCaption">Name / Date</div></div>
+        <div class="print-sheet-sign"><strong id="printSheetCommitteeRole">JE Committee</strong><div class="print-sheet-line"></div><div class="print-sheet-caption" id="printSheetCommitteeCaption">Name / Date</div></div>
+        <div class="print-sheet-sign"><strong id="printSheetApproverRole">HR Head / Approver</strong><div class="print-sheet-line"></div><div class="print-sheet-caption" id="printSheetApproverCaption">Name / Date</div></div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -866,6 +938,27 @@ const UI = {
     printFactorScore: 'คะแนน',
     printFactorRationale: 'เหตุผล/หลักฐาน',
     printRationaleEmpty: '-',
+    onePageTitle: 'แบบฟอร์มอนุมัติผลประเมินค่างาน',
+    onePageSubtitle: 'สรุปผลประเมินค่างาน 12 ปัจจัยสำหรับลงนาม',
+    onePageJobInfo: 'ข้อมูลงาน',
+    onePageResult: 'ผลการประเมิน',
+    onePageTotalScore: 'คะแนนรวม',
+    onePageJobLevel: 'Job Level',
+    onePageFactorSummary: 'สรุปคะแนน 12 ปัจจัย',
+    onePageKeyEvidence: 'หลักฐานย่อ',
+    onePageSignatures: 'ลงนามอนุมัติ',
+    onePageEvaluator: 'ผู้ประเมิน / HR Analyst',
+    onePageCommittee: 'คณะกรรมการ JE',
+    onePageApprover: 'HR Head / ผู้อนุมัติ',
+    onePageNameDate: 'ชื่อ / วันที่',
+    onePageEvaluationId: 'Evaluation ID',
+    onePageVersion: 'Version',
+    onePageStatus: 'สถานะ',
+    onePageDate: 'วันที่ประเมิน',
+    onePageModel: 'Score Model',
+    onePageRecommended: 'ระดับแนะนำ',
+    onePageFinal: 'ระดับอนุมัติ',
+    onePageJdEvidence: 'JD Evidence',
     disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ',
     modelNote: 'ใช้โมเดล {version} · คะแนนรวมเป็นคะแนนถ่วงน้ำหนักตามกลุ่มปัจจัย · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
     boundaryReview: 'คะแนนนี้อยู่ใกล้เส้นแบ่ง {lower}/{upper} ({boundary} คะแนน) ควรทบทวนกับงานอ้างอิงก่อนอนุมัติ',
@@ -1042,6 +1135,27 @@ const UI = {
     printFactorScore: 'Score',
     printFactorRationale: 'Rationale / Evidence',
     printRationaleEmpty: '-',
+    onePageTitle: 'Job Evaluation Approval Sheet',
+    onePageSubtitle: '12-Factor Job Evaluation Summary for Sign-off',
+    onePageJobInfo: 'Job Information',
+    onePageResult: 'Evaluation Result',
+    onePageTotalScore: 'Total Score',
+    onePageJobLevel: 'Job Level',
+    onePageFactorSummary: '12-Factor Score Summary',
+    onePageKeyEvidence: 'Key Evidence',
+    onePageSignatures: 'Approval Signatures',
+    onePageEvaluator: 'Evaluator / HR Analyst',
+    onePageCommittee: 'JE Committee',
+    onePageApprover: 'HR Head / Approver',
+    onePageNameDate: 'Name / Date',
+    onePageEvaluationId: 'Evaluation ID',
+    onePageVersion: 'Version',
+    onePageStatus: 'Status',
+    onePageDate: 'Evaluation Date',
+    onePageModel: 'Score Model',
+    onePageRecommended: 'Recommended Level',
+    onePageFinal: 'Final Approved Level',
+    onePageJdEvidence: 'JD Evidence',
     disclaimer: '⚠️ The Total Score → Job Level bands use the calibrated 100-role benchmark model. Roles near a level boundary should still be reviewed by the JE Committee before final approval.',
     modelNote: 'Using model {version} · total score is factor-group weighted · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
     boundaryReview: 'This score is close to the {lower}/{upper} boundary ({boundary} points). Review against benchmark jobs before approval.',
@@ -1218,6 +1332,27 @@ const UI = {
     printFactorScore: '分数',
     printFactorRationale: '理由/证据',
     printRationaleEmpty: '-',
+    onePageTitle: '职位评估审批表',
+    onePageSubtitle: '12要素职位评估签署摘要',
+    onePageJobInfo: '职位信息',
+    onePageResult: '评估结果',
+    onePageTotalScore: '总分',
+    onePageJobLevel: '职级',
+    onePageFactorSummary: '12要素评分摘要',
+    onePageKeyEvidence: '关键证据',
+    onePageSignatures: '审批签名',
+    onePageEvaluator: '评估人 / HR Analyst',
+    onePageCommittee: 'JE委员会',
+    onePageApprover: 'HR Head / 审批人',
+    onePageNameDate: '姓名 / 日期',
+    onePageEvaluationId: 'Evaluation ID',
+    onePageVersion: '版本',
+    onePageStatus: '状态',
+    onePageDate: '评估日期',
+    onePageModel: '评分模型',
+    onePageRecommended: '建议职级',
+    onePageFinal: '最终批准职级',
+    onePageJdEvidence: 'JD证据',
     disclaimer: '⚠️ 总分对应职级使用已根据100个标杆职位校准的模型。接近职级边界的职位仍应由JE委员会复核后再正式批准。',
     modelNote: '使用模型 {version} · 总分按要素组加权 · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
     boundaryReview: '该分数接近 {lower}/{upper} 边界（{boundary}分），批准前请结合标杆职位复核。',
@@ -3185,6 +3320,78 @@ function renderPrintFactorSummary(){
   }).join('');
 }
 
+function compactPrintText(value, limit){
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text) return UI[currentLang].printRationaleEmpty;
+  return text.length > limit ? `${text.slice(0, Math.max(0, limit - 3))}...` : text;
+}
+
+function renderOnePagePrintSheet(){
+  const sheet = document.getElementById('onePagePrintSheet');
+  if (!sheet) return;
+  const ui = UI[currentLang];
+  const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
+  const missing = missingRationales();
+  const recommendedLevelText = missing.length ? ui.incompleteLevel : result.level;
+  const finalLevelText = workflowState.finalApprovedLevel || '-';
+  const statusText = WORKFLOW_STATUS_LABELS[workflowState.currentStatus]?.[currentLang] || workflowState.currentStatus;
+  const evalDate = document.getElementById('evalDate').value || new Date().toISOString().slice(0, 10);
+
+  document.getElementById('printSheetTitle').textContent = ui.onePageTitle;
+  document.getElementById('printSheetSubtitle').textContent = ui.onePageSubtitle;
+  document.getElementById('printSheetMeta').innerHTML = [
+    `${ui.onePageEvaluationId}: ${escapeHtml(workflowState.evaluationId)}`,
+    `${ui.onePageVersion}: v${workflowState.versionNumber}`,
+    `${ui.onePageStatus}: ${escapeHtml(statusText)}`,
+    `${ui.onePageDate}: ${escapeHtml(evalDate)}`,
+  ].join('<br>');
+  document.getElementById('printSheetJobTitle').textContent = ui.onePageJobInfo;
+  document.getElementById('printSheetResultTitle').textContent = ui.onePageResult;
+  document.getElementById('printSheetTotalScore').textContent = result.weightedTotal.toLocaleString();
+  document.getElementById('printSheetTotalLabel').textContent = ui.onePageTotalScore;
+  document.getElementById('printSheetLevel').textContent = finalLevelText !== '-' ? finalLevelText : recommendedLevelText;
+  document.getElementById('printSheetLevelLabel').textContent = ui.onePageJobLevel;
+  document.getElementById('printSheetFactorTitle').textContent = ui.onePageFactorSummary;
+  document.getElementById('printSheetFactorNo').textContent = ui.printFactorNo;
+  document.getElementById('printSheetFactorName').textContent = ui.printFactorName;
+  document.getElementById('printSheetFactorScore').textContent = ui.printFactorScore;
+  document.getElementById('printSheetFactorEvidence').textContent = ui.onePageKeyEvidence;
+  document.getElementById('printSheetSignTitle').textContent = ui.onePageSignatures;
+  document.getElementById('printSheetEvaluatorRole').textContent = ui.onePageEvaluator;
+  document.getElementById('printSheetCommitteeRole').textContent = ui.onePageCommittee;
+  document.getElementById('printSheetApproverRole').textContent = ui.onePageApprover;
+  document.getElementById('printSheetEvaluatorCaption').textContent = ui.onePageNameDate;
+  document.getElementById('printSheetCommitteeCaption').textContent = ui.onePageNameDate;
+  document.getElementById('printSheetApproverCaption').textContent = ui.onePageNameDate;
+
+  const jobRows = [
+    [ui.jobTitle, document.getElementById('jobTitle').value],
+    [ui.dept, document.getElementById('dept').value],
+    [ui.evaluator, document.getElementById('evaluator').value],
+    [ui.onePageRecommended, recommendedLevelText],
+    [ui.onePageFinal, finalLevelText],
+    [ui.onePageJdEvidence, compactPrintText(document.getElementById('jobEvidence').value, 220)],
+  ];
+  document.getElementById('printSheetJobRows').innerHTML = jobRows.map(([label, value]) => `
+    <tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value || '-')}</td></tr>
+  `).join('');
+
+  document.getElementById('printSheetModelNote').innerHTML = [
+    `${ui.onePageModel}: ${escapeHtml(window.JE_SCORE_GRADE_MODEL.version)}`,
+    `${ui.onePageRecommended}: ${escapeHtml(recommendedLevelText)}`,
+    `${ui.onePageFinal}: ${escapeHtml(finalLevelText)}`,
+  ].join('<br>');
+
+  document.getElementById('printSheetFactorRows').innerHTML = FACTORS.map((f, index) => `
+    <tr>
+      <td class="num">${index + 1}</td>
+      <td>${escapeHtml(f.name[currentLang])}</td>
+      <td class="score">${state[f.key]}</td>
+      <td>${escapeHtml(compactPrintText(rationales[f.key], 78))}</td>
+    </tr>
+  `).join('');
+}
+
 function renderSummary(){
   const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
   const total = result.weightedTotal;
@@ -3224,6 +3431,7 @@ function renderSummary(){
     return `<div class="bar-row"><div class="name">${f.name.en}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-val">${v}</div></div>`;
   }).join('');
   renderPrintFactorSummary();
+  renderOnePagePrintSheet();
 }
 
 function applyStaticText(){
@@ -3399,6 +3607,11 @@ document.getElementById('refLevelFilter').addEventListener('change', renderRefTa
 ['historySearch','historyStatusFilter','historyLevelFilter','historyLatestOnly'].forEach(id => {
   document.getElementById(id).addEventListener(id === 'historySearch' ? 'input' : 'change', renderPersistentHistory);
 });
+['jobTitle','dept','evaluator','evalDate','jobEvidence','workflowActor','finalApprovedLevel','approvedBy','decisionDate','committeeReviewers'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', renderOnePagePrintSheet);
+  document.getElementById(id)?.addEventListener('change', renderOnePagePrintSheet);
+});
+window.addEventListener('beforeprint', renderOnePagePrintSheet);
 
 setLang('th');
 switchSection(activeSection);
@@ -3410,6 +3623,7 @@ refreshPersistentHistorySession().then(() => {
 function printEvaluationForm(){
   const previousSection = activeSection;
   switchSection('evaluation');
+  renderOnePagePrintSheet();
   window.setTimeout(() => {
     window.print();
     if (previousSection !== 'evaluation') switchSection(previousSection);
