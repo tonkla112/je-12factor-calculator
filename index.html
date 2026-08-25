@@ -6,36 +6,64 @@
 <title id="pageTitle">ระบบประเมินค่างาน 12 ปัจจัย — ZG Industries</title>
 <style>
   :root{
-    --navy:#16294D; --navy2:#1F3A6B; --navy-light:#EAF0FB;
-    --gold:#B45309; --gold-light:#FEF3C7;
-    --grey:#6B7280; --border:#E2E8F0; --bg:#F4F6FA;
-    --green:#059669; --red:#DC2626;
+    --navy:#19304F; --navy2:#25476F; --navy-light:#E8EEF7;
+    --gold:#A45D12; --gold-light:#FFF2D5;
+    --grey:#64748B; --border:#DDE5EF; --bg:#F3F6FA;
+    --green:#047857; --red:#B91C1C; --ink:#172033;
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; background:var(--bg); color:#1F2937;
+    margin:0; background:var(--bg); color:var(--ink);
     font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
     padding-bottom:60px;
   }
   header{
-    background:linear-gradient(135deg, var(--navy), var(--navy2));
-    color:#fff; padding:20px 20px 18px; box-shadow:0 2px 10px rgba(0,0,0,.15);
+    background:#fff;
+    color:var(--ink); padding:18px 20px 14px; border-bottom:1px solid var(--border);
   }
   .header-row{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; max-width:1180px; margin:0 auto;}
-  header h1{margin:0 0 4px; font-size:22px;}
-  header p{margin:0; color:#C7D5EE; font-size:13px;}
-  .lang-switch{display:flex; gap:4px; flex-shrink:0; background:rgba(255,255,255,.12); border-radius:999px; padding:3px;}
+  header h1{margin:0 0 4px; font-size:21px; color:var(--navy); letter-spacing:0;}
+  header p{margin:0; color:var(--grey); font-size:13px;}
+  .lang-switch{display:flex; gap:4px; flex-shrink:0; background:#F1F5F9; border:1px solid var(--border); border-radius:999px; padding:3px;}
   .lang-btn{
-    border:none; background:transparent; color:#C7D5EE; font-size:12px; font-weight:700;
+    border:none; background:transparent; color:var(--grey); font-size:12px; font-weight:700;
     padding:6px 12px; border-radius:999px; cursor:pointer; flex:none;
   }
-  .lang-btn.active{background:#fff; color:var(--navy);}
+  .lang-btn.active{background:var(--navy); color:#fff;}
   .wrap{max-width:1180px; margin:0 auto; padding:20px;}
+  .workspace-shell{display:grid; grid-template-columns:230px minmax(0,1fr); gap:18px; align-items:start;}
+  .side-nav{
+    position:sticky; top:14px; background:#fff; border:1px solid var(--border); border-radius:8px;
+    padding:8px; box-shadow:0 1px 3px rgba(15,23,42,.05);
+  }
+  .nav-btn{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:transparent; color:#334155; border:0; border-radius:6px; padding:10px 11px;
+    font-size:13px; font-weight:700; text-align:left; cursor:pointer;
+  }
+  .nav-btn:hover{background:#F8FAFC; opacity:1;}
+  .nav-btn.active{background:var(--navy); color:#fff;}
+  .nav-index{font-size:11px; opacity:.72; font-weight:800;}
+  .workspace-main{min-width:0;}
+  .app-section{display:none;}
+  .app-section.active{display:block;}
+  .section-intro{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    margin-bottom:12px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:14px 16px;
+  }
+  .section-intro h2{margin:0; color:var(--navy); font-size:16px;}
+  .section-intro p{margin:3px 0 0; color:var(--grey); font-size:12.5px; line-height:1.45;}
+  .section-chip{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:5px 10px; font-size:11.5px; color:var(--navy); background:var(--navy-light); font-weight:800; white-space:nowrap;}
   .layout{display:grid; grid-template-columns: 1fr 340px; gap:20px;}
-  @media (max-width: 900px){ .layout{grid-template-columns:1fr;} .header-row{flex-direction:column;} }
+  @media (max-width: 900px){
+    .layout{grid-template-columns:1fr;} .header-row{flex-direction:column;}
+    .workspace-shell{grid-template-columns:1fr;}
+    .side-nav{position:static; display:grid; grid-template-columns:repeat(2,1fr); gap:6px;}
+  }
+  @media (max-width: 560px){ .side-nav{grid-template-columns:1fr;} .section-intro{flex-direction:column;} }
 
   .meta-card, .summary-card, .factor-card{
-    background:#fff; border:1px solid var(--border); border-radius:14px;
+    background:#fff; border:1px solid var(--border); border-radius:8px;
     padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.04);
   }
   .meta-card h2, .summary-card h2{font-size:15px; color:var(--navy); margin:0 0 12px;}
@@ -49,6 +77,9 @@
   .meta-grid .span-2{grid-column:1 / -1;}
 
   .factor-card{position:relative;}
+  #factorsCol{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+  #factorsCol .factor-card{margin-bottom:0;}
+  @media (max-width: 760px){#factorsCol{grid-template-columns:1fr;}}
   .factor-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;}
   .factor-title{font-weight:700; color:var(--navy); font-size:15px;}
   .factor-title span{color:var(--gold); font-weight:700;}
@@ -103,7 +134,7 @@
   .total-label{text-align:center; font-size:12px; color:var(--grey); margin-bottom:14px;}
   .level-pill{
     display:block; text-align:center; font-size:18px; font-weight:800; color:#fff;
-    background:linear-gradient(135deg, var(--gold), #D97706); border-radius:10px; padding:10px; margin-bottom:14px;
+    background:var(--gold); border-radius:8px; padding:10px; margin-bottom:14px;
   }
   .level-sub{text-align:center; font-size:12px; color:var(--grey); margin-top:-10px; margin-bottom:14px;}
 
@@ -113,10 +144,11 @@
   .bar-fill{height:100%; background:linear-gradient(90deg, var(--navy2), var(--gold));}
   .bar-val{width:26px; text-align:right; color:var(--navy); font-weight:700;}
 
-  .btn-row{display:flex; gap:8px; margin-top:16px;}
+  .btn-row{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;}
   button{
-    flex:1; padding:10px; border-radius:9px; border:none; font-size:13px; font-weight:700; cursor:pointer;
+    padding:10px 12px; border-radius:7px; border:none; font-size:13px; font-weight:700; cursor:pointer;
   }
+  .btn-row button, .btn-row label{flex:1 1 170px;}
   .btn-primary{background:var(--navy); color:#fff;}
   .btn-secondary{background:var(--navy-light); color:var(--navy);}
   button:hover{opacity:.88;}
@@ -210,9 +242,10 @@
   }
   .locked-note.show{display:block;}
   @media print{
-    header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters{display:none !important;}
+    header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters, .side-nav, .section-intro{display:none !important;}
+    .workspace-shell, .layout{display:block !important;}
+    .workspace-main, .app-section{display:block !important;}
     .anchor-table{display:none !important;}
-    .layout{grid-template-columns:1fr;}
     .ref-table-wrap{max-height:none !important;}
     #refTableCard{page-break-before:always;}
   }
@@ -272,6 +305,23 @@
 </header>
 
 <div class="wrap">
+  <div class="workspace-shell">
+    <nav class="side-nav" id="sideNav" aria-label="Job evaluation sections">
+      <button class="nav-btn active" data-section="job"><span id="navJob">Job Setup</span><span class="nav-index">01</span></button>
+      <button class="nav-btn" data-section="score"><span id="navScore">Scoring</span><span class="nav-index">02</span></button>
+      <button class="nav-btn" data-section="workflow"><span id="navWorkflow">Workflow</span><span class="nav-index">03</span></button>
+      <button class="nav-btn" data-section="history"><span id="navHistory">History</span><span class="nav-index">04</span></button>
+      <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">05</span></button>
+      <button class="nav-btn" data-section="reference"><span id="navReference">Benchmarks</span><span class="nav-index">06</span></button>
+      <button class="nav-btn" data-section="signatures"><span id="navSignatures">Signatures</span><span class="nav-index">07</span></button>
+    </nav>
+
+    <main class="workspace-main">
+  <section class="app-section active" data-section-panel="job">
+    <div class="section-intro">
+      <div><h2 id="sectionJobTitle">Job Setup</h2><p id="sectionJobDesc">Capture the job context and JD evidence before scoring.</p></div>
+      <span class="section-chip" id="sectionJobChip">Start here</span>
+    </div>
   <div class="meta-card">
     <h2 id="mJobInfo">ข้อมูลตำแหน่งงานที่ประเมิน</h2>
     <div class="meta-grid">
@@ -283,7 +333,13 @@
       <div class="span-2"><label id="lJobEvidence">หลักฐานจาก Job Description</label><textarea id="jobEvidence"></textarea></div>
     </div>
   </div>
+  </section>
 
+  <section class="app-section" data-section-panel="workflow">
+    <div class="section-intro">
+      <div><h2 id="sectionWorkflowTitle">Workflow</h2><p id="sectionWorkflowDesc">Move records through review, approval, rejection, and recalibration.</p></div>
+      <span class="section-chip" id="sectionWorkflowChip">Governance</span>
+    </div>
   <div class="meta-card">
     <h2 id="mWorkflow">Approval Workflow & Audit Trail</h2>
     <div class="workflow-grid">
@@ -305,7 +361,13 @@
     <div class="locked-note" id="lockedNote"></div>
     <div class="audit-log" id="auditLog"></div>
   </div>
+  </section>
 
+  <section class="app-section" data-section-panel="history">
+    <div class="section-intro">
+      <div><h2 id="sectionHistoryTitle">Permanent History</h2><p id="sectionHistoryDesc">Sign in, save evaluations, and review historical audit records.</p></div>
+      <span class="section-chip" id="sectionHistoryChip">Database</span>
+    </div>
   <div class="meta-card">
     <h2 id="mPersistentHistory">Permanent Evaluation History</h2>
     <div class="workflow-grid">
@@ -336,7 +398,13 @@
     <div class="history-list" id="persistentHistoryList"></div>
     <div class="audit-log" id="persistentAuditLog"></div>
   </div>
+  </section>
 
+  <section class="app-section" data-section-panel="admin">
+    <div class="section-intro">
+      <div><h2 id="sectionAdminTitle">Admin</h2><p id="sectionAdminDesc">Manage JE user access and role audit history.</p></div>
+      <span class="section-chip" id="sectionAdminChip">HR Head</span>
+    </div>
   <div class="meta-card">
     <h2 id="mAdminUsers">Admin / User Management</h2>
     <p class="admin-help" id="adminHelp"></p>
@@ -366,7 +434,13 @@
     <div class="history-list" id="adminUserList"></div>
     <div class="audit-log" id="adminAuditLog"></div>
   </div>
+  </section>
 
+  <section class="app-section" data-section-panel="score">
+    <div class="section-intro">
+      <div><h2 id="sectionScoreTitle">12-Factor Scoring</h2><p id="sectionScoreDesc">Score each factor and capture rationale from the job description.</p></div>
+      <span class="section-chip" id="sectionScoreChip">12 factors</span>
+    </div>
   <div class="layout">
     <div id="factorsCol"></div>
 
@@ -401,7 +475,13 @@
       </div>
     </div>
   </div>
+  </section>
 
+  <section class="app-section" data-section-panel="reference">
+    <div class="section-intro">
+      <div><h2 id="sectionReferenceTitle">Benchmark Jobs</h2><p id="sectionReferenceDesc">Use benchmark jobs to check level boundaries and calibration.</p></div>
+      <span class="section-chip" id="sectionReferenceChip">100 jobs</span>
+    </div>
   <div class="meta-card" id="refTableCard">
     <h2 id="refTableTitle">📋 ตารางอ้างอิงการประเมินค่างาน (100 ตำแหน่งอ้างอิง)</h2>
     <div class="ref-sample-note" id="refSampleNote">⚠️ ข้อมูลตัวอย่าง/จำลอง — ไม่ใช่ตำแหน่งหรือคะแนนจริงของบริษัท ใช้เพื่อสาธิตการใช้งานเท่านั้น</div>
@@ -424,7 +504,13 @@
     </div>
     <div class="ref-count" id="refCount"></div>
   </div>
+  </section>
 
+  <section class="app-section" data-section-panel="signatures">
+    <div class="section-intro">
+      <div><h2 id="sectionSignTitle">Signatures</h2><p id="sectionSignDesc">Prepare evaluator and approver sign-off details for print/PDF output.</p></div>
+      <span class="section-chip" id="sectionSignChip">Approval</span>
+    </div>
   <div class="meta-card" id="signCard">
     <h2 id="signTitle">✍️ การลงนามรับรองผลการประเมิน</h2>
     <div class="sign-grid">
@@ -444,6 +530,9 @@
       </div>
     </div>
   </div>
+  </section>
+    </main>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -459,8 +548,36 @@ window.JE_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJz
 const UI = {
   th: {
     pageTitle: 'ระบบประเมินค่างาน 12 ปัจจัย — ZG Industries',
-    hTitle: '⚖️ ระบบประเมินค่างาน 12 ปัจจัย (12-Factor Job Evaluation Calculator)',
+    hTitle: 'ระบบประเมินค่างาน 12 ปัจจัย',
     hSub: 'ZG Industries (Thailand) Limited — ใช้คู่กับคู่มือเกณฑ์การให้คะแนน (Scoring Anchor Guide) สำหรับคณะกรรมการ JE',
+    navJob: 'ข้อมูลงาน',
+    navScore: 'ให้คะแนน',
+    navWorkflow: 'Workflow',
+    navHistory: 'ประวัติ',
+    navAdmin: 'ผู้ใช้',
+    navReference: 'Benchmark',
+    navSignatures: 'ลงนาม',
+    sectionJobTitle: 'ข้อมูลงาน',
+    sectionJobDesc: 'กรอกขอบเขตงาน แผนก ผู้ประเมิน และหลักฐานจาก Job Description ก่อนเริ่มให้คะแนน',
+    sectionJobChip: 'เริ่มที่นี่',
+    sectionScoreTitle: 'ให้คะแนน 12 ปัจจัย',
+    sectionScoreDesc: 'เลือกคะแนนแต่ละปัจจัยและบันทึกเหตุผล/หลักฐานประกอบให้ครบก่อนเสนอระดับงาน',
+    sectionScoreChip: '12 ปัจจัย',
+    sectionWorkflowTitle: 'Workflow อนุมัติ',
+    sectionWorkflowDesc: 'ส่งงานให้คณะกรรมการ ทบทวน อนุมัติ ตีกลับ หรือปรับเทียบเวอร์ชันใหม่',
+    sectionWorkflowChip: 'Governance',
+    sectionHistoryTitle: 'ประวัติย้อนหลังถาวร',
+    sectionHistoryDesc: 'เข้าสู่ระบบ บันทึก evaluation และดูประวัติ/audit trail จากฐานข้อมูล',
+    sectionHistoryChip: 'Database',
+    sectionAdminTitle: 'จัดการผู้ใช้',
+    sectionAdminDesc: 'HR Head เพิ่มผู้ใช้ กำหนด role เปิด/ปิดสิทธิ์ และตรวจ audit การเปลี่ยนสิทธิ์',
+    sectionAdminChip: 'HR Head',
+    sectionReferenceTitle: 'งานอ้างอิง',
+    sectionReferenceDesc: 'ใช้ benchmark jobs ตรวจระดับงาน ขอบเขตคะแนน และความสอดคล้องของการปรับเทียบ',
+    sectionReferenceChip: '100 งาน',
+    sectionSignTitle: 'ลงนามรับรอง',
+    sectionSignDesc: 'เตรียมข้อมูลผู้ประเมินและผู้อนุมัติสำหรับการพิมพ์หรือ PDF',
+    sectionSignChip: 'Approval',
     jobInfo: 'ข้อมูลตำแหน่งงานที่ประเมิน',
     jobTitle: 'ชื่อตำแหน่งงาน (Job Title)', jobTitlePh: 'เช่น หัวหน้าแผนกผลิต',
     dept: 'แผนก (Department)', deptPh: 'เช่น Production',
@@ -550,10 +667,10 @@ const UI = {
     adminAuditEmpty: 'ยังไม่มี audit การเปลี่ยนสิทธิ์สำหรับผู้ใช้นี้',
     adminAccountCreated: 'สร้างบัญชีแล้ว กรุณาตรวจสอบอีเมลถ้าระบบต้องยืนยันบัญชี จากนั้น Sign In อีกครั้ง',
     jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
-    summary: '📊 สรุปผลการประเมิน',
+    summary: 'สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
-    btnPrint: '🖨️ พิมพ์ / PDF', btnSave: '💾 บันทึกผล (JSON)', btnLoad: '📂 โหลดผลเดิม', btnReset: '↺ เริ่มใหม่',
+    btnPrint: 'พิมพ์ / PDF', btnSave: 'บันทึกผล (JSON)', btnLoad: 'โหลดผลเดิม', btnReset: 'เริ่มใหม่',
     disclaimer: '⚠️ ช่วงคะแนนรวม→Job Level ใช้โมเดลที่ปรับเทียบกับชุดงานอ้างอิง 100 ตำแหน่งแล้ว แต่ตำแหน่งที่อยู่ใกล้เส้นแบ่งระดับควรผ่านการทบทวนโดยคณะกรรมการ JE ก่อนอนุมัติเป็นทางการ',
     modelNote: 'ใช้โมเดล {version} · คะแนนรวมเป็นคะแนนถ่วงน้ำหนักตามกลุ่มปัจจัย · ปรับเทียบกับงานอ้างอิง {count} ตำแหน่ง · ความสอดคล้องตรงระดับ {matches}/{count} ตำแหน่ง',
     boundaryReview: 'คะแนนนี้อยู่ใกล้เส้นแบ่ง {lower}/{upper} ({boundary} คะแนน) ควรทบทวนกับงานอ้างอิงก่อนอนุมัติ',
@@ -570,8 +687,36 @@ const UI = {
   },
   en: {
     pageTitle: '12-Factor Job Evaluation Calculator — ZG Industries',
-    hTitle: '⚖️ 12-Factor Job Evaluation Calculator',
+    hTitle: '12-Factor Job Evaluation Calculator',
     hSub: 'ZG Industries (Thailand) Limited — companion tool to the JE Committee Scoring Anchor Guide',
+    navJob: 'Job Setup',
+    navScore: 'Scoring',
+    navWorkflow: 'Workflow',
+    navHistory: 'History',
+    navAdmin: 'Users',
+    navReference: 'Benchmarks',
+    navSignatures: 'Signatures',
+    sectionJobTitle: 'Job Setup',
+    sectionJobDesc: 'Capture job scope, department, evaluator, and JD evidence before scoring.',
+    sectionJobChip: 'Start here',
+    sectionScoreTitle: '12-Factor Scoring',
+    sectionScoreDesc: 'Score each factor and complete the rationale before proposing the job level.',
+    sectionScoreChip: '12 factors',
+    sectionWorkflowTitle: 'Approval Workflow',
+    sectionWorkflowDesc: 'Submit, review, approve, reject, or recalibrate an evaluation version.',
+    sectionWorkflowChip: 'Governance',
+    sectionHistoryTitle: 'Permanent History',
+    sectionHistoryDesc: 'Sign in, save evaluations, and review database audit trail records.',
+    sectionHistoryChip: 'Database',
+    sectionAdminTitle: 'User Management',
+    sectionAdminDesc: 'HR Head can add users, assign roles, deactivate access, and review role audit history.',
+    sectionAdminChip: 'HR Head',
+    sectionReferenceTitle: 'Benchmark Jobs',
+    sectionReferenceDesc: 'Use benchmark jobs to check level boundaries, scoring reasonableness, and calibration.',
+    sectionReferenceChip: '100 jobs',
+    sectionSignTitle: 'Signatures',
+    sectionSignDesc: 'Prepare evaluator and approver sign-off details for print/PDF output.',
+    sectionSignChip: 'Approval',
     jobInfo: 'Job Being Evaluated',
     jobTitle: 'Job Title', jobTitlePh: 'e.g. Production Section Head',
     dept: 'Department', deptPh: 'e.g. Production',
@@ -661,10 +806,10 @@ const UI = {
     adminAuditEmpty: 'No role audit log exists for this user yet.',
     adminAccountCreated: 'Account created. Check email if confirmation is required, then sign in again.',
     jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
-    summary: '📊 Evaluation Summary',
+    summary: 'Evaluation Summary',
     total: 'Total Score (out of 1,200)',
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
-    btnPrint: '🖨️ Print / PDF', btnSave: '💾 Save Result (JSON)', btnLoad: '📂 Load Result', btnReset: '↺ Reset',
+    btnPrint: 'Print / PDF', btnSave: 'Save Result (JSON)', btnLoad: 'Load Result', btnReset: 'Reset',
     disclaimer: '⚠️ The Total Score → Job Level bands use the calibrated 100-role benchmark model. Roles near a level boundary should still be reviewed by the JE Committee before final approval.',
     modelNote: 'Using model {version} · total score is factor-group weighted · calibrated against {count} benchmark roles · direct benchmark fit {matches}/{count} roles',
     boundaryReview: 'This score is close to the {lower}/{upper} boundary ({boundary} points). Review against benchmark jobs before approval.',
@@ -681,8 +826,36 @@ const UI = {
   },
   zh: {
     pageTitle: '12要素职位评估计算器 — ZG Industries',
-    hTitle: '⚖️ 12要素职位评估计算器 (12-Factor Job Evaluation Calculator)',
+    hTitle: '12要素职位评估计算器',
     hSub: 'ZG Industries (Thailand) Limited — 配合 JE 评估委员会评分指南使用',
+    navJob: '职位信息',
+    navScore: '评分',
+    navWorkflow: '流程',
+    navHistory: '历史',
+    navAdmin: '用户',
+    navReference: '标杆',
+    navSignatures: '签署',
+    sectionJobTitle: '职位信息',
+    sectionJobDesc: '评分前填写职位范围、部门、评估人和职位说明证据。',
+    sectionJobChip: '从这里开始',
+    sectionScoreTitle: '12要素评分',
+    sectionScoreDesc: '为每个要素评分，并完成评分理由后再提出职位等级。',
+    sectionScoreChip: '12要素',
+    sectionWorkflowTitle: '审批流程',
+    sectionWorkflowDesc: '提交、复核、批准、驳回或重新校准评估版本。',
+    sectionWorkflowChip: '治理',
+    sectionHistoryTitle: '永久历史',
+    sectionHistoryDesc: '登录、保存评估，并查看数据库审计记录。',
+    sectionHistoryChip: '数据库',
+    sectionAdminTitle: '用户管理',
+    sectionAdminDesc: 'HR Head 可新增用户、分配角色、停用权限并查看角色审计历史。',
+    sectionAdminChip: 'HR Head',
+    sectionReferenceTitle: '标杆职位',
+    sectionReferenceDesc: '使用标杆职位检查等级边界、评分合理性和校准结果。',
+    sectionReferenceChip: '100职位',
+    sectionSignTitle: '签署',
+    sectionSignDesc: '准备评估人和批准人的签署信息，用于打印/PDF。',
+    sectionSignChip: '批准',
     jobInfo: '被评估职位信息',
     jobTitle: '职位名称 (Job Title)', jobTitlePh: '例如：生产科科长',
     dept: '部门 (Department)', deptPh: '例如：生产部',
@@ -772,10 +945,10 @@ const UI = {
     adminAuditEmpty: '该用户暂无角色审计日志。',
     adminAccountCreated: '账户已创建。如需邮件确认，请检查邮箱，然后再次登录。',
     jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
-    summary: '📊 评估结果汇总',
+    summary: '评估结果汇总',
     total: '总分（满分 1,200）',
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
-    btnPrint: '🖨️ 打印 / PDF', btnSave: '💾 保存结果 (JSON)', btnLoad: '📂 加载已存结果', btnReset: '↺ 重新开始',
+    btnPrint: '打印 / PDF', btnSave: '保存结果 (JSON)', btnLoad: '加载已存结果', btnReset: '重新开始',
     disclaimer: '⚠️ 总分对应职级使用已根据100个标杆职位校准的模型。接近职级边界的职位仍应由JE委员会复核后再正式批准。',
     modelNote: '使用模型 {version} · 总分按要素组加权 · 已根据 {count} 个标杆职位校准 · 直接匹配 {matches}/{count} 个职位',
     boundaryReview: '该分数接近 {lower}/{upper} 边界（{boundary}分），批准前请结合标杆职位复核。',
@@ -1195,26 +1368,26 @@ const REFERENCE_DATA = [
 ];
 
 const REF_UI = {
-  th: { title: '📋 ตารางอ้างอิงการประเมินค่างาน (100 ตำแหน่งอ้างอิง)', search: 'ค้นหาชื่อตำแหน่งหรือรหัส...', allDept: 'ทุกแผนก', allLevel: 'ทุกระดับ',
+  th: { title: 'ตารางอ้างอิงการประเมินค่างาน (100 ตำแหน่งอ้างอิง)', search: 'ค้นหาชื่อตำแหน่งหรือรหัส...', allDept: 'ทุกแผนก', allLevel: 'ทุกระดับ',
         colId: 'รหัสตำแหน่ง', colTitle: 'ชื่อตำแหน่ง', colDept: 'แผนก', colLevel: 'ระดับ', colScore: 'คะแนนรวม',
         countTpl: (n) => `แสดง ${n} จาก 100 ตำแหน่ง`,
-        signTitle: '✍️ การลงนามรับรองผลการประเมิน', evaluatorRole: 'ผู้ประเมิน (Evaluator)', approverRole: 'ผู้อนุมัติ (Approver)',
+        signTitle: 'การลงนามรับรองผลการประเมิน', evaluatorRole: 'ผู้ประเมิน (Evaluator)', approverRole: 'ผู้อนุมัติ (Approver)',
         nameLabel: 'ชื่อ-นามสกุล', dateLabel: 'วันที่', signHere: 'ลงชื่อ',
-        sampleNote: '⚠️ ข้อมูลตัวอย่าง/จำลอง — ไม่ใช่ตำแหน่งหรือคะแนนจริงของบริษัท ใช้เพื่อสาธิตการใช้งานเท่านั้น',
+        sampleNote: 'ข้อมูลตัวอย่าง/จำลอง — ไม่ใช่ตำแหน่งหรือคะแนนจริงของบริษัท ใช้เพื่อสาธิตการใช้งานเท่านั้น',
         posSampleNote: 'ตัวเลือกในรายการเป็นชื่อตำแหน่งตัวอย่าง พิมพ์ชื่อตำแหน่งจริงได้โดยตรง' },
-  en: { title: '📋 Job Evaluation Reference Table (100 Reference Positions)', search: 'Search title or job ID...', allDept: 'All Departments', allLevel: 'All Levels',
+  en: { title: 'Job Evaluation Reference Table (100 Reference Positions)', search: 'Search title or job ID...', allDept: 'All Departments', allLevel: 'All Levels',
         colId: 'Job ID', colTitle: 'Job Title', colDept: 'Department', colLevel: 'Level', colScore: 'Total Score',
         countTpl: (n) => `Showing ${n} of 100 positions`,
-        signTitle: '✍️ Approval Signatures', evaluatorRole: 'Evaluator', approverRole: 'Approver',
+        signTitle: 'Approval Signatures', evaluatorRole: 'Evaluator', approverRole: 'Approver',
         nameLabel: 'Full Name', dateLabel: 'Date', signHere: 'Signature',
-        sampleNote: '⚠️ Sample/simulated data — not the company\'s real positions or scores. For demonstration only.',
+        sampleNote: 'Sample/simulated data — not the company\'s real positions or scores. For demonstration only.',
         posSampleNote: 'Options in this list are sample job titles. You can type a real title directly.' },
-  zh: { title: '📋 职位评估参考表（100个参考职位）', search: '搜索职位名称或编号...', allDept: '全部部门', allLevel: '全部职级',
+  zh: { title: '职位评估参考表（100个参考职位）', search: '搜索职位名称或编号...', allDept: '全部部门', allLevel: '全部职级',
         colId: '职位编号', colTitle: '职位名称', colDept: '部门', colLevel: '职级', colScore: '总分',
         countTpl: (n) => `显示 ${n} / 共 100 个职位`,
-        signTitle: '✍️ 签核确认', evaluatorRole: '评估人 (Evaluator)', approverRole: '核准人 (Approver)',
+        signTitle: '签核确认', evaluatorRole: '评估人 (Evaluator)', approverRole: '核准人 (Approver)',
         nameLabel: '姓名', dateLabel: '日期', signHere: '签名',
-        sampleNote: '⚠️ 示例/模拟数据 — 并非公司真实职位或分数，仅供演示使用。',
+        sampleNote: '示例/模拟数据 — 并非公司真实职位或分数，仅供演示使用。',
         posSampleNote: '列表中的选项为示例职位名称，您可以直接输入真实职位名称。' },
 };
 
@@ -1331,6 +1504,7 @@ function bandIndex(v){
 }
 
 let currentLang = 'th';
+let activeSection = sessionStorage.getItem('jeActiveSection') || 'job';
 const state = {};
 FACTORS.forEach(f => state[f.key] = 10);
 const rationales = {};
@@ -2362,6 +2536,19 @@ function renderRationaleState(key){
   if (el) el.classList.toggle('invalid', !(rationales[key] || '').trim());
 }
 
+function switchSection(section){
+  const exists = document.querySelector(`[data-section-panel="${section}"]`);
+  if (!exists) section = 'job';
+  activeSection = section;
+  sessionStorage.setItem('jeActiveSection', section);
+  document.querySelectorAll('[data-section-panel]').forEach(panel => {
+    panel.classList.toggle('active', panel.dataset.sectionPanel === section);
+  });
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.section === section);
+  });
+}
+
 function toggleAnchor(key){
   const tbl = document.getElementById(`anchor-${key}`);
   tbl.classList.toggle('open');
@@ -2443,6 +2630,34 @@ function applyStaticText(){
   document.title = ui.pageTitle;
   document.getElementById('hTitle').textContent = ui.hTitle;
   document.getElementById('hSub').textContent = ui.hSub;
+  document.getElementById('navJob').textContent = ui.navJob;
+  document.getElementById('navScore').textContent = ui.navScore;
+  document.getElementById('navWorkflow').textContent = ui.navWorkflow;
+  document.getElementById('navHistory').textContent = ui.navHistory;
+  document.getElementById('navAdmin').textContent = ui.navAdmin;
+  document.getElementById('navReference').textContent = ui.navReference;
+  document.getElementById('navSignatures').textContent = ui.navSignatures;
+  document.getElementById('sectionJobTitle').textContent = ui.sectionJobTitle;
+  document.getElementById('sectionJobDesc').textContent = ui.sectionJobDesc;
+  document.getElementById('sectionJobChip').textContent = ui.sectionJobChip;
+  document.getElementById('sectionScoreTitle').textContent = ui.sectionScoreTitle;
+  document.getElementById('sectionScoreDesc').textContent = ui.sectionScoreDesc;
+  document.getElementById('sectionScoreChip').textContent = ui.sectionScoreChip;
+  document.getElementById('sectionWorkflowTitle').textContent = ui.sectionWorkflowTitle;
+  document.getElementById('sectionWorkflowDesc').textContent = ui.sectionWorkflowDesc;
+  document.getElementById('sectionWorkflowChip').textContent = ui.sectionWorkflowChip;
+  document.getElementById('sectionHistoryTitle').textContent = ui.sectionHistoryTitle;
+  document.getElementById('sectionHistoryDesc').textContent = ui.sectionHistoryDesc;
+  document.getElementById('sectionHistoryChip').textContent = ui.sectionHistoryChip;
+  document.getElementById('sectionAdminTitle').textContent = ui.sectionAdminTitle;
+  document.getElementById('sectionAdminDesc').textContent = ui.sectionAdminDesc;
+  document.getElementById('sectionAdminChip').textContent = ui.sectionAdminChip;
+  document.getElementById('sectionReferenceTitle').textContent = ui.sectionReferenceTitle;
+  document.getElementById('sectionReferenceDesc').textContent = ui.sectionReferenceDesc;
+  document.getElementById('sectionReferenceChip').textContent = ui.sectionReferenceChip;
+  document.getElementById('sectionSignTitle').textContent = ui.sectionSignTitle;
+  document.getElementById('sectionSignDesc').textContent = ui.sectionSignDesc;
+  document.getElementById('sectionSignChip').textContent = ui.sectionSignChip;
   document.getElementById('mJobInfo').textContent = ui.jobInfo;
   document.getElementById('lJobTitle').textContent = ui.jobTitle;
   document.getElementById('jobTitle').placeholder = ui.jobTitlePh;
@@ -2526,10 +2741,15 @@ function setLang(lang){
   renderJeRoleBadge(jeDbSession);
   renderPersistentHistory();
   renderAdminUserList();
+  switchSection(activeSection);
 }
 
 document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn => {
   btn.addEventListener('click', () => setLang(btn.dataset.lang));
+});
+
+document.getElementById('sideNav').querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchSection(btn.dataset.section));
 });
 
 document.getElementById('jobTitle').addEventListener('input', handleJobTitleInput);
@@ -2542,6 +2762,7 @@ document.getElementById('refLevelFilter').addEventListener('change', renderRefTa
 });
 
 setLang('th');
+switchSection(activeSection);
 renderWorkflowFields();
 refreshPersistentHistorySession().then(() => {
   if (isCurrentHrHead()) loadAdminUsers();
