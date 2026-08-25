@@ -225,6 +225,14 @@
   }
   .workflow-grid textarea{min-height:64px; resize:vertical; line-height:1.45;}
   .workflow-grid .span-2{grid-column:1 / -1;}
+  .workflow-actions{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:16px;}
+  .workflow-actions button{min-height:42px;}
+  .workflow-actions button:disabled, button:disabled{
+    cursor:not-allowed; opacity:.45;
+  }
+  .btn-danger{background:#FEE2E2; color:#991B1B;}
+  .action-help{font-size:11.5px; color:var(--grey); line-height:1.45; margin-top:8px;}
+  @media (max-width: 760px){.workflow-actions{grid-template-columns:1fr;}}
   .audit-log{
     max-height:180px; overflow:auto; border:1px solid var(--border); border-radius:10px;
     background:#F8FAFC; padding:8px 10px; font-size:11.5px; line-height:1.45;
@@ -414,7 +422,7 @@
       <div><label id="lDept">แผนก (Department)</label><input id="dept" type="text"></div>
       <div><label id="lEvaluator">ผู้ประเมิน (Evaluator)</label><input id="evaluator" type="text"></div>
       <div><label id="lDate">วันที่ประเมิน</label><input id="evalDate" type="date"></div>
-      <div><label id="lEvalStatus">สถานะการประเมิน</label><select id="evalStatus"></select></div>
+      <div><label id="lEvalStatus">สถานะการประเมิน</label><select id="evalStatus" disabled></select></div>
       <div class="span-2"><label id="lJobEvidence">หลักฐานจาก Job Description</label><textarea id="jobEvidence"></textarea></div>
     </div>
   </div>
@@ -439,10 +447,15 @@
       <div class="span-2"><label id="lBenchmarkNotes">Benchmark / Boundary Notes</label><textarea id="benchmarkNotes"></textarea></div>
       <div class="span-2"><label id="lTransitionComment">Transition Comment</label><textarea id="transitionComment"></textarea></div>
     </div>
-    <div class="btn-row">
-      <button class="btn-primary" id="btnApplyStatus" onclick="applyStatusTransition()">Apply Status Change</button>
-      <button class="btn-secondary" id="btnForkVersion" onclick="forkRecalibratedVersion()">Fork Recalibrated Version</button>
+    <div class="workflow-actions" id="workflowActions">
+      <button class="btn-primary" id="btnSubmitToCommittee" onclick="transitionToStatus('Submitted')">Submit to Committee</button>
+      <button class="btn-primary" id="btnMarkCommitteeReviewed" onclick="transitionToStatus('Committee Reviewed')">Mark Committee Reviewed</button>
+      <button class="btn-primary" id="btnApproveEvaluation" onclick="transitionToStatus('Approved')">Approve</button>
+      <button class="btn-danger" id="btnRejectEvaluation" onclick="transitionToStatus('Rejected')">Reject</button>
+      <button class="btn-secondary" id="btnReturnToDraft" onclick="transitionToStatus('Draft')">Return to Draft</button>
+      <button class="btn-secondary" id="btnStartRecalibration" onclick="forkRecalibratedVersion()">Start Recalibration</button>
     </div>
+    <div class="action-help" id="workflowActionHelp"></div>
     <div class="locked-note" id="lockedNote"></div>
     <div class="audit-log" id="auditLog"></div>
     <div class="notification-log">
@@ -688,7 +701,7 @@ const UI = {
     dept: 'แผนก (Department)', deptPh: 'เช่น Production',
     evaluator: 'ผู้ประเมิน (Evaluator)', evaluatorPh: 'ชื่อกรรมการผู้ให้คะแนน',
     date: 'วันที่ประเมิน',
-    evalStatus: 'สถานะการประเมิน',
+    evalStatus: 'สถานะปัจจุบัน',
     workflow: 'Approval Workflow & Audit Trail',
     notificationLog: 'Email Notification Log',
     notificationEmpty: 'ยังไม่มี notification log สำหรับ evaluation นี้',
@@ -709,8 +722,14 @@ const UI = {
     committeeNotes: 'Committee Consensus Notes',
     benchmarkNotes: 'Benchmark / Boundary Notes',
     transitionComment: 'Transition Comment',
-    applyStatus: 'Apply Status Change',
-    forkVersion: 'Fork Recalibrated Version',
+    submitToCommittee: 'Submit to Committee',
+    markCommitteeReviewed: 'Committee Reviewed',
+    approveEvaluation: 'Approve',
+    rejectEvaluation: 'Reject',
+    returnToDraft: 'Return to Draft',
+    startRecalibration: 'Start Recalibration',
+    workflowActionHelp: 'กดปุ่มตามขั้นตอนเพื่อเปลี่ยนสถานะ ระบบจะบันทึก audit trail และ queue อีเมล To/CC อัตโนมัติ',
+    noWorkflowAction: 'ยังไม่มี action ที่ role ปัจจุบันทำได้ในสถานะนี้',
     lockedNote: 'Record is locked for score/JD editing after submission. Use Rejected to return to evaluator or fork a recalibrated version when the model changes.',
     auditEmpty: 'ยังไม่มีประวัติการเปลี่ยนสถานะ',
     invalidTransition: 'ไม่สามารถเปลี่ยนสถานะจาก {from} ไป {to} ได้ตาม workflow',
@@ -851,7 +870,7 @@ const UI = {
     dept: 'Department', deptPh: 'e.g. Production',
     evaluator: 'Evaluator', evaluatorPh: 'Name of the scoring committee member',
     date: 'Evaluation Date',
-    evalStatus: 'Evaluation Status',
+    evalStatus: 'Current Status',
     workflow: 'Approval Workflow & Audit Trail',
     notificationLog: 'Email Notification Log',
     notificationEmpty: 'No notification log exists for this evaluation yet.',
@@ -872,8 +891,14 @@ const UI = {
     committeeNotes: 'Committee Consensus Notes',
     benchmarkNotes: 'Benchmark / Boundary Notes',
     transitionComment: 'Transition Comment',
-    applyStatus: 'Apply Status Change',
-    forkVersion: 'Fork Recalibrated Version',
+    submitToCommittee: 'Submit to Committee',
+    markCommitteeReviewed: 'Committee Reviewed',
+    approveEvaluation: 'Approve',
+    rejectEvaluation: 'Reject',
+    returnToDraft: 'Return to Draft',
+    startRecalibration: 'Start Recalibration',
+    workflowActionHelp: 'Use the action buttons to move the workflow. The system records audit trail and queues To/CC email notifications automatically.',
+    noWorkflowAction: 'No action is available for the current role and status.',
     lockedNote: 'Record is locked for score/JD editing after submission. Use Rejected to return to evaluator or fork a recalibrated version when the model changes.',
     auditEmpty: 'No status changes recorded yet.',
     invalidTransition: 'Cannot change status from {from} to {to} under the configured workflow.',
@@ -1014,7 +1039,7 @@ const UI = {
     dept: '部门 (Department)', deptPh: '例如：生产部',
     evaluator: '评估人 (Evaluator)', evaluatorPh: '评分委员会成员姓名',
     date: '评估日期',
-    evalStatus: '评估状态',
+    evalStatus: '当前状态',
     workflow: '审批流程与审计记录',
     notificationLog: '邮件通知记录',
     notificationEmpty: '该评估暂无邮件通知记录。',
@@ -1035,8 +1060,14 @@ const UI = {
     committeeNotes: '委员会共识意见',
     benchmarkNotes: '基准/边界说明',
     transitionComment: '状态变更说明',
-    applyStatus: '应用状态变更',
-    forkVersion: '创建重新校准版本',
+    submitToCommittee: '提交委员会',
+    markCommitteeReviewed: '委员会已复核',
+    approveEvaluation: '批准',
+    rejectEvaluation: '驳回',
+    returnToDraft: '退回草稿',
+    startRecalibration: '开始重新校准',
+    workflowActionHelp: '使用操作按钮推进流程。系统会自动记录审计轨迹并排队 To/CC 邮件通知。',
+    noWorkflowAction: '当前角色和状态没有可用操作。',
     lockedNote: '提交后，评分/JD编辑将被锁定。可使用 Rejected 退回给评估人，或在模型变化时创建重新校准版本。',
     auditEmpty: '暂无状态变更记录。',
     invalidTransition: '根据当前流程，不能从 {from} 变更为 {to}。',
@@ -1836,7 +1867,49 @@ function renderWorkflowFields(){
   document.getElementById('evalStatus').value = workflowState.currentStatus;
   document.getElementById('finalApprovedLevel').innerHTML = [''].concat(LEVEL_CODES).map(level => `<option value="${level}" ${level === workflowState.finalApprovedLevel ? 'selected' : ''}>${level || '-'}</option>`).join('');
   renderAuditLog();
+  renderWorkflowActionButtons();
   applyEditLock();
+}
+
+function canCurrentUserMoveTo(toStatus){
+  const requiredRole = TRANSITION_ROLES[`${workflowState.currentStatus}>${toStatus}`];
+  if (!requiredRole) return false;
+  return getEffectiveJeRoles(jeDbSession).includes(requiredRole);
+}
+
+function renderWorkflowActionButtons(){
+  const actions = [
+    { id: 'btnSubmitToCommittee', target: 'Submitted' },
+    { id: 'btnMarkCommitteeReviewed', target: 'Committee Reviewed' },
+    { id: 'btnApproveEvaluation', target: 'Approved' },
+    { id: 'btnRejectEvaluation', target: 'Rejected' },
+    { id: 'btnReturnToDraft', target: 'Draft' },
+  ];
+  let enabledCount = 0;
+  actions.forEach(action => {
+    const btn = document.getElementById(action.id);
+    if (!btn) return;
+    const allowed = (ALLOWED_TRANSITIONS[workflowState.currentStatus] || []).includes(action.target);
+    const roleAllowed = canCurrentUserMoveTo(action.target);
+    const enabled = allowed && roleAllowed;
+    btn.disabled = !enabled;
+    if (enabled) enabledCount += 1;
+  });
+  const recalibrate = document.getElementById('btnStartRecalibration');
+  if (recalibrate) {
+    const enabled = workflowState.currentStatus === 'Approved' && getEffectiveJeRoles(jeDbSession).includes('HR_Head');
+    recalibrate.disabled = !enabled;
+    if (enabled) enabledCount += 1;
+  }
+  const help = document.getElementById('workflowActionHelp');
+  if (help) {
+    help.textContent = enabledCount ? UI[currentLang].workflowActionHelp : UI[currentLang].noWorkflowAction;
+  }
+}
+
+async function transitionToStatus(toStatus){
+  document.getElementById('evalStatus').value = toStatus;
+  await applyStatusTransition();
 }
 
 async function applyStatusTransition(){
@@ -1897,6 +1970,7 @@ async function applyStatusTransition(){
   addAuditLog(fromStatus, toStatus, document.getElementById('transitionComment').value, metadata);
   renderWorkflowFields();
   if (dbSession) {
+    const client = getJeDbClient();
     const saved = await saveEvaluationToDatabase({ quiet: true });
     if (saved.ok) {
       await queueWorkflowNotification(client, saved.data.id, fromStatus, toStatus);
@@ -2089,6 +2163,7 @@ function renderJeRoleBadge(session){
     ? UI[currentLang].historyRoleLabel.replaceAll('{roles}', roles.join(', '))
     : UI[currentLang].historyRoleNone;
   renderAdminPanelState();
+  renderWorkflowActionButtons();
 }
 
 async function getCurrentDbSessionSilently(){
@@ -3132,8 +3207,13 @@ function applyStaticText(){
   document.getElementById('lCommitteeNotes').textContent = ui.committeeNotes;
   document.getElementById('lBenchmarkNotes').textContent = ui.benchmarkNotes;
   document.getElementById('lTransitionComment').textContent = ui.transitionComment;
-  document.getElementById('btnApplyStatus').textContent = ui.applyStatus;
-  document.getElementById('btnForkVersion').textContent = ui.forkVersion;
+  document.getElementById('btnSubmitToCommittee').textContent = ui.submitToCommittee;
+  document.getElementById('btnMarkCommitteeReviewed').textContent = ui.markCommitteeReviewed;
+  document.getElementById('btnApproveEvaluation').textContent = ui.approveEvaluation;
+  document.getElementById('btnRejectEvaluation').textContent = ui.rejectEvaluation;
+  document.getElementById('btnReturnToDraft').textContent = ui.returnToDraft;
+  document.getElementById('btnStartRecalibration').textContent = ui.startRecalibration;
+  document.getElementById('workflowActionHelp').textContent = ui.workflowActionHelp;
   document.getElementById('mPersistentHistory').textContent = ui.persistentHistory;
   document.getElementById('lHistoryEmail').textContent = ui.historyEmail;
   document.getElementById('lHistoryPassword').textContent = ui.historyPassword;
