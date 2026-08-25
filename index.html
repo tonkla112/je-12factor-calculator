@@ -148,6 +148,24 @@
   }
   .audit-entry{padding:6px 0; border-bottom:1px solid var(--border);}
   .audit-entry:last-child{border-bottom:none;}
+  .history-status{
+    font-size:12px; border-radius:10px; padding:9px 12px; margin-top:10px; line-height:1.45;
+    border:1px solid var(--border); background:#F8FAFC; color:#334155;
+  }
+  .history-status.ok{border-color:#BBF7D0; background:#F0FDF4; color:#166534;}
+  .history-status.warn{border-color:#FDE68A; background:#FFFBEB; color:#92400E;}
+  .history-status.error{border-color:#FECACA; background:#FEF2F2; color:#991B1B;}
+  .history-list{margin-top:12px; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:#fff;}
+  .history-row{
+    display:grid; grid-template-columns:1.2fr .8fr .6fr .8fr auto; gap:10px; align-items:center;
+    padding:10px 12px; border-bottom:1px solid var(--border); font-size:12px;
+  }
+  .history-row:last-child{border-bottom:none;}
+  .history-title{font-weight:700; color:var(--navy);}
+  .history-meta{color:var(--grey); font-size:11.5px; margin-top:2px;}
+  .history-actions{display:flex; gap:6px;}
+  .history-actions button{padding:7px 9px; font-size:11.5px; white-space:nowrap;}
+  @media (max-width: 760px){ .history-row{grid-template-columns:1fr;} .history-actions{justify-content:flex-start;} }
   .locked-note{
     display:none; font-size:11.5px; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A;
     border-radius:10px; padding:8px 10px; margin-top:8px; line-height:1.45;
@@ -250,6 +268,25 @@
     <div class="audit-log" id="auditLog"></div>
   </div>
 
+  <div class="meta-card">
+    <h2 id="mPersistentHistory">Permanent Evaluation History</h2>
+    <div class="workflow-grid">
+      <div><label id="lHistoryEmail">Email</label><input id="historyEmail" type="email" autocomplete="username"></div>
+      <div><label id="lHistoryPassword">Password</label><input id="historyPassword" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnHistorySignIn" onclick="signInPersistentHistory()">Sign In</button>
+      <button class="btn-secondary" id="btnHistorySignOut" onclick="signOutPersistentHistory()">Sign Out</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnHistorySave" onclick="saveEvaluationToDatabase()">Save Current Evaluation to Database</button>
+      <button class="btn-secondary" id="btnHistoryLoad" onclick="loadPermanentHistory()">Load Permanent History</button>
+    </div>
+    <div class="history-status warn" id="persistentHistoryStatus"></div>
+    <div class="history-list" id="persistentHistoryList"></div>
+    <div class="audit-log" id="persistentAuditLog"></div>
+  </div>
+
   <div class="layout">
     <div id="factorsCol"></div>
 
@@ -329,6 +366,11 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+window.JE_SUPABASE_URL = 'https://glzolrqutjsdfrdwghfy.supabase.co';
+window.JE_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsem9scnF1dGpzZGZyZHdnaGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDU0MzMsImV4cCI6MjA5NDcyMTQzM30.rygOc8EDGha-c1y1As9kNoFxXZOQgScsLFHQFfKKgnI';
+</script>
 <script src="je_score_grade_model.js?v=JE-SGM-2026-08-24-hazard-v3"></script>
 <script>
 /* ============================================================
@@ -364,6 +406,25 @@ const UI = {
     approvalNeedsLevel: 'กรุณาเลือก Final Approved Level ก่อนอนุมัติ',
     transitionNeedsActor: 'กรุณาระบุผู้ดำเนินการในช่อง Action By',
     recalibrationNeedsApproved: 'สามารถ fork เป็น Recalibrated version ได้จากสถานะ Approved เท่านั้น',
+    persistentHistory: 'ประวัติย้อนหลังถาวร',
+    historyEmail: 'อีเมลผู้ใช้',
+    historyPassword: 'รหัสผ่าน',
+    historySignIn: 'Sign In',
+    historySignOut: 'Sign Out',
+    historySave: 'บันทึก Evaluation นี้ลงฐานข้อมูล',
+    historyLoad: 'โหลดประวัติย้อนหลังถาวร',
+    historyDisconnected: 'ยังไม่ได้ sign in กับฐานข้อมูล กรุณา sign in ก่อนบันทึกหรือดูประวัติถาวร',
+    historyConnected: 'เชื่อมต่อฐานข้อมูลแล้ว: {email}',
+    historySaved: 'บันทึกลงฐานข้อมูลแล้ว: {evaluationId} v{version}',
+    historyEmpty: 'ยังไม่มีประวัติถาวรในฐานข้อมูล',
+    historyOpen: 'เปิด',
+    historyAudit: 'ดู Audit',
+    historyDbUnavailable: 'ไม่พบการตั้งค่า Supabase หรือโหลด Supabase client ไม่สำเร็จ',
+    historyBadLogin: 'Sign in ไม่สำเร็จ กรุณาตรวจสอบอีเมล/รหัสผ่าน หรือสิทธิ์ผู้ใช้',
+    historyLoadError: 'ไม่สามารถโหลดประวัติจากฐานข้อมูลได้',
+    historySaveNeedsDraft: 'ต้องบันทึก record ครั้งแรกเป็น Draft ก่อน แล้วจึงเปลี่ยนสถานะตาม workflow เพื่อให้ audit trail ถูกต้อง',
+    historyLoaded: 'เปิด record จากฐานข้อมูลแล้ว: {evaluationId} v{version}',
+    historyAuditEmpty: 'ยังไม่มี audit log ในฐานข้อมูลสำหรับ record นี้',
     jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
     summary: '📊 สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
@@ -412,6 +473,25 @@ const UI = {
     approvalNeedsLevel: 'Select a Final Approved Level before approval.',
     transitionNeedsActor: 'Enter an Action By value before changing status.',
     recalibrationNeedsApproved: 'Only Approved records can be forked into a recalibrated version.',
+    persistentHistory: 'Permanent Evaluation History',
+    historyEmail: 'User Email',
+    historyPassword: 'Password',
+    historySignIn: 'Sign In',
+    historySignOut: 'Sign Out',
+    historySave: 'Save Current Evaluation to Database',
+    historyLoad: 'Load Permanent History',
+    historyDisconnected: 'Not signed in to the database. Sign in before saving or viewing permanent history.',
+    historyConnected: 'Database connected: {email}',
+    historySaved: 'Saved to database: {evaluationId} v{version}',
+    historyEmpty: 'No permanent history records found.',
+    historyOpen: 'Open',
+    historyAudit: 'View Audit',
+    historyDbUnavailable: 'Supabase configuration is missing or the Supabase client could not be loaded.',
+    historyBadLogin: 'Sign in failed. Check the email/password and assigned user role.',
+    historyLoadError: 'Could not load permanent history from the database.',
+    historySaveNeedsDraft: 'Save the first database record as Draft, then move through the workflow so the audit trail stays valid.',
+    historyLoaded: 'Loaded database record: {evaluationId} v{version}',
+    historyAuditEmpty: 'No database audit log exists for this record yet.',
     jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
     summary: '📊 Evaluation Summary',
     total: 'Total Score (out of 1,200)',
@@ -460,6 +540,25 @@ const UI = {
     approvalNeedsLevel: '批准前请选择最终批准职级。',
     transitionNeedsActor: '变更状态前请填写操作人。',
     recalibrationNeedsApproved: '只有已批准记录才能创建重新校准版本。',
+    persistentHistory: '永久评估历史',
+    historyEmail: '用户邮箱',
+    historyPassword: '密码',
+    historySignIn: '登录',
+    historySignOut: '退出',
+    historySave: '保存当前评估到数据库',
+    historyLoad: '加载永久历史',
+    historyDisconnected: '尚未登录数据库。请先登录，再保存或查看永久历史。',
+    historyConnected: '数据库已连接：{email}',
+    historySaved: '已保存到数据库：{evaluationId} v{version}',
+    historyEmpty: '数据库中暂无永久历史记录。',
+    historyOpen: '打开',
+    historyAudit: '查看审计',
+    historyDbUnavailable: '缺少 Supabase 配置或无法加载 Supabase client。',
+    historyBadLogin: '登录失败。请检查邮箱/密码和用户角色。',
+    historyLoadError: '无法从数据库加载永久历史。',
+    historySaveNeedsDraft: '第一次保存数据库记录必须是 Draft，然后按流程变更状态以保持审计记录正确。',
+    historyLoaded: '已打开数据库记录：{evaluationId} v{version}',
+    historyAuditEmpty: '该记录暂无数据库审计日志。',
     jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
     summary: '📊 评估结果汇总',
     total: '总分（满分 1,200）',
@@ -1031,6 +1130,9 @@ const workflowState = {
   supersededVersionSnapshot: null,
   auditTrail: [],
 };
+let jeDbClient = null;
+let jeDbSession = null;
+let persistentHistoryRows = [];
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -1212,6 +1314,301 @@ function forkRecalibratedVersion(){
   renderWorkflowFields();
 }
 
+function getJeDbClient(){
+  if (jeDbClient) return jeDbClient;
+  if (!window.supabase || !window.JE_SUPABASE_URL || !window.JE_SUPABASE_ANON_KEY) return null;
+  jeDbClient = window.supabase.createClient(window.JE_SUPABASE_URL, window.JE_SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+  });
+  return jeDbClient;
+}
+
+function renderPersistentHistoryStatus(message, kind = 'warn'){
+  const el = document.getElementById('persistentHistoryStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `history-status ${kind}`;
+}
+
+async function refreshPersistentHistorySession(){
+  const client = getJeDbClient();
+  if (!client) {
+    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return null;
+  }
+  const { data, error } = await client.auth.getSession();
+  if (error || !data.session) {
+    jeDbSession = null;
+    renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
+    return null;
+  }
+  jeDbSession = data.session;
+  renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || data.session.user.id), 'ok');
+  return data.session;
+}
+
+async function signInPersistentHistory(){
+  const client = getJeDbClient();
+  if (!client) {
+    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return;
+  }
+  const email = document.getElementById('historyEmail').value.trim();
+  const password = document.getElementById('historyPassword').value;
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  if (error || !data.session) {
+    renderPersistentHistoryStatus(UI[currentLang].historyBadLogin, 'error');
+    return;
+  }
+  document.getElementById('historyPassword').value = '';
+  jeDbSession = data.session;
+  renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || email), 'ok');
+  await loadPermanentHistory();
+}
+
+async function signOutPersistentHistory(){
+  const client = getJeDbClient();
+  if (!client) return;
+  await client.auth.signOut();
+  jeDbSession = null;
+  persistentHistoryRows = [];
+  document.getElementById('persistentHistoryList').innerHTML = '';
+  document.getElementById('persistentAuditLog').textContent = '';
+  renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
+}
+
+function dbRowFromSnapshot(snapshot){
+  const metadata = snapshot.approval_metadata || {};
+  return {
+    id: snapshot.id,
+    evaluation_id: snapshot.evaluation_id,
+    version_number: snapshot.version_number,
+    is_latest_version: snapshot.is_latest_version,
+    score_model_version: snapshot.score_model_version,
+    job_title: snapshot.job_title || 'Untitled Job',
+    department: snapshot.department || 'Unassigned',
+    jd_reference_text: snapshot.jd_reference_text || '',
+    factor_scores: snapshot.factor_scores,
+    factor_rationales: snapshot.factor_rationales,
+    total_score: snapshot.total_score,
+    recommended_level: snapshot.recommended_level,
+    final_approved_level: snapshot.final_approved_level,
+    current_status: snapshot.current_status,
+    created_by: snapshot.created_by || currentActor() || 'Unspecified',
+    submitted_by: snapshot.submitted_by,
+    submitted_at: snapshot.submitted_at,
+    committee_reviewers: metadata.committee_reviewers || [],
+    committee_reviewed_at: snapshot.committee_reviewed_at,
+    committee_consensus_notes: metadata.consensus_notes || '',
+    benchmark_notes: metadata.benchmark_notes || '',
+    approved_by: snapshot.approved_by,
+    decision_date: snapshot.decision_date,
+    decision_comments: document.getElementById('transitionComment').value || '',
+  };
+}
+
+async function saveEvaluationToDatabase(){
+  const client = getJeDbClient();
+  if (!client) {
+    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return;
+  }
+  const session = await refreshPersistentHistorySession();
+  if (!session) return;
+  const missing = missingRationales();
+  if (missing.length) {
+    alert(UI[currentLang].exportBlocked);
+    renderSummary();
+    return;
+  }
+  const snapshot = buildEvaluationSnapshot();
+  const row = dbRowFromSnapshot(snapshot);
+  const existing = await client
+    .from('job_evaluations')
+    .select('id,current_status')
+    .eq('evaluation_id', row.evaluation_id)
+    .eq('version_number', row.version_number)
+    .maybeSingle();
+  if (existing.error) {
+    renderPersistentHistoryStatus(existing.error.message || UI[currentLang].historyLoadError, 'error');
+    return;
+  }
+  if (!existing.data && row.current_status !== 'Draft') {
+    renderPersistentHistoryStatus(UI[currentLang].historySaveNeedsDraft, 'error');
+    return;
+  }
+  const result = existing.data
+    ? await client.from('job_evaluations').update(row).eq('id', existing.data.id).select('id,evaluation_id,version_number').single()
+    : await client.from('job_evaluations').insert(row).select('id,evaluation_id,version_number').single();
+  if (result.error) {
+    renderPersistentHistoryStatus(result.error.message, 'error');
+    return;
+  }
+  workflowState.id = result.data.id;
+  renderWorkflowFields();
+  renderPersistentHistoryStatus(
+    UI[currentLang].historySaved.replaceAll('{evaluationId}', result.data.evaluation_id).replaceAll('{version}', result.data.version_number),
+    'ok'
+  );
+  await loadPermanentHistory();
+}
+
+function renderPersistentHistoryList(rows){
+  const list = document.getElementById('persistentHistoryList');
+  if (!list) return;
+  if (!rows.length) {
+    list.innerHTML = `<div class="history-row">${UI[currentLang].historyEmpty}</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(row => `
+    <div class="history-row">
+      <div>
+        <div class="history-title">${escapeHtml(row.job_title || '-')}</div>
+        <div class="history-meta">${escapeHtml(row.evaluation_id)} · v${escapeHtml(String(row.version_number))} · ${escapeHtml(row.department || '-')}</div>
+      </div>
+      <div>${escapeHtml(row.current_status || '-')}</div>
+      <div>${escapeHtml(row.final_approved_level || row.recommended_level || '-')}</div>
+      <div>${escapeHtml(row.updated_at ? new Date(row.updated_at).toLocaleString() : '-')}</div>
+      <div class="history-actions">
+        <button class="btn-secondary" data-open-record="${escapeHtml(row.id)}">${UI[currentLang].historyOpen}</button>
+        <button class="btn-primary" data-view-audit="${escapeHtml(row.id)}">${UI[currentLang].historyAudit}</button>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-open-record]').forEach(btn => {
+    btn.addEventListener('click', () => openPermanentRecord(btn.dataset.openRecord));
+  });
+  list.querySelectorAll('[data-view-audit]').forEach(btn => {
+    btn.addEventListener('click', () => loadPermanentAudit(btn.dataset.viewAudit));
+  });
+}
+
+async function loadPermanentHistory(){
+  const client = getJeDbClient();
+  if (!client) {
+    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return;
+  }
+  const session = await refreshPersistentHistorySession();
+  if (!session) return;
+  const { data, error } = await client
+    .from('job_evaluations')
+    .select('id,evaluation_id,version_number,is_latest_version,job_title,department,total_score,recommended_level,final_approved_level,current_status,updated_at,created_by,score_model_version')
+    .order('updated_at', { ascending: false })
+    .limit(50);
+  if (error) {
+    renderPersistentHistoryStatus(error.message || UI[currentLang].historyLoadError, 'error');
+    return;
+  }
+  persistentHistoryRows = data || [];
+  renderPersistentHistoryList(persistentHistoryRows);
+}
+
+function renderPersistentAudit(logs){
+  const audit = document.getElementById('persistentAuditLog');
+  if (!audit) return;
+  if (!logs.length) {
+    audit.textContent = UI[currentLang].historyAuditEmpty;
+    return;
+  }
+  audit.innerHTML = logs.map(log => `
+    <div class="audit-entry">
+      <strong>${escapeHtml(log.from_status || 'New')} → ${escapeHtml(log.to_status || '-')}</strong>
+      <div>${escapeHtml(log.changed_at ? new Date(log.changed_at).toLocaleString() : '-')} · ${escapeHtml(log.changed_by || '-')}</div>
+      <div>${escapeHtml(log.comments || '')}</div>
+    </div>
+  `).join('');
+}
+
+async function loadPermanentAudit(recordId){
+  const client = getJeDbClient();
+  const session = await refreshPersistentHistorySession();
+  if (!client || !session) return [];
+  const { data, error } = await client
+    .from('job_evaluation_audit_logs')
+    .select('*')
+    .eq('evaluation_record_id', recordId)
+    .order('changed_at', { ascending: true });
+  if (error) {
+    renderPersistentHistoryStatus(error.message || UI[currentLang].historyLoadError, 'error');
+    return [];
+  }
+  renderPersistentAudit(data || []);
+  return data || [];
+}
+
+function applyEvaluationData(data){
+  document.getElementById('jobTitle').value = data.job_title || data.jobTitle || '';
+  document.getElementById('dept').value = data.department || data.dept || '';
+  document.getElementById('evaluator').value = data.created_by || data.evaluator || '';
+  document.getElementById('evalDate').value = data.evalDate || '';
+  workflowState.id = data.id || uuid();
+  workflowState.evaluationId = data.evaluation_id || data.evaluationId || generateEvaluationId();
+  workflowState.versionNumber = Number(data.version_number || data.versionNumber || 1);
+  workflowState.isLatestVersion = data.is_latest_version !== undefined ? Boolean(data.is_latest_version) : true;
+  workflowState.currentStatus = WORKFLOW_STATUS_ORDER.includes(data.current_status || data.evaluationStatus) ? (data.current_status || data.evaluationStatus) : 'Draft';
+  workflowState.createdAt = data.created_at || data.createdAt || new Date().toISOString();
+  workflowState.updatedAt = data.updated_at || data.updatedAt || new Date().toISOString();
+  workflowState.submittedBy = data.submitted_by || null;
+  workflowState.submittedAt = data.submitted_at || null;
+  workflowState.committeeReviewedAt = data.committee_reviewed_at || null;
+  workflowState.approvedBy = data.approved_by || null;
+  workflowState.decisionDate = data.decision_date || null;
+  workflowState.finalApprovedLevel = data.final_approved_level || '';
+  workflowState.supersededVersionSnapshot = data.superseded_version_snapshot || null;
+  workflowState.auditTrail = Array.isArray(data.audit_trail) ? data.audit_trail : (Array.isArray(data.job_evaluation_audit_logs) ? data.job_evaluation_audit_logs : []);
+  document.getElementById('evalStatus').value = workflowState.currentStatus;
+  document.getElementById('jobEvidence').value = data.jd_reference_text || data.jobDescriptionEvidence || data.jobEvidence || '';
+  document.getElementById('approvedBy').value = data.approved_by || (data.approval_metadata && data.approval_metadata.approved_by) || '';
+  document.getElementById('decisionDate').value = data.decision_date || (data.approval_metadata && data.approval_metadata.decision_date) || '';
+  document.getElementById('committeeReviewers').value = data.approval_metadata && Array.isArray(data.approval_metadata.committee_reviewers) ? data.approval_metadata.committee_reviewers.join(', ') : '';
+  document.getElementById('committeeNotes').value = data.approval_metadata ? data.approval_metadata.consensus_notes || '' : '';
+  document.getElementById('benchmarkNotes').value = data.approval_metadata ? data.approval_metadata.benchmark_notes || '' : '';
+  FACTORS.forEach(f => {
+    const sourceScores = data.factor_scores || data.scores || {};
+    const raw = sourceScores[f.key];
+    const v = Math.max(10, Math.min(100, Number(raw) || 10));
+    state[f.key] = v;
+    const slider = document.getElementById(`slider-${f.key}`);
+    if (slider) slider.value = v;
+    const sourceRationales = data.factor_rationales || data.factorRationales || {};
+    rationales[f.key] = sourceRationales[f.key] || '';
+    const rationale = document.getElementById(`rationale-${f.key}`);
+    if (rationale) rationale.value = rationales[f.key];
+    renderFactor(f.key);
+    renderRationaleState(f.key);
+  });
+  renderWorkflowFields();
+  renderSummary();
+}
+
+async function openPermanentRecord(recordId){
+  const client = getJeDbClient();
+  const session = await refreshPersistentHistorySession();
+  if (!client || !session) return;
+  const { data, error } = await client.from('job_evaluations').select('*').eq('id', recordId).single();
+  if (error) {
+    renderPersistentHistoryStatus(error.message || UI[currentLang].historyLoadError, 'error');
+    return;
+  }
+  const logs = await loadPermanentAudit(recordId);
+  applyEvaluationData({
+    ...data,
+    approval_metadata: {
+      committee_reviewers: data.committee_reviewers || [],
+      consensus_notes: data.committee_consensus_notes || '',
+      benchmark_notes: data.benchmark_notes || '',
+      approved_by: data.approved_by || '',
+      decision_date: data.decision_date || '',
+    },
+    audit_trail: logs,
+  });
+  renderPersistentHistoryStatus(
+    UI[currentLang].historyLoaded.replaceAll('{evaluationId}', data.evaluation_id).replaceAll('{version}', data.version_number),
+    'ok'
+  );
+}
+
 function buildFactorsUI(){
   const ui = UI[currentLang];
   factorsCol.innerHTML = '';
@@ -1364,6 +1761,26 @@ function applyStaticText(){
   statusSelect.innerHTML = WORKFLOW_STATUS_ORDER.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${WORKFLOW_STATUS_LABELS[status][currentLang]}</option>`).join('');
   document.getElementById('lJobEvidence').textContent = ui.jobEvidence;
   document.getElementById('jobEvidence').placeholder = ui.jobEvidencePh;
+  document.getElementById('mWorkflow').textContent = ui.workflow;
+  document.getElementById('lEvaluationId').textContent = ui.evaluationId;
+  document.getElementById('lVersionNumber').textContent = ui.versionNumber;
+  document.getElementById('lWorkflowActor').textContent = ui.workflowActor;
+  document.getElementById('lFinalApprovedLevel').textContent = ui.finalApprovedLevel;
+  document.getElementById('lApprovedBy').textContent = ui.approvedBy;
+  document.getElementById('lDecisionDate').textContent = ui.decisionDate;
+  document.getElementById('lCommitteeReviewers').textContent = ui.committeeReviewers;
+  document.getElementById('lCommitteeNotes').textContent = ui.committeeNotes;
+  document.getElementById('lBenchmarkNotes').textContent = ui.benchmarkNotes;
+  document.getElementById('lTransitionComment').textContent = ui.transitionComment;
+  document.getElementById('btnApplyStatus').textContent = ui.applyStatus;
+  document.getElementById('btnForkVersion').textContent = ui.forkVersion;
+  document.getElementById('mPersistentHistory').textContent = ui.persistentHistory;
+  document.getElementById('lHistoryEmail').textContent = ui.historyEmail;
+  document.getElementById('lHistoryPassword').textContent = ui.historyPassword;
+  document.getElementById('btnHistorySignIn').textContent = ui.historySignIn;
+  document.getElementById('btnHistorySignOut').textContent = ui.historySignOut;
+  document.getElementById('btnHistorySave').textContent = ui.historySave;
+  document.getElementById('btnHistoryLoad').textContent = ui.historyLoad;
   document.getElementById('mSummary').textContent = ui.summary;
   document.getElementById('lTotal').textContent = ui.total;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
@@ -1387,6 +1804,7 @@ function setLang(lang){
   populateRefFilters();
   renderRefTable();
   renderWorkflowFields();
+  renderPersistentHistoryList(persistentHistoryRows);
 }
 
 document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn => {
@@ -1401,6 +1819,7 @@ document.getElementById('refLevelFilter').addEventListener('change', renderRefTa
 
 setLang('th');
 renderWorkflowFields();
+refreshPersistentHistorySession();
 
 function buildEvaluationSnapshot(){
   const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
@@ -1487,48 +1906,7 @@ function importJSON(evt){
   reader.onload = e => {
     try{
       const data = JSON.parse(e.target.result);
-      document.getElementById('jobTitle').value = data.job_title || data.jobTitle || '';
-      document.getElementById('dept').value = data.department || data.dept || '';
-      document.getElementById('evaluator').value = data.created_by || data.evaluator || '';
-      document.getElementById('evalDate').value = data.evalDate || '';
-      workflowState.id = data.id || uuid();
-      workflowState.evaluationId = data.evaluation_id || data.evaluationId || generateEvaluationId();
-      workflowState.versionNumber = Number(data.version_number || data.versionNumber || 1);
-      workflowState.isLatestVersion = data.is_latest_version !== undefined ? Boolean(data.is_latest_version) : true;
-      workflowState.currentStatus = WORKFLOW_STATUS_ORDER.includes(data.current_status || data.evaluationStatus) ? (data.current_status || data.evaluationStatus) : 'Draft';
-      workflowState.createdAt = data.created_at || data.createdAt || new Date().toISOString();
-      workflowState.updatedAt = data.updated_at || data.updatedAt || new Date().toISOString();
-      workflowState.submittedBy = data.submitted_by || null;
-      workflowState.submittedAt = data.submitted_at || null;
-      workflowState.committeeReviewedAt = data.committee_reviewed_at || null;
-      workflowState.approvedBy = data.approved_by || null;
-      workflowState.decisionDate = data.decision_date || null;
-      workflowState.finalApprovedLevel = data.final_approved_level || '';
-      workflowState.supersededVersionSnapshot = data.superseded_version_snapshot || null;
-      workflowState.auditTrail = Array.isArray(data.audit_trail) ? data.audit_trail : (Array.isArray(data.job_evaluation_audit_logs) ? data.job_evaluation_audit_logs : []);
-      document.getElementById('evalStatus').value = workflowState.currentStatus;
-      document.getElementById('jobEvidence').value = data.jd_reference_text || data.jobDescriptionEvidence || data.jobEvidence || '';
-      document.getElementById('approvedBy').value = data.approved_by || (data.approval_metadata && data.approval_metadata.approved_by) || '';
-      document.getElementById('decisionDate').value = data.decision_date || (data.approval_metadata && data.approval_metadata.decision_date) || '';
-      document.getElementById('committeeReviewers').value = data.approval_metadata && Array.isArray(data.approval_metadata.committee_reviewers) ? data.approval_metadata.committee_reviewers.join(', ') : '';
-      document.getElementById('committeeNotes').value = data.approval_metadata ? data.approval_metadata.consensus_notes || '' : '';
-      document.getElementById('benchmarkNotes').value = data.approval_metadata ? data.approval_metadata.benchmark_notes || '' : '';
-      FACTORS.forEach(f => {
-        const sourceScores = data.factor_scores || data.scores || {};
-        const raw = sourceScores[f.key];
-        const v = Math.max(10, Math.min(100, Number(raw) || 10));
-        state[f.key] = v;
-        const slider = document.getElementById(`slider-${f.key}`);
-        if (slider) slider.value = v;
-        const sourceRationales = data.factor_rationales || data.factorRationales || {};
-        rationales[f.key] = sourceRationales[f.key] || '';
-        const rationale = document.getElementById(`rationale-${f.key}`);
-        if (rationale) rationale.value = rationales[f.key];
-        renderFactor(f.key);
-        renderRationaleState(f.key);
-      });
-      renderWorkflowFields();
-      renderSummary();
+      applyEvaluationData(data);
     }catch(err){
       alert(UI[currentLang].importError);
     }

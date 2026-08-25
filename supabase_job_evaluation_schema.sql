@@ -1,5 +1,7 @@
 -- Job Evaluation approval workflow schema for Supabase/PostgreSQL.
 -- Target roles in JWT app_metadata.role: HR_Analyst, JE_Committee_Member, HR_Head.
+-- Assign the role in Supabase Auth user app_metadata, for example:
+-- {"role":"HR_Analyst"} or {"je_role":"JE_Committee_Member"}.
 
 create extension if not exists pgcrypto;
 
@@ -24,8 +26,7 @@ stable
 as $$
   select coalesce(
     nullif(auth.jwt() -> 'app_metadata' ->> 'role', ''),
-    nullif(auth.jwt() -> 'user_metadata' ->> 'role', ''),
-    'HR_Analyst'
+    nullif(auth.jwt() -> 'app_metadata' ->> 'je_role', '')
   );
 $$;
 
@@ -187,11 +188,13 @@ alter table public.job_evaluation_audit_logs enable row level security;
 drop policy if exists "JE users can read evaluations" on public.job_evaluations;
 create policy "JE users can read evaluations"
 on public.job_evaluations for select
+to authenticated
 using (public.current_app_role() in ('HR_Analyst', 'JE_Committee_Member', 'HR_Head'));
 
 drop policy if exists "HR analysts create draft evaluations" on public.job_evaluations;
 create policy "HR analysts create draft evaluations"
 on public.job_evaluations for insert
+to authenticated
 with check (
   public.current_app_role() = 'HR_Analyst'
   and current_status = 'Draft'
@@ -200,6 +203,7 @@ with check (
 drop policy if exists "HR analysts edit draft rejected submitted data" on public.job_evaluations;
 create policy "HR analysts edit draft rejected submitted data"
 on public.job_evaluations for update
+to authenticated
 using (
   public.current_app_role() = 'HR_Analyst'
   and current_status in ('Draft', 'Rejected')
@@ -212,6 +216,7 @@ with check (
 drop policy if exists "Committee reviews submitted evaluations" on public.job_evaluations;
 create policy "Committee reviews submitted evaluations"
 on public.job_evaluations for update
+to authenticated
 using (
   public.current_app_role() = 'JE_Committee_Member'
   and current_status = 'Submitted'
@@ -224,6 +229,7 @@ with check (
 drop policy if exists "HR head approves committee reviewed evaluations" on public.job_evaluations;
 create policy "HR head approves committee reviewed evaluations"
 on public.job_evaluations for update
+to authenticated
 using (
   public.current_app_role() = 'HR_Head'
   and current_status in ('Committee Reviewed', 'Approved')
@@ -236,9 +242,15 @@ with check (
 drop policy if exists "JE users can read audit logs" on public.job_evaluation_audit_logs;
 create policy "JE users can read audit logs"
 on public.job_evaluation_audit_logs for select
+to authenticated
 using (public.current_app_role() in ('HR_Analyst', 'JE_Committee_Member', 'HR_Head'));
 
 drop policy if exists "System inserts audit logs through triggers" on public.job_evaluation_audit_logs;
 create policy "System inserts audit logs through triggers"
 on public.job_evaluation_audit_logs for insert
+to authenticated
 with check (public.current_app_role() in ('HR_Analyst', 'JE_Committee_Member', 'HR_Head'));
+
+grant usage on schema public to authenticated;
+grant select, insert, update on public.job_evaluations to authenticated;
+grant select, insert on public.job_evaluation_audit_logs to authenticated;
