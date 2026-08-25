@@ -167,6 +167,30 @@
   .history-stat strong{display:block; color:var(--navy); font-size:18px;}
   .history-stat span{font-size:11.5px; color:var(--grey);}
   .role-badge{display:inline-block; margin-top:8px; padding:4px 10px; border-radius:999px; background:var(--navy-light); color:var(--navy); font-size:11.5px; font-weight:700;}
+  .admin-help{font-size:12px; color:var(--grey); line-height:1.5; margin:0 0 12px;}
+  .role-picker{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .role-picker label, .admin-active-label{
+    display:flex; align-items:center; gap:6px; color:#334155; font-size:12px; font-weight:700;
+    border:1px solid var(--border); border-radius:999px; padding:7px 10px; background:#F8FAFC;
+  }
+  .role-picker input, .admin-active-label input{width:auto;}
+  .admin-user-row{
+    display:grid; grid-template-columns:1.3fr 1fr 1fr .7fr auto; gap:10px; align-items:center;
+    padding:10px 12px; border-bottom:1px solid var(--border); font-size:12px;
+  }
+  .admin-user-row:last-child{border-bottom:none;}
+  .admin-user-name{font-weight:700; color:var(--navy);}
+  .admin-user-meta{color:var(--grey); font-size:11.5px; margin-top:2px;}
+  .admin-role-chip{
+    display:inline-block; margin:2px 3px 2px 0; padding:2px 7px; border-radius:999px;
+    background:var(--navy-light); color:var(--navy); font-size:11px; font-weight:700;
+  }
+  .admin-state{font-weight:800;}
+  .admin-state.inactive{color:var(--red);}
+  .admin-state.active{color:var(--green);}
+  @media (max-width: 760px){
+    .admin-user-row{grid-template-columns:1fr;}
+  }
   .history-row{
     display:grid; grid-template-columns:1.2fr .8fr .6fr .8fr auto; gap:10px; align-items:center;
     padding:10px 12px; border-bottom:1px solid var(--border); font-size:12px;
@@ -290,6 +314,7 @@
     </div>
     <div class="btn-row">
       <button class="btn-primary" id="btnHistorySignIn" onclick="signInPersistentHistory()">Sign In</button>
+      <button class="btn-secondary" id="btnHistorySignUp" onclick="signUpPersistentHistory()">Create Account</button>
       <button class="btn-secondary" id="btnHistorySignOut" onclick="signOutPersistentHistory()">Sign Out</button>
     </div>
     <div class="btn-row">
@@ -307,6 +332,36 @@
     <div class="history-stats" id="historyStats"></div>
     <div class="history-list" id="persistentHistoryList"></div>
     <div class="audit-log" id="persistentAuditLog"></div>
+  </div>
+
+  <div class="meta-card">
+    <h2 id="mAdminUsers">Admin / User Management</h2>
+    <p class="admin-help" id="adminHelp"></p>
+    <div class="workflow-grid">
+      <div><label id="lAdminEmail">User Email</label><input id="adminEmail" type="email"></div>
+      <div><label id="lAdminName">Full Name</label><input id="adminName" type="text"></div>
+      <div><label id="lAdminDept">Department</label><input id="adminDept" type="text"></div>
+      <div>
+        <label id="lAdminActive">Access Status</label>
+        <label class="admin-active-label"><input id="adminActive" type="checkbox" checked> <span id="adminActiveText">Active</span></label>
+      </div>
+      <div class="span-2">
+        <label id="lAdminRoles">JE Roles</label>
+        <div class="role-picker" id="adminRolePicker">
+          <label><input type="checkbox" value="HR_Analyst"> HR Analyst</label>
+          <label><input type="checkbox" value="JE_Committee_Member"> JE Committee</label>
+          <label><input type="checkbox" value="HR_Head"> HR Head</label>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnAdminSave" onclick="saveAdminUser()">Save User Access</button>
+      <button class="btn-secondary" id="btnAdminRefresh" onclick="loadAdminUsers()">Refresh Users</button>
+      <button class="btn-secondary" id="btnAdminClear" onclick="clearAdminUserForm()">Clear</button>
+    </div>
+    <div class="history-status warn" id="adminStatus"></div>
+    <div class="history-list" id="adminUserList"></div>
+    <div class="audit-log" id="adminAuditLog"></div>
   </div>
 
   <div class="layout">
@@ -433,6 +488,7 @@ const UI = {
     historyEmail: 'อีเมลผู้ใช้',
     historyPassword: 'รหัสผ่าน',
     historySignIn: 'Sign In',
+    historySignUp: 'สร้างบัญชี',
     historySignOut: 'Sign Out',
     historySave: 'บันทึก Evaluation นี้ลงฐานข้อมูล',
     historyLoad: 'โหลดประวัติย้อนหลังถาวร',
@@ -460,6 +516,27 @@ const UI = {
     historySaveNeedsDraft: 'ต้องบันทึก record ครั้งแรกเป็น Draft ก่อน แล้วจึงเปลี่ยนสถานะตาม workflow เพื่อให้ audit trail ถูกต้อง',
     historyLoaded: 'เปิด record จากฐานข้อมูลแล้ว: {evaluationId} v{version}',
     historyAuditEmpty: 'ยังไม่มี audit log ในฐานข้อมูลสำหรับ record นี้',
+    adminUsers: 'Admin / User Management',
+    adminHelp: 'HR Head สามารถเพิ่มอีเมลผู้ใช้และกำหนด JE role ได้ที่นี่ ผู้ใช้ต้องสร้างบัญชี/เข้าสู่ระบบด้วยอีเมลเดียวกันเพื่อรับสิทธิ์',
+    adminEmail: 'อีเมลผู้ใช้',
+    adminName: 'ชื่อ-นามสกุล',
+    adminDept: 'แผนก',
+    adminActive: 'สถานะสิทธิ์',
+    adminActiveText: 'ใช้งานได้',
+    adminRoles: 'JE Roles',
+    adminSave: 'บันทึกสิทธิ์ผู้ใช้',
+    adminRefresh: 'โหลดรายชื่อผู้ใช้',
+    adminClear: 'ล้างฟอร์ม',
+    adminNeedsHrHead: 'ต้องเป็น HR Head จึงจะจัดการผู้ใช้และ role ได้',
+    adminSaved: 'บันทึกสิทธิ์ผู้ใช้แล้ว: {email}',
+    adminLoadError: 'ไม่สามารถโหลดรายชื่อผู้ใช้ได้',
+    adminEmpty: 'ยังไม่มีผู้ใช้ในตารางสิทธิ์ JE',
+    adminNoRole: 'กรุณาเลือกอย่างน้อย 1 role',
+    adminBadEmail: 'กรุณากรอกอีเมลให้ถูกต้อง',
+    adminEdit: 'แก้ไข',
+    adminRoleAudit: 'Audit สิทธิ์',
+    adminAuditEmpty: 'ยังไม่มี audit การเปลี่ยนสิทธิ์สำหรับผู้ใช้นี้',
+    adminAccountCreated: 'สร้างบัญชีแล้ว กรุณาตรวจสอบอีเมลถ้าระบบต้องยืนยันบัญชี จากนั้น Sign In อีกครั้ง',
     jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
     summary: '📊 สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
@@ -513,6 +590,7 @@ const UI = {
     historyEmail: 'User Email',
     historyPassword: 'Password',
     historySignIn: 'Sign In',
+    historySignUp: 'Create Account',
     historySignOut: 'Sign Out',
     historySave: 'Save Current Evaluation to Database',
     historyLoad: 'Load Permanent History',
@@ -540,6 +618,27 @@ const UI = {
     historySaveNeedsDraft: 'Save the first database record as Draft, then move through the workflow so the audit trail stays valid.',
     historyLoaded: 'Loaded database record: {evaluationId} v{version}',
     historyAuditEmpty: 'No database audit log exists for this record yet.',
+    adminUsers: 'Admin / User Management',
+    adminHelp: 'HR Head can authorize user emails and assign JE roles here. Users sign up or sign in with the same email to receive access.',
+    adminEmail: 'User Email',
+    adminName: 'Full Name',
+    adminDept: 'Department',
+    adminActive: 'Access Status',
+    adminActiveText: 'Active',
+    adminRoles: 'JE Roles',
+    adminSave: 'Save User Access',
+    adminRefresh: 'Refresh Users',
+    adminClear: 'Clear',
+    adminNeedsHrHead: 'Only HR Head can manage JE users and roles.',
+    adminSaved: 'Saved user access: {email}',
+    adminLoadError: 'Could not load JE users.',
+    adminEmpty: 'No JE users found in the access table.',
+    adminNoRole: 'Select at least one role.',
+    adminBadEmail: 'Enter a valid email address.',
+    adminEdit: 'Edit',
+    adminRoleAudit: 'Role Audit',
+    adminAuditEmpty: 'No role audit log exists for this user yet.',
+    adminAccountCreated: 'Account created. Check email if confirmation is required, then sign in again.',
     jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
     summary: '📊 Evaluation Summary',
     total: 'Total Score (out of 1,200)',
@@ -593,6 +692,7 @@ const UI = {
     historyEmail: '用户邮箱',
     historyPassword: '密码',
     historySignIn: '登录',
+    historySignUp: '创建账户',
     historySignOut: '退出',
     historySave: '保存当前评估到数据库',
     historyLoad: '加载永久历史',
@@ -620,6 +720,27 @@ const UI = {
     historySaveNeedsDraft: '第一次保存数据库记录必须是 Draft，然后按流程变更状态以保持审计记录正确。',
     historyLoaded: '已打开数据库记录：{evaluationId} v{version}',
     historyAuditEmpty: '该记录暂无数据库审计日志。',
+    adminUsers: '管理员 / 用户管理',
+    adminHelp: 'HR Head 可在此授权用户邮箱并分配 JE 角色。用户需使用同一邮箱注册或登录以获得访问权限。',
+    adminEmail: '用户邮箱',
+    adminName: '姓名',
+    adminDept: '部门',
+    adminActive: '访问状态',
+    adminActiveText: '启用',
+    adminRoles: 'JE 角色',
+    adminSave: '保存用户权限',
+    adminRefresh: '刷新用户',
+    adminClear: '清空',
+    adminNeedsHrHead: '只有 HR Head 可以管理 JE 用户和角色。',
+    adminSaved: '已保存用户权限：{email}',
+    adminLoadError: '无法加载 JE 用户。',
+    adminEmpty: '权限表中暂无 JE 用户。',
+    adminNoRole: '请至少选择一个角色。',
+    adminBadEmail: '请输入有效邮箱。',
+    adminEdit: '编辑',
+    adminRoleAudit: '角色审计',
+    adminAuditEmpty: '该用户暂无角色审计日志。',
+    adminAccountCreated: '账户已创建。如需邮件确认，请检查邮箱，然后再次登录。',
     jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
     summary: '📊 评估结果汇总',
     total: '总分（满分 1,200）',
@@ -1203,8 +1324,10 @@ const workflowState = {
 };
 let jeDbClient = null;
 let jeDbSession = null;
+let currentJeRoles = [];
 let persistentHistoryRows = [];
 let currentPersistentAuditRecordId = null;
+let adminUserRows = [];
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -1440,19 +1563,40 @@ function getJeRolesFromSession(session){
   return [...new Set(roles.filter(Boolean))];
 }
 
+function getEffectiveJeRoles(session){
+  return [...new Set([...getJeRolesFromSession(session), ...currentJeRoles].filter(Boolean))];
+}
+
+async function refreshCurrentUserRoles(session){
+  currentJeRoles = [];
+  const client = getJeDbClient();
+  const email = session?.user?.email;
+  if (!client || !email) return getEffectiveJeRoles(session);
+  const { data, error } = await client
+    .from('je_user_roles')
+    .select('roles,is_active')
+    .eq('email_normalized', email.trim().toLowerCase())
+    .maybeSingle();
+  if (!error && data?.is_active && Array.isArray(data.roles)) {
+    currentJeRoles = data.roles;
+  }
+  return getEffectiveJeRoles(session);
+}
+
 function canSessionTransition(session, fromStatus, toStatus){
   const requiredRole = TRANSITION_ROLES[`${fromStatus}>${toStatus}`];
   if (!requiredRole) return false;
-  return getJeRolesFromSession(session).includes(requiredRole);
+  return getEffectiveJeRoles(session).includes(requiredRole);
 }
 
 function renderJeRoleBadge(session){
   const badge = document.getElementById('historyRoleBadge');
   if (!badge) return;
-  const roles = getJeRolesFromSession(session);
+  const roles = getEffectiveJeRoles(session);
   badge.textContent = roles.length
     ? UI[currentLang].historyRoleLabel.replaceAll('{roles}', roles.join(', '))
     : UI[currentLang].historyRoleNone;
+  renderAdminPanelState();
 }
 
 async function getCurrentDbSessionSilently(){
@@ -1461,10 +1605,12 @@ async function getCurrentDbSessionSilently(){
   const { data, error } = await client.auth.getSession();
   if (error || !data.session) {
     jeDbSession = null;
+    currentJeRoles = [];
     renderJeRoleBadge(null);
     return null;
   }
   jeDbSession = data.session;
+  await refreshCurrentUserRoles(data.session);
   renderJeRoleBadge(data.session);
   return data.session;
 }
@@ -1478,11 +1624,13 @@ async function refreshPersistentHistorySession(){
   const { data, error } = await client.auth.getSession();
   if (error || !data.session) {
     jeDbSession = null;
+    currentJeRoles = [];
     renderJeRoleBadge(null);
     renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
     return null;
   }
   jeDbSession = data.session;
+  await refreshCurrentUserRoles(data.session);
   renderJeRoleBadge(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || data.session.user.id), 'ok');
   return data.session;
@@ -1507,6 +1655,29 @@ async function signInPersistentHistory(){
   renderJeRoleBadge(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || email), 'ok');
   await loadPermanentHistory();
+  await loadAdminUsers();
+}
+
+async function signUpPersistentHistory(){
+  const client = getJeDbClient();
+  if (!client) {
+    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return;
+  }
+  const email = document.getElementById('historyEmail').value.trim();
+  const password = document.getElementById('historyPassword').value;
+  const { data, error } = await client.auth.signUp({ email, password });
+  if (error) {
+    renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
+    return;
+  }
+  document.getElementById('historyPassword').value = '';
+  if (data.session) {
+    jeDbSession = data.session;
+    await refreshCurrentUserRoles(data.session);
+    renderJeRoleBadge(data.session);
+  }
+  renderPersistentHistoryStatus(UI[currentLang].adminAccountCreated, 'ok');
 }
 
 async function signOutPersistentHistory(){
@@ -1514,12 +1685,207 @@ async function signOutPersistentHistory(){
   if (!client) return;
   await client.auth.signOut();
   jeDbSession = null;
+  currentJeRoles = [];
   persistentHistoryRows = [];
   currentPersistentAuditRecordId = null;
+  adminUserRows = [];
   document.getElementById('persistentHistoryList').innerHTML = '';
   document.getElementById('persistentAuditLog').textContent = '';
+  document.getElementById('adminUserList').innerHTML = '';
+  document.getElementById('adminAuditLog').textContent = '';
   renderJeRoleBadge(null);
   renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
+}
+
+function isCurrentHrHead(){
+  return getEffectiveJeRoles(jeDbSession).includes('HR_Head');
+}
+
+function renderAdminPanelState(){
+  const canAdmin = isCurrentHrHead();
+  ['adminEmail','adminName','adminDept','adminActive','btnAdminSave','btnAdminRefresh','btnAdminClear'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !canAdmin;
+  });
+  document.querySelectorAll('#adminRolePicker input').forEach(input => {
+    input.disabled = !canAdmin;
+  });
+  const status = document.getElementById('adminStatus');
+  if (status && !canAdmin) {
+    status.textContent = UI[currentLang].adminNeedsHrHead;
+    status.className = 'history-status warn';
+  }
+}
+
+function renderAdminStatus(message, kind = 'warn'){
+  const el = document.getElementById('adminStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `history-status ${kind}`;
+}
+
+function selectedAdminRoles(){
+  return [...document.querySelectorAll('#adminRolePicker input:checked')].map(input => input.value);
+}
+
+function setAdminRoles(roles){
+  const selected = new Set(Array.isArray(roles) ? roles : []);
+  document.querySelectorAll('#adminRolePicker input').forEach(input => {
+    input.checked = selected.has(input.value);
+  });
+}
+
+function clearAdminUserForm(){
+  document.getElementById('adminEmail').value = '';
+  document.getElementById('adminName').value = '';
+  document.getElementById('adminDept').value = '';
+  document.getElementById('adminActive').checked = true;
+  setAdminRoles([]);
+}
+
+function adminFormFromRow(row){
+  document.getElementById('adminEmail').value = row.email || '';
+  document.getElementById('adminName').value = row.full_name || '';
+  document.getElementById('adminDept').value = row.department || '';
+  document.getElementById('adminActive').checked = row.is_active !== false;
+  setAdminRoles(row.roles || []);
+}
+
+function renderAdminUserList(){
+  const list = document.getElementById('adminUserList');
+  if (!list) return;
+  if (!isCurrentHrHead()) {
+    list.innerHTML = '';
+    return;
+  }
+  if (!adminUserRows.length) {
+    list.innerHTML = `<div class="history-row">${UI[currentLang].adminEmpty}</div>`;
+    return;
+  }
+  list.innerHTML = adminUserRows.map(row => `
+    <div class="admin-user-row">
+      <div>
+        <div class="admin-user-name">${escapeHtml(row.full_name || row.email || '-')}</div>
+        <div class="admin-user-meta">${escapeHtml(row.email || '-')} · ${escapeHtml(row.department || '-')}</div>
+      </div>
+      <div>${(row.roles || []).map(role => `<span class="admin-role-chip">${escapeHtml(role)}</span>`).join('')}</div>
+      <div>${escapeHtml(row.updated_at ? new Date(row.updated_at).toLocaleString() : '-')}</div>
+      <div class="admin-state ${row.is_active ? 'active' : 'inactive'}">${row.is_active ? 'Active' : 'Inactive'}</div>
+      <div class="history-actions">
+        <button class="btn-secondary" data-admin-edit="${escapeHtml(row.id)}">${UI[currentLang].adminEdit}</button>
+        <button class="btn-primary" data-admin-audit="${escapeHtml(row.id)}">${UI[currentLang].adminRoleAudit}</button>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-admin-edit]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = adminUserRows.find(item => item.id === btn.dataset.adminEdit);
+      if (row) adminFormFromRow(row);
+    });
+  });
+  list.querySelectorAll('[data-admin-audit]').forEach(btn => {
+    btn.addEventListener('click', () => loadAdminRoleAudit(btn.dataset.adminAudit));
+  });
+}
+
+async function loadAdminUsers(){
+  const client = getJeDbClient();
+  const session = await refreshPersistentHistorySession();
+  if (!client || !session) return;
+  if (!isCurrentHrHead()) {
+    renderAdminPanelState();
+    return;
+  }
+  const { data, error } = await client
+    .from('je_user_roles')
+    .select('id,email,email_normalized,full_name,department,roles,is_active,invited_by,invited_at,updated_by,updated_at')
+    .order('updated_at', { ascending: false });
+  if (error) {
+    renderAdminStatus(error.message || UI[currentLang].adminLoadError, 'error');
+    return;
+  }
+  adminUserRows = data || [];
+  renderAdminUserList();
+  renderAdminStatus(UI[currentLang].historyCount + ': ' + adminUserRows.length, 'ok');
+}
+
+async function saveAdminUser(){
+  const client = getJeDbClient();
+  const session = await refreshPersistentHistorySession();
+  if (!client || !session) return;
+  if (!isCurrentHrHead()) {
+    renderAdminStatus(UI[currentLang].adminNeedsHrHead, 'error');
+    return;
+  }
+  const email = document.getElementById('adminEmail').value.trim();
+  const normalized = email.toLowerCase();
+  if (!normalized || !normalized.includes('@')) {
+    renderAdminStatus(UI[currentLang].adminBadEmail, 'error');
+    return;
+  }
+  const roles = selectedAdminRoles();
+  if (!roles.length) {
+    renderAdminStatus(UI[currentLang].adminNoRole, 'error');
+    return;
+  }
+  const payload = {
+    email,
+    full_name: document.getElementById('adminName').value.trim() || null,
+    department: document.getElementById('adminDept').value.trim() || null,
+    roles,
+    is_active: document.getElementById('adminActive').checked,
+    updated_by: session.user.email || session.user.id,
+  };
+  const existing = await client
+    .from('je_user_roles')
+    .select('id')
+    .eq('email_normalized', normalized)
+    .maybeSingle();
+  if (existing.error) {
+    renderAdminStatus(existing.error.message, 'error');
+    return;
+  }
+  const result = existing.data
+    ? await client.from('je_user_roles').update(payload).eq('id', existing.data.id).select('id,email').single()
+    : await client.from('je_user_roles').insert({ ...payload, invited_by: session.user.email || session.user.id }).select('id,email').single();
+  if (result.error) {
+    renderAdminStatus(result.error.message, 'error');
+    return;
+  }
+  renderAdminStatus(UI[currentLang].adminSaved.replaceAll('{email}', result.data.email), 'ok');
+  await loadAdminUsers();
+}
+
+function renderAdminRoleAudit(logs){
+  const audit = document.getElementById('adminAuditLog');
+  if (!audit) return;
+  if (!logs.length) {
+    audit.textContent = UI[currentLang].adminAuditEmpty;
+    return;
+  }
+  audit.innerHTML = logs.map(log => `
+    <div class="audit-entry">
+      <strong>${escapeHtml(log.action || '-')} · ${escapeHtml(log.target_email || '-')}</strong>
+      <div>${escapeHtml(log.changed_at ? new Date(log.changed_at).toLocaleString() : '-')} · ${escapeHtml(log.changed_by || '-')}</div>
+      <div>${escapeHtml((log.from_roles || []).join(', ') || '-')} → ${escapeHtml((log.to_roles || []).join(', ') || '-')} · ${log.to_active ? 'Active' : 'Inactive'}</div>
+    </div>
+  `).join('');
+}
+
+async function loadAdminRoleAudit(recordId){
+  const client = getJeDbClient();
+  const session = await refreshPersistentHistorySession();
+  if (!client || !session || !isCurrentHrHead()) return;
+  const { data, error } = await client
+    .from('je_user_role_audit_logs')
+    .select('*')
+    .eq('role_record_id', recordId)
+    .order('changed_at', { ascending: true });
+  if (error) {
+    renderAdminStatus(error.message || UI[currentLang].adminLoadError, 'error');
+    return;
+  }
+  renderAdminRoleAudit(data || []);
 }
 
 function dbRowFromSnapshot(snapshot){
@@ -1968,6 +2334,7 @@ function applyStaticText(){
   document.getElementById('lHistoryEmail').textContent = ui.historyEmail;
   document.getElementById('lHistoryPassword').textContent = ui.historyPassword;
   document.getElementById('btnHistorySignIn').textContent = ui.historySignIn;
+  document.getElementById('btnHistorySignUp').textContent = ui.historySignUp;
   document.getElementById('btnHistorySignOut').textContent = ui.historySignOut;
   document.getElementById('btnHistorySave').textContent = ui.historySave;
   document.getElementById('btnHistoryLoad').textContent = ui.historyLoad;
@@ -1981,6 +2348,17 @@ function applyStaticText(){
   document.getElementById('historyStatusFilter').value = currentHistoryStatus;
   document.getElementById('historyLevelFilter').value = currentHistoryLevel;
   document.querySelector('.history-check').lastChild.textContent = ` ${ui.historyLatestOnly}`;
+  document.getElementById('mAdminUsers').textContent = ui.adminUsers;
+  document.getElementById('adminHelp').textContent = ui.adminHelp;
+  document.getElementById('lAdminEmail').textContent = ui.adminEmail;
+  document.getElementById('lAdminName').textContent = ui.adminName;
+  document.getElementById('lAdminDept').textContent = ui.adminDept;
+  document.getElementById('lAdminActive').textContent = ui.adminActive;
+  document.getElementById('adminActiveText').textContent = ui.adminActiveText;
+  document.getElementById('lAdminRoles').textContent = ui.adminRoles;
+  document.getElementById('btnAdminSave').textContent = ui.adminSave;
+  document.getElementById('btnAdminRefresh').textContent = ui.adminRefresh;
+  document.getElementById('btnAdminClear').textContent = ui.adminClear;
   document.getElementById('mSummary').textContent = ui.summary;
   document.getElementById('lTotal').textContent = ui.total;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
@@ -2006,6 +2384,7 @@ function setLang(lang){
   renderWorkflowFields();
   renderJeRoleBadge(jeDbSession);
   renderPersistentHistory();
+  renderAdminUserList();
 }
 
 document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn => {
@@ -2023,7 +2402,9 @@ document.getElementById('refLevelFilter').addEventListener('change', renderRefTa
 
 setLang('th');
 renderWorkflowFields();
-refreshPersistentHistorySession();
+refreshPersistentHistorySession().then(() => {
+  if (isCurrentHrHead()) loadAdminUsers();
+});
 
 function buildEvaluationSnapshot(){
   const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
