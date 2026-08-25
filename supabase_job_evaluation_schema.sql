@@ -102,6 +102,25 @@ as $$
   from claims;
 $$;
 
+create or replace function public.get_je_notification_recipients(role_names text[])
+returns table(email text, full_name text, roles text[])
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jur.email_normalized as email, jur.full_name, jur.roles
+  from public.je_user_roles jur
+  where jur.is_active
+    and jur.roles && role_names
+    and (
+      public.has_je_role('HR_Analyst')
+      or public.has_je_role('JE_Committee_Member')
+      or public.has_je_role('HR_Head')
+    )
+  order by jur.email_normalized;
+$$;
+
 create or replace function public.touch_je_user_roles_updated_at()
 returns trigger
 language plpgsql
@@ -217,6 +236,28 @@ create table if not exists public.job_evaluation_audit_logs (
 create index if not exists job_evaluation_audit_logs_record_idx
   on public.job_evaluation_audit_logs (evaluation_record_id, changed_at desc);
 
+create table if not exists public.je_notification_logs (
+  id uuid primary key default gen_random_uuid(),
+  evaluation_record_id uuid references public.job_evaluations(id) on delete set null,
+  evaluation_id text not null,
+  version_number integer not null,
+  from_status text,
+  to_status text not null,
+  to_emails text[] not null default '{}'::text[],
+  cc_emails text[] not null default '{}'::text[],
+  subject text not null,
+  body text not null,
+  delivery_status text not null default 'Queued' check (delivery_status in ('Queued','Sent','Skipped','Failed')),
+  triggered_by text not null default coalesce(auth.jwt() ->> 'email', auth.uid()::text),
+  triggered_at timestamptz not null default now(),
+  provider text,
+  provider_response jsonb not null default '{}'::jsonb,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists je_notification_logs_eval_idx
+  on public.je_notification_logs (evaluation_record_id, triggered_at desc);
+
 create or replace function public.touch_job_evaluation_updated_at()
 returns trigger
 language plpgsql
@@ -319,6 +360,7 @@ alter table public.job_evaluations enable row level security;
 alter table public.job_evaluation_audit_logs enable row level security;
 alter table public.je_user_roles enable row level security;
 alter table public.je_user_role_audit_logs enable row level security;
+alter table public.je_notification_logs enable row level security;
 
 drop policy if exists "JE users can read their own role and HR head can read all" on public.je_user_roles;
 create policy "JE users can read their own role and HR head can read all"
@@ -347,6 +389,26 @@ create policy "HR head reads JE role audit logs"
 on public.je_user_role_audit_logs for select
 to authenticated
 using (public.has_je_role('HR_Head'));
+
+drop policy if exists "JE users can read notification logs" on public.je_notification_logs;
+create policy "JE users can read notification logs"
+on public.je_notification_logs for select
+to authenticated
+using (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
+
+drop policy if exists "JE users can queue notification logs" on public.je_notification_logs;
+create policy "JE users can queue notification logs"
+on public.je_notification_logs for insert
+to authenticated
+with check (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
 
 drop policy if exists "JE users can read evaluations" on public.job_evaluations;
 create policy "JE users can read evaluations"
@@ -429,5 +491,7 @@ with check (
 grant usage on schema public to authenticated;
 grant select, insert, update on public.je_user_roles to authenticated;
 grant select on public.je_user_role_audit_logs to authenticated;
+grant select, insert on public.je_notification_logs to authenticated;
+grant execute on function public.get_je_notification_recipients(text[]) to authenticated;
 grant select, insert, update on public.job_evaluations to authenticated;
 grant select, insert on public.job_evaluation_audit_logs to authenticated;

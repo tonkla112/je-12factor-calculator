@@ -231,6 +231,12 @@
   }
   .audit-entry{padding:6px 0; border-bottom:1px solid var(--border);}
   .audit-entry:last-child{border-bottom:none;}
+  .notification-log{margin-top:12px;}
+  .notification-row{padding:8px 0; border-bottom:1px solid var(--border); font-size:11.5px; line-height:1.45;}
+  .notification-row:last-child{border-bottom:none;}
+  .notification-row strong{color:var(--navy);}
+  .email-list{color:#334155; overflow-wrap:anywhere;}
+  .email-list span{display:inline-block; background:#EEF2F7; border-radius:999px; padding:2px 7px; margin:2px 3px 2px 0;}
   .history-status{
     font-size:12px; border-radius:10px; padding:9px 12px; margin-top:10px; line-height:1.45;
     border:1px solid var(--border); background:#F8FAFC; color:#334155;
@@ -439,6 +445,11 @@
     </div>
     <div class="locked-note" id="lockedNote"></div>
     <div class="audit-log" id="auditLog"></div>
+    <div class="notification-log">
+      <h2 id="mNotificationLog">Email Notification Log</h2>
+      <div class="history-status warn" id="notificationStatus"></div>
+      <div class="audit-log" id="notificationLog"></div>
+    </div>
   </div>
   </section>
 
@@ -679,6 +690,15 @@ const UI = {
     date: 'วันที่ประเมิน',
     evalStatus: 'สถานะการประเมิน',
     workflow: 'Approval Workflow & Audit Trail',
+    notificationLog: 'Email Notification Log',
+    notificationEmpty: 'ยังไม่มี notification log สำหรับ evaluation นี้',
+    notificationQueued: 'บันทึก notification queue แล้ว: To {toCount} ราย, CC {ccCount} ราย',
+    notificationSkipped: 'ยังไม่ได้ queue notification เพราะไม่พบผู้รับตาม role ถัดไป',
+    notificationLoadError: 'ไม่สามารถโหลด notification log ได้',
+    notificationTo: 'To',
+    notificationCc: 'CC',
+    notificationStatus: 'สถานะ',
+    notificationQueuedStatus: 'Queued',
     evaluationId: 'Evaluation ID',
     versionNumber: 'Version',
     workflowActor: 'Action By',
@@ -833,6 +853,15 @@ const UI = {
     date: 'Evaluation Date',
     evalStatus: 'Evaluation Status',
     workflow: 'Approval Workflow & Audit Trail',
+    notificationLog: 'Email Notification Log',
+    notificationEmpty: 'No notification log exists for this evaluation yet.',
+    notificationQueued: 'Notification queued: To {toCount}, CC {ccCount}.',
+    notificationSkipped: 'Notification was not queued because no recipients were found for the next role.',
+    notificationLoadError: 'Could not load notification log.',
+    notificationTo: 'To',
+    notificationCc: 'CC',
+    notificationStatus: 'Status',
+    notificationQueuedStatus: 'Queued',
     evaluationId: 'Evaluation ID',
     versionNumber: 'Version',
     workflowActor: 'Action By',
@@ -987,6 +1016,15 @@ const UI = {
     date: '评估日期',
     evalStatus: '评估状态',
     workflow: '审批流程与审计记录',
+    notificationLog: '邮件通知记录',
+    notificationEmpty: '该评估暂无邮件通知记录。',
+    notificationQueued: '通知已进入队列：To {toCount}，CC {ccCount}。',
+    notificationSkipped: '未进入通知队列，因为未找到下一角色的收件人。',
+    notificationLoadError: '无法加载邮件通知记录。',
+    notificationTo: '收件人',
+    notificationCc: '抄送',
+    notificationStatus: '状态',
+    notificationQueuedStatus: 'Queued',
     evaluationId: '评估编号',
     versionNumber: '版本',
     workflowActor: '操作人',
@@ -1141,6 +1179,43 @@ const TRANSITION_ROLES = {
   'Committee Reviewed>Approved': 'HR_Head',
   'Committee Reviewed>Rejected': 'HR_Head',
   'Approved>Recalibrated': 'HR_Head',
+};
+const NOTIFICATION_RULES = {
+  'Draft>Submitted': {
+    toRoles: ['JE_Committee_Member'],
+    ccRoles: ['HR_Head'],
+    action: 'Committee review required',
+  },
+  'Submitted>Committee Reviewed': {
+    toRoles: ['HR_Head'],
+    ccRoles: ['JE_Committee_Member', 'HR_Analyst'],
+    action: 'Final approval required',
+  },
+  'Submitted>Rejected': {
+    toRoles: ['HR_Analyst'],
+    ccRoles: ['JE_Committee_Member', 'HR_Head'],
+    action: 'Evaluation returned for revision',
+  },
+  'Committee Reviewed>Approved': {
+    toRoles: ['HR_Analyst'],
+    ccRoles: ['JE_Committee_Member', 'HR_Head'],
+    action: 'Evaluation approved',
+  },
+  'Committee Reviewed>Rejected': {
+    toRoles: ['HR_Analyst'],
+    ccRoles: ['JE_Committee_Member', 'HR_Head'],
+    action: 'Evaluation rejected',
+  },
+  'Approved>Recalibrated': {
+    toRoles: ['HR_Analyst'],
+    ccRoles: ['JE_Committee_Member', 'HR_Head'],
+    action: 'Recalibration started',
+  },
+  'Rejected>Submitted': {
+    toRoles: ['JE_Committee_Member'],
+    ccRoles: ['HR_Head'],
+    action: 'Re-submitted review required',
+  },
 };
 
 /* ============================================================
@@ -1659,6 +1734,7 @@ let isPasswordRecoverySession = false;
 let persistentHistoryRows = [];
 let currentPersistentAuditRecordId = null;
 let adminUserRows = [];
+let notificationLogRows = [];
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -1823,6 +1899,7 @@ async function applyStatusTransition(){
   if (dbSession) {
     const saved = await saveEvaluationToDatabase({ quiet: true });
     if (saved.ok) {
+      await queueWorkflowNotification(client, saved.data.id, fromStatus, toStatus);
       renderPersistentHistoryStatus(
         UI[currentLang].historyAutoSaved.replaceAll('{evaluationId}', saved.data.evaluation_id).replaceAll('{version}', saved.data.version_number),
         'ok'
@@ -2210,10 +2287,12 @@ async function signOutPersistentHistory(){
   persistentHistoryRows = [];
   currentPersistentAuditRecordId = null;
   adminUserRows = [];
+  notificationLogRows = [];
   document.getElementById('persistentHistoryList').innerHTML = '';
   document.getElementById('persistentAuditLog').textContent = '';
   document.getElementById('adminUserList').innerHTML = '';
   document.getElementById('adminAuditLog').textContent = '';
+  document.getElementById('notificationLog').textContent = UI[currentLang].notificationEmpty;
   renderJeRoleBadge(null);
   renderAuthState(null);
   renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
@@ -2410,6 +2489,147 @@ async function loadAdminRoleAudit(recordId){
   renderAdminRoleAudit(data || []);
 }
 
+function uniqueEmails(values){
+  const seen = new Set();
+  return values
+    .flatMap(value => String(value || '').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [])
+    .map(email => email.trim().toLowerCase())
+    .filter(email => {
+      if (seen.has(email)) return false;
+      seen.add(email);
+      return true;
+    });
+}
+
+async function getRecipientsByRoles(client, roles){
+  if (!roles.length) return [];
+  const { data, error } = await client.rpc('get_je_notification_recipients', { role_names: roles });
+  if (error) throw error;
+  return uniqueEmails((data || []).map(row => row.email));
+}
+
+function buildNotificationContent(fromStatus, toStatus, toEmails, ccEmails){
+  const jobTitle = document.getElementById('jobTitle').value || 'Untitled Job';
+  const department = document.getElementById('dept').value || '-';
+  const actor = currentActor() || jeDbSession?.user?.email || '-';
+  const comment = document.getElementById('transitionComment').value || '-';
+  const level = workflowState.finalApprovedLevel || window.JE_SCORE_GRADE_MODEL.calculate(state).level;
+  const url = getAuthRedirectUrl();
+  const subject = `[JE] ${workflowState.evaluationId} ${jobTitle} - ${toStatus}`;
+  const body = [
+    `Action required: ${toStatus}`,
+    `Evaluation ID: ${workflowState.evaluationId}`,
+    `Version: v${workflowState.versionNumber}`,
+    `Job Title: ${jobTitle}`,
+    `Department: ${department}`,
+    `Status: ${fromStatus} -> ${toStatus}`,
+    `Recommended/Approved Level: ${level}`,
+    `Changed by: ${actor}`,
+    `Comment: ${comment}`,
+    `Open system: ${url}`,
+    '',
+    `To: ${toEmails.join(', ') || '-'}`,
+    `CC: ${ccEmails.join(', ') || '-'}`,
+  ].join('\n');
+  return { subject, body };
+}
+
+async function queueWorkflowNotification(client, evaluationRecordId, fromStatus, toStatus){
+  const rule = NOTIFICATION_RULES[`${fromStatus}>${toStatus}`];
+  if (!rule || !evaluationRecordId) return null;
+  try {
+    const toByRole = await getRecipientsByRoles(client, rule.toRoles || []);
+    const ccByRole = await getRecipientsByRoles(client, rule.ccRoles || []);
+    const namedEmails = uniqueEmails([
+      document.getElementById('evaluator').value,
+      document.getElementById('workflowActor').value,
+      document.getElementById('approvedBy').value,
+      document.getElementById('committeeReviewers').value,
+    ]);
+    const toEmails = uniqueEmails(toByRole.concat(rule.toRoles?.includes('HR_Analyst') ? namedEmails : []));
+    const ccEmails = uniqueEmails(ccByRole.concat(namedEmails)).filter(email => !toEmails.includes(email));
+    if (!toEmails.length && !ccEmails.length) {
+      renderNotificationStatus(UI[currentLang].notificationSkipped, 'warn');
+      return null;
+    }
+    const content = buildNotificationContent(fromStatus, toStatus, toEmails, ccEmails);
+    const { data, error } = await client.from('je_notification_logs').insert({
+      evaluation_record_id: evaluationRecordId,
+      evaluation_id: workflowState.evaluationId,
+      version_number: workflowState.versionNumber,
+      from_status: fromStatus,
+      to_status: toStatus,
+      to_emails: toEmails,
+      cc_emails: ccEmails,
+      subject: content.subject,
+      body: content.body,
+      delivery_status: 'Queued',
+      provider: 'pending-edge-function',
+      metadata: {
+        to_roles: rule.toRoles || [],
+        cc_roles: rule.ccRoles || [],
+        action: rule.action,
+        app_url: getAuthRedirectUrl(),
+      },
+    }).select('*').single();
+    if (error) throw error;
+    renderNotificationStatus(
+      UI[currentLang].notificationQueued
+        .replaceAll('{toCount}', String(toEmails.length))
+        .replaceAll('{ccCount}', String(ccEmails.length)),
+      'ok'
+    );
+    await loadNotificationLogs(evaluationRecordId);
+    return data;
+  } catch (error) {
+    renderNotificationStatus(error.message || UI[currentLang].notificationLoadError, 'error');
+    return null;
+  }
+}
+
+function renderNotificationStatus(message, kind = 'warn'){
+  const el = document.getElementById('notificationStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `history-status ${kind}`;
+}
+
+function renderNotificationLogs(rows = notificationLogRows){
+  const log = document.getElementById('notificationLog');
+  if (!log) return;
+  if (!rows.length) {
+    log.textContent = UI[currentLang].notificationEmpty;
+    return;
+  }
+  log.innerHTML = rows.map(row => `
+    <div class="notification-row">
+      <strong>${escapeHtml(row.subject || '-')}</strong>
+      <div>${escapeHtml(row.triggered_at ? new Date(row.triggered_at).toLocaleString() : '-')} · ${escapeHtml(row.triggered_by || '-')} · ${escapeHtml(row.delivery_status || '-')}</div>
+      <div>${escapeHtml(row.from_status || 'New')} → ${escapeHtml(row.to_status || '-')}</div>
+      <div class="email-list">${escapeHtml(UI[currentLang].notificationTo)}: ${(row.to_emails || []).map(email => `<span>${escapeHtml(email)}</span>`).join('') || '-'}</div>
+      <div class="email-list">${escapeHtml(UI[currentLang].notificationCc)}: ${(row.cc_emails || []).map(email => `<span>${escapeHtml(email)}</span>`).join('') || '-'}</div>
+    </div>
+  `).join('');
+}
+
+async function loadNotificationLogs(recordId = workflowState.id){
+  const client = getJeDbClient();
+  const session = await refreshPersistentHistorySession();
+  if (!client || !session || !recordId) return [];
+  const { data, error } = await client
+    .from('je_notification_logs')
+    .select('*')
+    .eq('evaluation_record_id', recordId)
+    .order('triggered_at', { ascending: false });
+  if (error) {
+    renderNotificationStatus(error.message || UI[currentLang].notificationLoadError, 'error');
+    return [];
+  }
+  notificationLogRows = data || [];
+  renderNotificationLogs(notificationLogRows);
+  return notificationLogRows;
+}
+
 function dbRowFromSnapshot(snapshot){
   const metadata = snapshot.approval_metadata || {};
   return {
@@ -2487,6 +2707,7 @@ async function saveEvaluationToDatabase(options = {}){
       'ok'
     );
     await loadPermanentHistory();
+    await loadNotificationLogs(result.data.id);
   }
   return { ok: true, data: result.data, existing: Boolean(existing.data) };
 }
@@ -2668,6 +2889,7 @@ async function openPermanentRecord(recordId){
     return;
   }
   const logs = await loadPermanentAudit(recordId);
+  await loadNotificationLogs(recordId);
   applyEvaluationData({
     ...data,
     approval_metadata: {
@@ -2899,6 +3121,7 @@ function applyStaticText(){
   document.getElementById('lJobEvidence').textContent = ui.jobEvidence;
   document.getElementById('jobEvidence').placeholder = ui.jobEvidencePh;
   document.getElementById('mWorkflow').textContent = ui.workflow;
+  document.getElementById('mNotificationLog').textContent = ui.notificationLog;
   document.getElementById('lEvaluationId').textContent = ui.evaluationId;
   document.getElementById('lVersionNumber').textContent = ui.versionNumber;
   document.getElementById('lWorkflowActor').textContent = ui.workflowActor;
@@ -2970,6 +3193,7 @@ function setLang(lang){
   renderJeRoleBadge(jeDbSession);
   renderPersistentHistory();
   renderAdminUserList();
+  renderNotificationLogs();
   switchSection(activeSection);
 }
 
@@ -3118,6 +3342,9 @@ function resetAll(){
   workflowState.finalApprovedLevel = '';
   workflowState.supersededVersionSnapshot = null;
   workflowState.auditTrail = [];
+  notificationLogRows = [];
+  renderNotificationLogs();
+  renderNotificationStatus(UI[currentLang].notificationEmpty, 'warn');
   ['workflowActor','approvedBy','decisionDate','committeeReviewers','committeeNotes','benchmarkNotes','transitionComment'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
