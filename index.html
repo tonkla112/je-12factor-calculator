@@ -156,6 +156,17 @@
   .history-status.warn{border-color:#FDE68A; background:#FFFBEB; color:#92400E;}
   .history-status.error{border-color:#FECACA; background:#FEF2F2; color:#991B1B;}
   .history-list{margin-top:12px; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:#fff;}
+  .history-toolbar{display:grid; grid-template-columns:1.4fr .8fr .7fr auto; gap:8px; margin-top:12px;}
+  .history-toolbar input, .history-toolbar select{
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px;
+  }
+  .history-check{display:flex; align-items:center; gap:6px; color:var(--grey); font-size:12px; white-space:nowrap;}
+  .history-check input{width:auto;}
+  .history-stats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:12px;}
+  .history-stat{border:1px solid var(--border); border-radius:10px; padding:10px 12px; background:#F8FAFC;}
+  .history-stat strong{display:block; color:var(--navy); font-size:18px;}
+  .history-stat span{font-size:11.5px; color:var(--grey);}
+  .role-badge{display:inline-block; margin-top:8px; padding:4px 10px; border-radius:999px; background:var(--navy-light); color:var(--navy); font-size:11.5px; font-weight:700;}
   .history-row{
     display:grid; grid-template-columns:1.2fr .8fr .6fr .8fr auto; gap:10px; align-items:center;
     padding:10px 12px; border-bottom:1px solid var(--border); font-size:12px;
@@ -165,7 +176,10 @@
   .history-meta{color:var(--grey); font-size:11.5px; margin-top:2px;}
   .history-actions{display:flex; gap:6px;}
   .history-actions button{padding:7px 9px; font-size:11.5px; white-space:nowrap;}
-  @media (max-width: 760px){ .history-row{grid-template-columns:1fr;} .history-actions{justify-content:flex-start;} }
+  @media (max-width: 760px){
+    .history-toolbar, .history-stats, .history-row{grid-template-columns:1fr;}
+    .history-actions{justify-content:flex-start;}
+  }
   .locked-note{
     display:none; font-size:11.5px; color:#92400E; background:#FFFBEB; border:1px solid #FDE68A;
     border-radius:10px; padding:8px 10px; margin-top:8px; line-height:1.45;
@@ -283,6 +297,14 @@
       <button class="btn-secondary" id="btnHistoryLoad" onclick="loadPermanentHistory()">Load Permanent History</button>
     </div>
     <div class="history-status warn" id="persistentHistoryStatus"></div>
+    <div class="role-badge" id="historyRoleBadge"></div>
+    <div class="history-toolbar">
+      <input id="historySearch" type="search" placeholder="Search job, department, evaluation ID">
+      <select id="historyStatusFilter"></select>
+      <select id="historyLevelFilter"></select>
+      <label class="history-check"><input id="historyLatestOnly" type="checkbox" checked> Latest only</label>
+    </div>
+    <div class="history-stats" id="historyStats"></div>
     <div class="history-list" id="persistentHistoryList"></div>
     <div class="audit-log" id="persistentAuditLog"></div>
   </div>
@@ -406,6 +428,7 @@ const UI = {
     approvalNeedsLevel: 'กรุณาเลือก Final Approved Level ก่อนอนุมัติ',
     transitionNeedsActor: 'กรุณาระบุผู้ดำเนินการในช่อง Action By',
     recalibrationNeedsApproved: 'สามารถ fork เป็น Recalibrated version ได้จากสถานะ Approved เท่านั้น',
+    transitionRoleDenied: 'Role ของผู้ใช้ปัจจุบันไม่สามารถเปลี่ยนสถานะจาก {from} ไป {to} ได้',
     persistentHistory: 'ประวัติย้อนหลังถาวร',
     historyEmail: 'อีเมลผู้ใช้',
     historyPassword: 'รหัสผ่าน',
@@ -419,6 +442,18 @@ const UI = {
     historyEmpty: 'ยังไม่มีประวัติถาวรในฐานข้อมูล',
     historyOpen: 'เปิด',
     historyAudit: 'ดู Audit',
+    historySearchPh: 'ค้นหา Job, Department, Evaluation ID',
+    historyAllStatuses: 'ทุกสถานะ',
+    historyAllLevels: 'ทุก Level',
+    historyLatestOnly: 'Latest only',
+    historyCount: 'ทั้งหมด',
+    historyPending: 'รอดำเนินการ',
+    historyApprovedCount: 'Approved',
+    historyAvgScore: 'คะแนนเฉลี่ย',
+    historyAutoSaved: 'เปลี่ยนสถานะและบันทึกลงฐานข้อมูลแล้ว: {evaluationId} v{version}',
+    historyAutoSaveSkipped: 'เปลี่ยนสถานะในหน้าแล้ว แต่ยังไม่ได้บันทึกฐานข้อมูล เพราะยังไม่ได้ sign in',
+    historyRoleNone: 'ยังไม่มี JE role ใน session นี้',
+    historyRoleLabel: 'Role: {roles}',
     historyDbUnavailable: 'ไม่พบการตั้งค่า Supabase หรือโหลด Supabase client ไม่สำเร็จ',
     historyBadLogin: 'Sign in ไม่สำเร็จ: {error}',
     historyLoadError: 'ไม่สามารถโหลดประวัติจากฐานข้อมูลได้',
@@ -473,6 +508,7 @@ const UI = {
     approvalNeedsLevel: 'Select a Final Approved Level before approval.',
     transitionNeedsActor: 'Enter an Action By value before changing status.',
     recalibrationNeedsApproved: 'Only Approved records can be forked into a recalibrated version.',
+    transitionRoleDenied: 'The current user role cannot change status from {from} to {to}.',
     persistentHistory: 'Permanent Evaluation History',
     historyEmail: 'User Email',
     historyPassword: 'Password',
@@ -486,6 +522,18 @@ const UI = {
     historyEmpty: 'No permanent history records found.',
     historyOpen: 'Open',
     historyAudit: 'View Audit',
+    historySearchPh: 'Search job, department, evaluation ID',
+    historyAllStatuses: 'All statuses',
+    historyAllLevels: 'All levels',
+    historyLatestOnly: 'Latest only',
+    historyCount: 'Records',
+    historyPending: 'Pending',
+    historyApprovedCount: 'Approved',
+    historyAvgScore: 'Avg score',
+    historyAutoSaved: 'Status changed and saved to database: {evaluationId} v{version}',
+    historyAutoSaveSkipped: 'Status changed on screen, but database save was skipped because you are not signed in.',
+    historyRoleNone: 'No JE role found in this session.',
+    historyRoleLabel: 'Role: {roles}',
     historyDbUnavailable: 'Supabase configuration is missing or the Supabase client could not be loaded.',
     historyBadLogin: 'Sign in failed: {error}',
     historyLoadError: 'Could not load permanent history from the database.',
@@ -540,6 +588,7 @@ const UI = {
     approvalNeedsLevel: '批准前请选择最终批准职级。',
     transitionNeedsActor: '变更状态前请填写操作人。',
     recalibrationNeedsApproved: '只有已批准记录才能创建重新校准版本。',
+    transitionRoleDenied: '当前用户角色不能从 {from} 变更为 {to}。',
     persistentHistory: '永久评估历史',
     historyEmail: '用户邮箱',
     historyPassword: '密码',
@@ -553,6 +602,18 @@ const UI = {
     historyEmpty: '数据库中暂无永久历史记录。',
     historyOpen: '打开',
     historyAudit: '查看审计',
+    historySearchPh: '搜索职位、部门、评估编号',
+    historyAllStatuses: '所有状态',
+    historyAllLevels: '所有职级',
+    historyLatestOnly: '仅最新版本',
+    historyCount: '记录数',
+    historyPending: '待处理',
+    historyApprovedCount: '已批准',
+    historyAvgScore: '平均分',
+    historyAutoSaved: '状态已变更并保存到数据库：{evaluationId} v{version}',
+    historyAutoSaveSkipped: '状态已在页面变更，但尚未登录，因此未保存到数据库。',
+    historyRoleNone: '当前会话未找到 JE role。',
+    historyRoleLabel: '角色：{roles}',
     historyDbUnavailable: '缺少 Supabase 配置或无法加载 Supabase client。',
     historyBadLogin: '登录失败：{error}',
     historyLoadError: '无法从数据库加载永久历史。',
@@ -623,6 +684,16 @@ const ALLOWED_TRANSITIONS = {
 };
 const EDITABLE_STATUSES = ['Draft', 'Rejected'];
 const LEVEL_CODES = ['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8'];
+const TRANSITION_ROLES = {
+  'Draft>Submitted': 'HR_Analyst',
+  'Rejected>Draft': 'HR_Analyst',
+  'Rejected>Submitted': 'HR_Analyst',
+  'Submitted>Committee Reviewed': 'JE_Committee_Member',
+  'Submitted>Rejected': 'JE_Committee_Member',
+  'Committee Reviewed>Approved': 'HR_Head',
+  'Committee Reviewed>Rejected': 'HR_Head',
+  'Approved>Recalibrated': 'HR_Head',
+};
 
 /* ============================================================
    FACTORS — name / key question / 4 score-band anchors, per language
@@ -1133,6 +1204,7 @@ const workflowState = {
 let jeDbClient = null;
 let jeDbSession = null;
 let persistentHistoryRows = [];
+let currentPersistentAuditRecordId = null;
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -1237,7 +1309,7 @@ function renderWorkflowFields(){
   applyEditLock();
 }
 
-function applyStatusTransition(){
+async function applyStatusTransition(){
   const fromStatus = workflowState.currentStatus;
   const toStatus = document.getElementById('evalStatus').value;
   if (fromStatus === toStatus) return;
@@ -1265,6 +1337,20 @@ function applyStatusTransition(){
     document.getElementById('evalStatus').value = fromStatus;
     return;
   }
+  const dbSession = await getCurrentDbSessionSilently();
+  if (dbSession && !canSessionTransition(dbSession, fromStatus, toStatus)) {
+    alert(UI[currentLang].transitionRoleDenied.replaceAll('{from}', fromStatus).replaceAll('{to}', toStatus));
+    document.getElementById('evalStatus').value = fromStatus;
+    return;
+  }
+  if (dbSession && fromStatus === 'Draft') {
+    const draftSave = await saveEvaluationToDatabase({ quiet: true, forceStatus: 'Draft' });
+    if (!draftSave.ok) {
+      document.getElementById('evalStatus').value = fromStatus;
+      renderPersistentHistoryStatus(draftSave.error || UI[currentLang].historyLoadError, 'error');
+      return;
+    }
+  }
   if (toStatus === 'Submitted') {
     workflowState.submittedBy = actor;
     workflowState.submittedAt = new Date().toISOString();
@@ -1280,16 +1366,30 @@ function applyStatusTransition(){
   setCurrentStatus(toStatus);
   addAuditLog(fromStatus, toStatus, document.getElementById('transitionComment').value, metadata);
   renderWorkflowFields();
+  if (dbSession) {
+    const saved = await saveEvaluationToDatabase({ quiet: true });
+    if (saved.ok) {
+      renderPersistentHistoryStatus(
+        UI[currentLang].historyAutoSaved.replaceAll('{evaluationId}', saved.data.evaluation_id).replaceAll('{version}', saved.data.version_number),
+        'ok'
+      );
+      await loadPermanentHistory();
+    } else {
+      renderPersistentHistoryStatus(saved.error || UI[currentLang].historyLoadError, 'error');
+    }
+  } else {
+    renderPersistentHistoryStatus(UI[currentLang].historyAutoSaveSkipped, 'warn');
+  }
 }
 
-function forkRecalibratedVersion(){
+async function forkRecalibratedVersion(){
   if (workflowState.currentStatus !== 'Approved') {
     alert(UI[currentLang].recalibrationNeedsApproved);
     return;
   }
   const oldVersion = workflowState.versionNumber;
   document.getElementById('evalStatus').value = 'Recalibrated';
-  applyStatusTransition();
+  await applyStatusTransition();
   if (workflowState.currentStatus !== 'Recalibrated') return;
   const oldSnapshot = buildEvaluationSnapshot();
   workflowState.supersededVersionSnapshot = oldSnapshot;
@@ -1331,6 +1431,44 @@ function renderPersistentHistoryStatus(message, kind = 'warn'){
   el.className = `history-status ${kind}`;
 }
 
+function getJeRolesFromSession(session){
+  const metadata = session?.user?.app_metadata || {};
+  const roles = [];
+  if (metadata.role) roles.push(metadata.role);
+  if (metadata.je_role) roles.push(metadata.je_role);
+  if (Array.isArray(metadata.je_roles)) roles.push(...metadata.je_roles);
+  return [...new Set(roles.filter(Boolean))];
+}
+
+function canSessionTransition(session, fromStatus, toStatus){
+  const requiredRole = TRANSITION_ROLES[`${fromStatus}>${toStatus}`];
+  if (!requiredRole) return false;
+  return getJeRolesFromSession(session).includes(requiredRole);
+}
+
+function renderJeRoleBadge(session){
+  const badge = document.getElementById('historyRoleBadge');
+  if (!badge) return;
+  const roles = getJeRolesFromSession(session);
+  badge.textContent = roles.length
+    ? UI[currentLang].historyRoleLabel.replaceAll('{roles}', roles.join(', '))
+    : UI[currentLang].historyRoleNone;
+}
+
+async function getCurrentDbSessionSilently(){
+  const client = getJeDbClient();
+  if (!client) return null;
+  const { data, error } = await client.auth.getSession();
+  if (error || !data.session) {
+    jeDbSession = null;
+    renderJeRoleBadge(null);
+    return null;
+  }
+  jeDbSession = data.session;
+  renderJeRoleBadge(data.session);
+  return data.session;
+}
+
 async function refreshPersistentHistorySession(){
   const client = getJeDbClient();
   if (!client) {
@@ -1340,10 +1478,12 @@ async function refreshPersistentHistorySession(){
   const { data, error } = await client.auth.getSession();
   if (error || !data.session) {
     jeDbSession = null;
+    renderJeRoleBadge(null);
     renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
     return null;
   }
   jeDbSession = data.session;
+  renderJeRoleBadge(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || data.session.user.id), 'ok');
   return data.session;
 }
@@ -1364,6 +1504,7 @@ async function signInPersistentHistory(){
   }
   document.getElementById('historyPassword').value = '';
   jeDbSession = data.session;
+  renderJeRoleBadge(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || email), 'ok');
   await loadPermanentHistory();
 }
@@ -1374,8 +1515,10 @@ async function signOutPersistentHistory(){
   await client.auth.signOut();
   jeDbSession = null;
   persistentHistoryRows = [];
+  currentPersistentAuditRecordId = null;
   document.getElementById('persistentHistoryList').innerHTML = '';
   document.getElementById('persistentAuditLog').textContent = '';
+  renderJeRoleBadge(null);
   renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
 }
 
@@ -1409,21 +1552,22 @@ function dbRowFromSnapshot(snapshot){
   };
 }
 
-async function saveEvaluationToDatabase(){
+async function saveEvaluationToDatabase(options = {}){
   const client = getJeDbClient();
   if (!client) {
     renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
-    return;
+    return { ok: false, error: UI[currentLang].historyDbUnavailable };
   }
   const session = await refreshPersistentHistorySession();
-  if (!session) return;
+  if (!session) return { ok: false, error: UI[currentLang].historyDisconnected };
   const missing = missingRationales();
   if (missing.length) {
     alert(UI[currentLang].exportBlocked);
     renderSummary();
-    return;
+    return { ok: false, error: UI[currentLang].exportBlocked };
   }
   const snapshot = buildEvaluationSnapshot();
+  if (options.forceStatus) snapshot.current_status = options.forceStatus;
   const row = dbRowFromSnapshot(snapshot);
   const existing = await client
     .from('job_evaluations')
@@ -1432,27 +1576,69 @@ async function saveEvaluationToDatabase(){
     .eq('version_number', row.version_number)
     .maybeSingle();
   if (existing.error) {
-    renderPersistentHistoryStatus(existing.error.message || UI[currentLang].historyLoadError, 'error');
-    return;
+    const error = existing.error.message || UI[currentLang].historyLoadError;
+    if (!options.quiet) renderPersistentHistoryStatus(error, 'error');
+    return { ok: false, error };
   }
   if (!existing.data && row.current_status !== 'Draft') {
-    renderPersistentHistoryStatus(UI[currentLang].historySaveNeedsDraft, 'error');
-    return;
+    if (!options.quiet) renderPersistentHistoryStatus(UI[currentLang].historySaveNeedsDraft, 'error');
+    return { ok: false, error: UI[currentLang].historySaveNeedsDraft };
   }
   const result = existing.data
     ? await client.from('job_evaluations').update(row).eq('id', existing.data.id).select('id,evaluation_id,version_number').single()
     : await client.from('job_evaluations').insert(row).select('id,evaluation_id,version_number').single();
   if (result.error) {
-    renderPersistentHistoryStatus(result.error.message, 'error');
-    return;
+    if (!options.quiet) renderPersistentHistoryStatus(result.error.message, 'error');
+    return { ok: false, error: result.error.message };
   }
   workflowState.id = result.data.id;
   renderWorkflowFields();
-  renderPersistentHistoryStatus(
-    UI[currentLang].historySaved.replaceAll('{evaluationId}', result.data.evaluation_id).replaceAll('{version}', result.data.version_number),
-    'ok'
-  );
-  await loadPermanentHistory();
+  if (!options.quiet) {
+    renderPersistentHistoryStatus(
+      UI[currentLang].historySaved.replaceAll('{evaluationId}', result.data.evaluation_id).replaceAll('{version}', result.data.version_number),
+      'ok'
+    );
+    await loadPermanentHistory();
+  }
+  return { ok: true, data: result.data, existing: Boolean(existing.data) };
+}
+
+function getFilteredHistoryRows(){
+  const search = (document.getElementById('historySearch')?.value || '').trim().toLowerCase();
+  const status = document.getElementById('historyStatusFilter')?.value || '';
+  const level = document.getElementById('historyLevelFilter')?.value || '';
+  const latestOnly = document.getElementById('historyLatestOnly')?.checked ?? true;
+  return persistentHistoryRows.filter(row => {
+    const haystack = [row.job_title, row.department, row.evaluation_id, row.created_by, row.current_status]
+      .map(v => String(v || '').toLowerCase())
+      .join(' ');
+    const rowLevel = row.final_approved_level || row.recommended_level || '';
+    return (!search || haystack.includes(search))
+      && (!status || row.current_status === status)
+      && (!level || rowLevel === level)
+      && (!latestOnly || row.is_latest_version !== false);
+  });
+}
+
+function renderHistoryStats(rows){
+  const stats = document.getElementById('historyStats');
+  if (!stats) return;
+  const pending = rows.filter(row => !['Approved', 'Rejected', 'Recalibrated'].includes(row.current_status)).length;
+  const approved = rows.filter(row => row.current_status === 'Approved').length;
+  const scores = rows.map(row => Number(row.total_score)).filter(Number.isFinite);
+  const avg = scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0;
+  stats.innerHTML = [
+    [UI[currentLang].historyCount, rows.length],
+    [UI[currentLang].historyPending, pending],
+    [UI[currentLang].historyApprovedCount, approved],
+    [UI[currentLang].historyAvgScore, avg || '-'],
+  ].map(([label, value]) => `<div class="history-stat"><strong>${escapeHtml(String(value))}</strong><span>${escapeHtml(label)}</span></div>`).join('');
+}
+
+function renderPersistentHistory(){
+  const rows = getFilteredHistoryRows();
+  renderHistoryStats(rows);
+  renderPersistentHistoryList(rows);
 }
 
 function renderPersistentHistoryList(rows){
@@ -1466,7 +1652,7 @@ function renderPersistentHistoryList(rows){
     <div class="history-row">
       <div>
         <div class="history-title">${escapeHtml(row.job_title || '-')}</div>
-        <div class="history-meta">${escapeHtml(row.evaluation_id)} · v${escapeHtml(String(row.version_number))} · ${escapeHtml(row.department || '-')}</div>
+        <div class="history-meta">${escapeHtml(row.evaluation_id)} · v${escapeHtml(String(row.version_number))}${row.is_latest_version === false ? ' · archived' : ''} · ${escapeHtml(row.department || '-')}</div>
       </div>
       <div>${escapeHtml(row.current_status || '-')}</div>
       <div>${escapeHtml(row.final_approved_level || row.recommended_level || '-')}</div>
@@ -1503,7 +1689,7 @@ async function loadPermanentHistory(){
     return;
   }
   persistentHistoryRows = data || [];
-  renderPersistentHistoryList(persistentHistoryRows);
+  renderPersistentHistory();
 }
 
 function renderPersistentAudit(logs){
@@ -1747,6 +1933,8 @@ function applyStaticText(){
   const ui = UI[currentLang];
   const statusSelect = document.getElementById('evalStatus');
   const currentStatus = statusSelect.value || 'Draft';
+  const currentHistoryStatus = document.getElementById('historyStatusFilter')?.value || '';
+  const currentHistoryLevel = document.getElementById('historyLevelFilter')?.value || '';
   document.getElementById('pageTitle').textContent = ui.pageTitle;
   document.title = ui.pageTitle;
   document.getElementById('hTitle').textContent = ui.hTitle;
@@ -1783,6 +1971,16 @@ function applyStaticText(){
   document.getElementById('btnHistorySignOut').textContent = ui.historySignOut;
   document.getElementById('btnHistorySave').textContent = ui.historySave;
   document.getElementById('btnHistoryLoad').textContent = ui.historyLoad;
+  document.getElementById('historySearch').placeholder = ui.historySearchPh;
+  document.getElementById('historyStatusFilter').innerHTML = [`<option value="">${ui.historyAllStatuses}</option>`]
+    .concat(WORKFLOW_STATUS_ORDER.map(status => `<option value="${status}">${WORKFLOW_STATUS_LABELS[status][currentLang]}</option>`))
+    .join('');
+  document.getElementById('historyLevelFilter').innerHTML = [`<option value="">${ui.historyAllLevels}</option>`]
+    .concat(LEVEL_CODES.map(level => `<option value="${level}">${level}</option>`))
+    .join('');
+  document.getElementById('historyStatusFilter').value = currentHistoryStatus;
+  document.getElementById('historyLevelFilter').value = currentHistoryLevel;
+  document.querySelector('.history-check').lastChild.textContent = ` ${ui.historyLatestOnly}`;
   document.getElementById('mSummary').textContent = ui.summary;
   document.getElementById('lTotal').textContent = ui.total;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
@@ -1806,7 +2004,8 @@ function setLang(lang){
   populateRefFilters();
   renderRefTable();
   renderWorkflowFields();
-  renderPersistentHistoryList(persistentHistoryRows);
+  renderJeRoleBadge(jeDbSession);
+  renderPersistentHistory();
 }
 
 document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn => {
@@ -1818,6 +2017,9 @@ document.getElementById('jobTitle').addEventListener('input', handleJobTitleInpu
 document.getElementById('refSearch').addEventListener('input', renderRefTable);
 document.getElementById('refDeptFilter').addEventListener('change', renderRefTable);
 document.getElementById('refLevelFilter').addEventListener('change', renderRefTable);
+['historySearch','historyStatusFilter','historyLevelFilter','historyLatestOnly'].forEach(id => {
+  document.getElementById(id).addEventListener(id === 'historySearch' ? 'input' : 'change', renderPersistentHistory);
+});
 
 setLang('th');
 renderWorkflowFields();
