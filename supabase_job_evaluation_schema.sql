@@ -1,7 +1,8 @@
 -- Job Evaluation approval workflow schema for Supabase/PostgreSQL.
 -- Target roles in JWT app_metadata.role: HR_Analyst, JE_Committee_Member, HR_Head.
 -- Assign the role in Supabase Auth user app_metadata, for example:
--- {"role":"HR_Analyst"} or {"je_role":"JE_Committee_Member"}.
+-- {"role":"HR_Analyst"}, {"je_role":"JE_Committee_Member"}, or
+-- {"je_roles":["HR_Analyst","JE_Committee_Member","HR_Head"]}.
 
 create extension if not exists pgcrypto;
 
@@ -28,6 +29,26 @@ as $$
     nullif(auth.jwt() -> 'app_metadata' ->> 'role', ''),
     nullif(auth.jwt() -> 'app_metadata' ->> 'je_role', '')
   );
+$$;
+
+create or replace function public.has_je_role(required_role text)
+returns boolean
+language sql
+stable
+as $$
+  with claims as (
+    select coalesce(auth.jwt() -> 'app_metadata', '{}'::jsonb) as metadata
+  )
+  select coalesce(
+    (metadata ->> 'role') = required_role
+    or (metadata ->> 'je_role') = required_role
+    or (case when jsonb_typeof(metadata -> 'je_roles') = 'array'
+        then (metadata -> 'je_roles') ? required_role
+        else false
+      end),
+    false
+  )
+  from claims;
 $$;
 
 create table if not exists public.job_evaluations (
@@ -189,14 +210,18 @@ drop policy if exists "JE users can read evaluations" on public.job_evaluations;
 create policy "JE users can read evaluations"
 on public.job_evaluations for select
 to authenticated
-using (public.current_app_role() in ('HR_Analyst', 'JE_Committee_Member', 'HR_Head'));
+using (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
 
 drop policy if exists "HR analysts create draft evaluations" on public.job_evaluations;
 create policy "HR analysts create draft evaluations"
 on public.job_evaluations for insert
 to authenticated
 with check (
-  public.current_app_role() = 'HR_Analyst'
+  public.has_je_role('HR_Analyst')
   and current_status = 'Draft'
 );
 
@@ -205,11 +230,11 @@ create policy "HR analysts edit draft rejected submitted data"
 on public.job_evaluations for update
 to authenticated
 using (
-  public.current_app_role() = 'HR_Analyst'
+  public.has_je_role('HR_Analyst')
   and current_status in ('Draft', 'Rejected')
 )
 with check (
-  public.current_app_role() = 'HR_Analyst'
+  public.has_je_role('HR_Analyst')
   and current_status in ('Draft', 'Submitted')
 );
 
@@ -218,11 +243,11 @@ create policy "Committee reviews submitted evaluations"
 on public.job_evaluations for update
 to authenticated
 using (
-  public.current_app_role() = 'JE_Committee_Member'
+  public.has_je_role('JE_Committee_Member')
   and current_status = 'Submitted'
 )
 with check (
-  public.current_app_role() = 'JE_Committee_Member'
+  public.has_je_role('JE_Committee_Member')
   and current_status in ('Committee Reviewed', 'Rejected')
 );
 
@@ -231,11 +256,11 @@ create policy "HR head approves committee reviewed evaluations"
 on public.job_evaluations for update
 to authenticated
 using (
-  public.current_app_role() = 'HR_Head'
+  public.has_je_role('HR_Head')
   and current_status in ('Committee Reviewed', 'Approved')
 )
 with check (
-  public.current_app_role() = 'HR_Head'
+  public.has_je_role('HR_Head')
   and current_status in ('Approved', 'Rejected', 'Recalibrated')
 );
 
@@ -243,13 +268,21 @@ drop policy if exists "JE users can read audit logs" on public.job_evaluation_au
 create policy "JE users can read audit logs"
 on public.job_evaluation_audit_logs for select
 to authenticated
-using (public.current_app_role() in ('HR_Analyst', 'JE_Committee_Member', 'HR_Head'));
+using (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
 
 drop policy if exists "System inserts audit logs through triggers" on public.job_evaluation_audit_logs;
 create policy "System inserts audit logs through triggers"
 on public.job_evaluation_audit_logs for insert
 to authenticated
-with check (public.current_app_role() in ('HR_Analyst', 'JE_Committee_Member', 'HR_Head'));
+with check (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
 
 grant usage on schema public to authenticated;
 grant select, insert, update on public.job_evaluations to authenticated;

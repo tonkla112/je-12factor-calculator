@@ -420,7 +420,7 @@ const UI = {
     historyOpen: 'เปิด',
     historyAudit: 'ดู Audit',
     historyDbUnavailable: 'ไม่พบการตั้งค่า Supabase หรือโหลด Supabase client ไม่สำเร็จ',
-    historyBadLogin: 'Sign in ไม่สำเร็จ กรุณาตรวจสอบอีเมล/รหัสผ่าน หรือสิทธิ์ผู้ใช้',
+    historyBadLogin: 'Sign in ไม่สำเร็จ: {error}',
     historyLoadError: 'ไม่สามารถโหลดประวัติจากฐานข้อมูลได้',
     historySaveNeedsDraft: 'ต้องบันทึก record ครั้งแรกเป็น Draft ก่อน แล้วจึงเปลี่ยนสถานะตาม workflow เพื่อให้ audit trail ถูกต้อง',
     historyLoaded: 'เปิด record จากฐานข้อมูลแล้ว: {evaluationId} v{version}',
@@ -487,7 +487,7 @@ const UI = {
     historyOpen: 'Open',
     historyAudit: 'View Audit',
     historyDbUnavailable: 'Supabase configuration is missing or the Supabase client could not be loaded.',
-    historyBadLogin: 'Sign in failed. Check the email/password and assigned user role.',
+    historyBadLogin: 'Sign in failed: {error}',
     historyLoadError: 'Could not load permanent history from the database.',
     historySaveNeedsDraft: 'Save the first database record as Draft, then move through the workflow so the audit trail stays valid.',
     historyLoaded: 'Loaded database record: {evaluationId} v{version}',
@@ -554,7 +554,7 @@ const UI = {
     historyOpen: '打开',
     historyAudit: '查看审计',
     historyDbUnavailable: '缺少 Supabase 配置或无法加载 Supabase client。',
-    historyBadLogin: '登录失败。请检查邮箱/密码和用户角色。',
+    historyBadLogin: '登录失败：{error}',
     historyLoadError: '无法从数据库加载永久历史。',
     historySaveNeedsDraft: '第一次保存数据库记录必须是 Draft，然后按流程变更状态以保持审计记录正确。',
     historyLoaded: '已打开数据库记录：{evaluationId} v{version}',
@@ -1320,6 +1320,7 @@ function getJeDbClient(){
   jeDbClient = window.supabase.createClient(window.JE_SUPABASE_URL, window.JE_SUPABASE_ANON_KEY, {
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
   });
+  window.jeDbClient = jeDbClient;
   return jeDbClient;
 }
 
@@ -1357,7 +1358,8 @@ async function signInPersistentHistory(){
   const password = document.getElementById('historyPassword').value;
   const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error || !data.session) {
-    renderPersistentHistoryStatus(UI[currentLang].historyBadLogin, 'error');
+    const message = error ? error.message : 'No session returned';
+    renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', message), 'error');
     return;
   }
   document.getElementById('historyPassword').value = '';
