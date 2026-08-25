@@ -118,30 +118,32 @@
     line-height:1.35; max-height:34px; overflow:hidden;
   }
   .one-page-print-sheet{display:none;}
-  .print-sheet-header{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; border-bottom:2px solid var(--navy); padding-bottom:6px; margin-bottom:7px;}
-  .print-sheet-header h1{margin:0; color:var(--navy); font-size:16px; line-height:1.2;}
-  .print-sheet-header p{margin:2px 0 0; color:#475569; font-size:9.5px;}
-  .print-sheet-meta{font-size:9.5px; line-height:1.35; text-align:right; color:#334155; white-space:nowrap;}
-  .print-sheet-grid{display:grid; grid-template-columns:1.45fr .85fr; gap:7px; margin-bottom:7px;}
-  .print-sheet-box{border:1px solid #CBD5E1; border-radius:4px; padding:6px 7px; break-inside:avoid; page-break-inside:avoid;}
-  .print-sheet-box h2{margin:0 0 5px; color:var(--navy); font-size:11px;}
-  .print-sheet-table{width:100%; border-collapse:collapse; font-size:9.2px; line-height:1.22;}
-  .print-sheet-table th, .print-sheet-table td{border:1px solid #CBD5E1; padding:3px 4px; vertical-align:top;}
+  .print-sheet-header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; border-bottom:2px solid var(--navy); padding-bottom:8px; margin-bottom:9px;}
+  .print-sheet-header h1{margin:0; color:var(--navy); font-size:18px; line-height:1.2;}
+  .print-sheet-header p{margin:3px 0 0; color:#475569; font-size:10.5px;}
+  .print-sheet-meta{font-size:10.5px; line-height:1.45; text-align:right; color:#334155; white-space:nowrap;}
+  .print-sheet-grid{display:grid; grid-template-columns:1.45fr .85fr; gap:9px; margin-bottom:9px;}
+  .print-sheet-box{border:1px solid #CBD5E1; border-radius:4px; padding:8px 9px; break-inside:avoid; page-break-inside:avoid;}
+  .print-sheet-box h2{margin:0 0 6px; color:var(--navy); font-size:12px;}
+  .print-sheet-table{width:100%; border-collapse:collapse; font-size:10px; line-height:1.28;}
+  .print-sheet-table th, .print-sheet-table td{border:1px solid #CBD5E1; padding:4px 5px; vertical-align:top;}
   .print-sheet-table th{background:#F1F5F9; color:#334155; text-align:left; font-weight:800;}
-  .print-sheet-kpi{display:grid; grid-template-columns:1fr 1fr; gap:5px;}
-  .print-sheet-kpi div{border:1px solid #CBD5E1; border-radius:4px; padding:5px; text-align:center;}
-  .print-sheet-kpi strong{display:block; color:var(--navy); font-size:18px; line-height:1;}
-  .print-sheet-kpi span{display:block; color:#64748B; font-size:8.5px; margin-top:2px;}
-  .print-sheet-note{font-size:8.6px; color:#334155; line-height:1.25; margin-top:5px;}
-  .print-sheet-factor-table{font-size:8.4px; line-height:1.18;}
-  .print-sheet-factor-table th, .print-sheet-factor-table td{padding:2.5px 3.5px;}
+  .print-sheet-kpi{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+  .print-sheet-kpi div{border:1px solid #CBD5E1; border-radius:4px; padding:8px 5px; text-align:center;}
+  .print-sheet-kpi strong{display:block; color:var(--navy); font-size:24px; line-height:1;}
+  .print-sheet-kpi span{display:block; color:#64748B; font-size:9px; margin-top:3px;}
+  .print-sheet-note{font-size:9.2px; color:#334155; line-height:1.35; margin-top:7px;}
+  .print-sheet-factor-box{flex:1;}
+  .print-sheet-factor-table{font-size:9.4px; line-height:1.25;}
+  .print-sheet-factor-table th, .print-sheet-factor-table td{padding:4px 5px;}
   .print-sheet-factor-table .num{width:18px; text-align:center;}
   .print-sheet-factor-table .score{width:34px; text-align:center; font-weight:800; color:var(--navy);}
-  .print-sheet-sign-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
-  .print-sheet-sign{border:1px solid #CBD5E1; border-radius:4px; padding:6px; min-height:58px;}
-  .print-sheet-sign strong{display:block; font-size:9px; color:var(--navy);}
-  .print-sheet-line{border-bottom:1px solid #94A3B8; height:22px; margin:5px 0 3px;}
-  .print-sheet-caption{font-size:8px; color:#64748B; text-align:center;}
+  .print-sheet-sign-box{margin-top:9px;}
+  .print-sheet-sign-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .print-sheet-sign{border:1px solid #CBD5E1; border-radius:4px; padding:8px; min-height:78px;}
+  .print-sheet-sign strong{display:block; font-size:10px; color:var(--navy);}
+  .print-sheet-line{border-bottom:1px solid #94A3B8; height:36px; margin:7px 0 4px;}
+  .print-sheet-caption{font-size:8.8px; color:#64748B; text-align:center;}
   .layout{display:grid; grid-template-columns: 1fr 340px; gap:20px;}
   @media (max-width: 900px){
     .layout{grid-template-columns:1fr;} .header-row{flex-direction:column;}
@@ -348,7 +350,9 @@
     header, .auth-screen, .workspace-shell, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters, .side-nav, .section-intro{display:none !important;}
     body{background:#fff; font-size:9px;}
     .wrap{max-width:none; margin:0; padding:0;}
-    .one-page-print-sheet{display:block !important;}
+    .one-page-print-sheet{
+      display:flex !important; flex-direction:column; min-height:283mm; height:283mm;
+    }
     .print-only, .layout{display:block !important;}
     .workspace-main{display:flex !important; flex-direction:column !important;}
     .app-section{display:block !important;}
@@ -377,6 +381,10 @@
     .sign-grid{gap:8px !important;}
     .sign-box{padding:10px !important; break-inside:avoid; page-break-inside:avoid;}
     .sign-line{height:34px !important; margin-top:6px !important;}
+    .print-sheet-factor-box{display:flex; flex-direction:column;}
+    .print-sheet-factor-box table{height:100%;}
+    .print-sheet-factor-table tbody tr{height:12.2mm;}
+    .print-sheet-sign-box{margin-top:auto;}
   }
 
   /* Reference table */
@@ -740,7 +748,7 @@
         <div class="print-sheet-note" id="printSheetModelNote"></div>
       </div>
     </div>
-    <div class="print-sheet-box">
+    <div class="print-sheet-box print-sheet-factor-box">
       <h2 id="printSheetFactorTitle">12-Factor Score Summary</h2>
       <table class="print-sheet-table print-sheet-factor-table">
         <thead>
@@ -754,7 +762,7 @@
         <tbody id="printSheetFactorRows"></tbody>
       </table>
     </div>
-    <div class="print-sheet-box">
+    <div class="print-sheet-box print-sheet-sign-box">
       <h2 id="printSheetSignTitle">Approval Signatures</h2>
       <div class="print-sheet-sign-grid">
         <div class="print-sheet-sign"><strong id="printSheetEvaluatorRole">Evaluator / HR Analyst</strong><div class="print-sheet-line"></div><div class="print-sheet-caption" id="printSheetEvaluatorCaption">Name / Date</div></div>
