@@ -107,16 +107,6 @@
   .section-chip{display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:5px 10px; font-size:11.5px; color:var(--navy); background:var(--navy-light); font-weight:800; white-space:nowrap;}
   .section-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
   .section-print-btn{padding:8px 12px; white-space:nowrap;}
-  .print-only{display:none;}
-  .print-factor-summary table{width:100%; border-collapse:collapse; font-size:11px;}
-  .print-factor-summary th{
-    background:var(--navy-light); color:var(--navy); padding:5px 6px; text-align:left; border:1px solid var(--border);
-  }
-  .print-factor-summary td{padding:5px 6px; border:1px solid var(--border); vertical-align:top;}
-  .print-factor-summary .score-cell{font-weight:800; text-align:center; white-space:nowrap; color:var(--navy);}
-  .print-factor-summary .rationale-cell{
-    line-height:1.35; max-height:34px; overflow:hidden;
-  }
   .one-page-print-sheet{display:none;}
   .print-sheet-header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; border-bottom:2px solid var(--navy); padding-bottom:8px; margin-bottom:9px;}
   .print-sheet-header h1{margin:0; color:var(--navy); font-size:18px; line-height:1.2;}
@@ -315,6 +305,13 @@
   .notification-row strong{color:var(--navy);}
   .email-list{color:#334155; overflow-wrap:anywhere;}
   .email-list span{display:inline-block; background:#EEF2F7; border-radius:999px; padding:2px 7px; margin:2px 3px 2px 0;}
+  .detail-panel{
+    border:1px solid var(--border); border-radius:10px; background:#fff; margin-top:10px; overflow:hidden;
+  }
+  .detail-panel summary{
+    cursor:pointer; padding:10px 12px; color:var(--navy); font-weight:800; font-size:12.5px; background:#F8FAFC;
+  }
+  .detail-panel .detail-content{padding:10px 12px;}
   .history-status{
     font-size:12px; border-radius:10px; padding:9px 12px; margin-top:10px; line-height:1.45;
     border:1px solid var(--border); background:#F8FAFC; color:#334155;
@@ -323,6 +320,7 @@
   .history-status.warn{border-color:#FDE68A; background:#FFFBEB; color:#92400E;}
   .history-status.error{border-color:#FECACA; background:#FEF2F2; color:#991B1B;}
   .history-list{margin-top:12px; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:#fff;}
+  #persistentHistoryList.history-list{border:0; border-radius:0; overflow:visible; background:transparent;}
   .history-toolbar{display:grid; grid-template-columns:1.4fr .8fr .7fr auto; gap:8px; margin-top:12px;}
   .history-toolbar input, .history-toolbar select{
     width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px;
@@ -384,7 +382,7 @@
     .one-page-print-sheet{
       display:flex !important; flex-direction:column; min-height:283mm; height:283mm;
     }
-    .print-only, .layout{display:block !important;}
+    .layout{display:block !important;}
     .workspace-main{display:flex !important; flex-direction:column !important;}
     .app-section{display:block !important;}
     [data-section-panel="job"]{order:1 !important;}
@@ -574,12 +572,17 @@
       <img class="record-link-qr" id="recordQrImage" alt="Record QR">
     </div>
     <div class="locked-note" id="lockedNote"></div>
-    <div class="audit-log" id="auditLog"></div>
-    <div class="notification-log">
-      <h2 id="mNotificationLog">Email Notification Log</h2>
-      <div class="history-status warn" id="notificationStatus"></div>
-      <div class="audit-log" id="notificationLog"></div>
-    </div>
+    <details class="detail-panel">
+      <summary id="mAuditTrail">Audit Trail</summary>
+      <div class="detail-content"><div class="audit-log" id="auditLog"></div></div>
+    </details>
+    <details class="detail-panel">
+      <summary id="mNotificationLog">Email Notification Log</summary>
+      <div class="detail-content">
+        <div class="history-status warn" id="notificationStatus"></div>
+        <div class="audit-log" id="notificationLog"></div>
+      </div>
+    </details>
   </div>
   </section>
 
@@ -590,18 +593,6 @@
     </div>
   <div class="meta-card">
     <h2 id="mPersistentHistory">Permanent Evaluation History</h2>
-    <div class="workflow-grid">
-      <div><label id="lHistoryEmail">Email</label><input id="historyEmail" type="email" autocomplete="username"></div>
-      <div><label id="lHistoryPassword">Password</label><input id="historyPassword" type="password" autocomplete="current-password"></div>
-    </div>
-    <div class="btn-row">
-      <button class="btn-primary" id="btnHistorySignIn" onclick="signInPersistentHistory()">Sign In</button>
-      <button class="btn-secondary" id="btnHistorySignUp" onclick="signUpPersistentHistory()">Create Account</button>
-      <button class="btn-secondary" id="btnHistoryResendConfirm" onclick="resendSignupConfirmation()">Resend Confirm Email</button>
-      <button class="btn-secondary" id="btnHistoryResetPassword" onclick="requestPasswordReset()">Reset Password Email</button>
-      <button class="btn-secondary" id="btnHistorySetPassword" onclick="updateRecoveredPassword()">Set New Password</button>
-      <button class="btn-secondary" id="btnHistorySignOut" onclick="signOutPersistentHistory()">Sign Out</button>
-    </div>
     <div class="btn-row">
       <button class="btn-primary" id="btnHistorySave" onclick="saveEvaluationToDatabase()">Save Current Evaluation to Database</button>
       <button class="btn-secondary" id="btnHistoryLoad" onclick="loadPermanentHistory()">Load Permanent History</button>
@@ -694,20 +685,6 @@
         <div class="model-note" id="modelNote"></div>
       </div>
     </div>
-  </div>
-  <div class="meta-card print-factor-summary print-only">
-    <h2 id="printFactorTitle">สรุปคะแนน 12 ปัจจัย</h2>
-    <table>
-      <thead>
-        <tr>
-          <th id="printFactorNo">#</th>
-          <th id="printFactorName">ปัจจัย</th>
-          <th id="printFactorScore">คะแนน</th>
-          <th id="printFactorRationale">เหตุผล/หลักฐาน</th>
-        </tr>
-      </thead>
-      <tbody id="printFactorRows"></tbody>
-    </table>
   </div>
   </section>
 
@@ -852,7 +829,7 @@ const UI = {
     navJob: 'ข้อมูลงาน',
     navScore: 'ให้คะแนน',
     navWorkflow: 'Workflow',
-    navHistory: 'ประวัติ',
+    navHistory: 'Register',
     navAdmin: 'ผู้ใช้',
     navReference: 'Benchmark',
     navSignatures: 'ลงนาม',
@@ -884,6 +861,7 @@ const UI = {
     date: 'วันที่ประเมิน',
     evalStatus: 'สถานะปัจจุบัน',
     workflow: 'Approval Workflow & Audit Trail',
+    auditTrail: 'Audit Trail',
     notificationLog: 'Email Notification Log',
     notificationEmpty: 'ยังไม่มี notification log สำหรับ evaluation นี้',
     notificationQueued: 'บันทึก notification queue แล้ว: To {toCount} ราย, CC {ccCount} ราย',
@@ -903,12 +881,12 @@ const UI = {
     committeeNotes: 'Committee Consensus Notes',
     benchmarkNotes: 'Benchmark / Boundary Notes',
     transitionComment: 'Transition Comment',
-    submitToCommittee: 'Submit to Committee',
-    markCommitteeReviewed: 'Committee Reviewed',
-    approveEvaluation: 'Approve',
-    rejectEvaluation: 'Reject',
-    returnToDraft: 'Return to Draft',
-    startRecalibration: 'Start Recalibration',
+    submitToCommittee: 'ส่งให้คณะกรรมการ',
+    markCommitteeReviewed: 'คณะกรรมการตรวจแล้ว',
+    approveEvaluation: 'อนุมัติ',
+    rejectEvaluation: 'ตีกลับ',
+    returnToDraft: 'กลับเป็นร่าง',
+    startRecalibration: 'เริ่มปรับเทียบ',
     workflowActionHelp: 'กดปุ่มตามขั้นตอนเพื่อเปลี่ยนสถานะ ระบบจะบันทึก audit trail และ queue อีเมล To/CC อัตโนมัติ',
     noWorkflowAction: 'ยังไม่มี action ที่ role ปัจจุบันทำได้ในสถานะนี้',
     pendingWith: 'Pending With',
@@ -930,16 +908,13 @@ const UI = {
     recalibrationNeedsApproved: 'สามารถ fork เป็น Recalibrated version ได้จากสถานะ Approved เท่านั้น',
     transitionRoleDenied: 'Role ของผู้ใช้ปัจจุบันไม่สามารถเปลี่ยนสถานะจาก {from} ไป {to} ได้',
     persistentHistory: 'Evaluation Register',
-    historyEmail: 'อีเมลผู้ใช้',
-    historyPassword: 'รหัสผ่าน',
     historySignIn: 'Sign In',
     historySignUp: 'สร้างบัญชี',
-    historyResendConfirm: 'ส่งเมลยืนยันอีกครั้ง',
     historyResetPassword: 'ส่งลิงก์ตั้งรหัสใหม่',
     historySetPassword: 'ตั้งรหัสใหม่',
     historySignOut: 'Sign Out',
-    historySave: 'บันทึก Evaluation นี้ลงฐานข้อมูล',
-    historyLoad: 'โหลดประวัติย้อนหลังถาวร',
+    historySave: 'บันทึก Evaluation',
+    historyLoad: 'รีเฟรช Register',
     historyDisconnected: 'ยังไม่ได้ sign in กับฐานข้อมูล กรุณา sign in ก่อนบันทึกหรือดูประวัติถาวร',
     historyConnected: 'เชื่อมต่อฐานข้อมูลแล้ว: {email}',
     historySaved: 'บันทึกลงฐานข้อมูลแล้ว: {evaluationId} v{version}',
@@ -974,7 +949,6 @@ const UI = {
     historySaveNeedsDraft: 'ต้องบันทึก record ครั้งแรกเป็น Draft ก่อน แล้วจึงเปลี่ยนสถานะตาม workflow เพื่อให้ audit trail ถูกต้อง',
     historyLoaded: 'เปิด record จากฐานข้อมูลแล้ว: {evaluationId} v{version}',
     historyAuditEmpty: 'ยังไม่มี audit log ในฐานข้อมูลสำหรับ record นี้',
-    historyConfirmResent: 'ส่งเมลยืนยันอีกครั้งแล้ว กรุณากดลิงก์ใหม่จากอีเมลล่าสุด',
     historyConfirmRedirectHelp: 'ลิงก์ยืนยันจะกลับมาที่ระบบนี้: {url}',
     historyResetSent: 'ส่งลิงก์ตั้งรหัสใหม่แล้ว กรุณาเปิดอีเมลล่าสุด',
     historyRecoveryReady: 'โหมดตั้งรหัสใหม่พร้อมแล้ว ใส่รหัสใหม่ในช่อง Password แล้วกด ตั้งรหัสใหม่',
@@ -1007,11 +981,9 @@ const UI = {
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
     btnPrintForm: 'พิมพ์แบบฟอร์ม',
     btnPrint: 'พิมพ์ / PDF', btnSave: 'บันทึกผล (JSON)', btnLoad: 'โหลดผลเดิม', btnReset: 'เริ่มใหม่',
-    printFactorTitle: 'สรุปคะแนน 12 ปัจจัยสำหรับอนุมัติ',
     printFactorNo: '#',
     printFactorName: 'ปัจจัย',
     printFactorScore: 'คะแนน',
-    printFactorRationale: 'เหตุผล/หลักฐาน',
     printRationaleEmpty: '-',
     onePageTitle: 'แบบฟอร์มอนุมัติผลประเมินค่างาน',
     onePageSubtitle: 'สรุปผลประเมินค่างาน 12 ปัจจัยสำหรับลงนาม',
@@ -1070,7 +1042,7 @@ const UI = {
     navJob: 'Job Setup',
     navScore: 'Scoring',
     navWorkflow: 'Workflow',
-    navHistory: 'History',
+    navHistory: 'Register',
     navAdmin: 'Users',
     navReference: 'Benchmarks',
     navSignatures: 'Signatures',
@@ -1102,6 +1074,7 @@ const UI = {
     date: 'Evaluation Date',
     evalStatus: 'Current Status',
     workflow: 'Approval Workflow & Audit Trail',
+    auditTrail: 'Audit Trail',
     notificationLog: 'Email Notification Log',
     notificationEmpty: 'No notification log exists for this evaluation yet.',
     notificationQueued: 'Notification queued: To {toCount}, CC {ccCount}.',
@@ -1148,16 +1121,13 @@ const UI = {
     recalibrationNeedsApproved: 'Only Approved records can be forked into a recalibrated version.',
     transitionRoleDenied: 'The current user role cannot change status from {from} to {to}.',
     persistentHistory: 'Evaluation Register',
-    historyEmail: 'User Email',
-    historyPassword: 'Password',
     historySignIn: 'Sign In',
     historySignUp: 'Create Account',
-    historyResendConfirm: 'Resend Confirm Email',
     historyResetPassword: 'Reset Password Email',
     historySetPassword: 'Set New Password',
     historySignOut: 'Sign Out',
-    historySave: 'Save Current Evaluation to Database',
-    historyLoad: 'Load Permanent History',
+    historySave: 'Save Evaluation',
+    historyLoad: 'Refresh Register',
     historyDisconnected: 'Not signed in to the database. Sign in before saving or viewing permanent history.',
     historyConnected: 'Database connected: {email}',
     historySaved: 'Saved to database: {evaluationId} v{version}',
@@ -1192,7 +1162,6 @@ const UI = {
     historySaveNeedsDraft: 'Save the first database record as Draft, then move through the workflow so the audit trail stays valid.',
     historyLoaded: 'Loaded database record: {evaluationId} v{version}',
     historyAuditEmpty: 'No database audit log exists for this record yet.',
-    historyConfirmResent: 'Confirmation email resent. Please use the newest email link.',
     historyConfirmRedirectHelp: 'Confirmation will return to this system: {url}',
     historyResetSent: 'Password reset link sent. Please open the newest email.',
     historyRecoveryReady: 'Password recovery is ready. Enter a new password, then click Set New Password.',
@@ -1225,11 +1194,9 @@ const UI = {
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
     btnPrintForm: 'Print Form',
     btnPrint: 'Print / PDF', btnSave: 'Save Result (JSON)', btnLoad: 'Load Result', btnReset: 'Reset',
-    printFactorTitle: '12-Factor Approval Summary',
     printFactorNo: '#',
     printFactorName: 'Factor',
     printFactorScore: 'Score',
-    printFactorRationale: 'Rationale / Evidence',
     printRationaleEmpty: '-',
     onePageTitle: 'Job Evaluation Approval Sheet',
     onePageSubtitle: '12-Factor Job Evaluation Summary for Sign-off',
@@ -1288,7 +1255,7 @@ const UI = {
     navJob: '职位信息',
     navScore: '评分',
     navWorkflow: '流程',
-    navHistory: '历史',
+    navHistory: '登记表',
     navAdmin: '用户',
     navReference: '标杆',
     navSignatures: '签署',
@@ -1320,6 +1287,7 @@ const UI = {
     date: '评估日期',
     evalStatus: '当前状态',
     workflow: '审批流程与审计记录',
+    auditTrail: '审计记录',
     notificationLog: '邮件通知记录',
     notificationEmpty: '该评估暂无邮件通知记录。',
     notificationQueued: '通知已进入队列：To {toCount}，CC {ccCount}。',
@@ -1366,16 +1334,13 @@ const UI = {
     recalibrationNeedsApproved: '只有已批准记录才能创建重新校准版本。',
     transitionRoleDenied: '当前用户角色不能从 {from} 变更为 {to}。',
     persistentHistory: '评估登记表',
-    historyEmail: '用户邮箱',
-    historyPassword: '密码',
     historySignIn: '登录',
     historySignUp: '创建账户',
-    historyResendConfirm: '重新发送确认邮件',
     historyResetPassword: '发送重置密码邮件',
     historySetPassword: '设置新密码',
     historySignOut: '退出',
-    historySave: '保存当前评估到数据库',
-    historyLoad: '加载永久历史',
+    historySave: '保存评估',
+    historyLoad: '刷新登记表',
     historyDisconnected: '尚未登录数据库。请先登录，再保存或查看永久历史。',
     historyConnected: '数据库已连接：{email}',
     historySaved: '已保存到数据库：{evaluationId} v{version}',
@@ -1410,7 +1375,6 @@ const UI = {
     historySaveNeedsDraft: '第一次保存数据库记录必须是 Draft，然后按流程变更状态以保持审计记录正确。',
     historyLoaded: '已打开数据库记录：{evaluationId} v{version}',
     historyAuditEmpty: '该记录暂无数据库审计日志。',
-    historyConfirmResent: '确认邮件已重新发送。请使用最新邮件中的链接。',
     historyConfirmRedirectHelp: '确认后将返回此系统：{url}',
     historyResetSent: '重置密码链接已发送。请打开最新邮件。',
     historyRecoveryReady: '密码恢复已准备好。请输入新密码，然后点击设置新密码。',
@@ -1443,11 +1407,9 @@ const UI = {
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
     btnPrintForm: '打印表单',
     btnPrint: '打印 / PDF', btnSave: '保存结果 (JSON)', btnLoad: '加载已存结果', btnReset: '重新开始',
-    printFactorTitle: '12要素审批摘要',
     printFactorNo: '#',
     printFactorName: '要素',
     printFactorScore: '分数',
-    printFactorRationale: '理由/证据',
     printRationaleEmpty: '-',
     onePageTitle: '职位评估审批表',
     onePageSubtitle: '12要素职位评估签署摘要',
@@ -2405,41 +2367,33 @@ function renderAuthState(session){
   }
 }
 
-function syncAuthGateToHistory(){
-  const email = document.getElementById('authEmail')?.value || '';
-  const password = document.getElementById('authPassword')?.value || '';
-  const historyEmail = document.getElementById('historyEmail');
-  const historyPassword = document.getElementById('historyPassword');
-  if (historyEmail) historyEmail.value = email;
-  if (historyPassword) historyPassword.value = password;
-}
-
-function syncHistoryToAuthGate(){
-  const email = document.getElementById('historyEmail')?.value || '';
-  const password = document.getElementById('historyPassword')?.value || '';
+function authCredentials(){
   const authEmail = document.getElementById('authEmail');
   const authPassword = document.getElementById('authPassword');
-  if (authEmail && email) authEmail.value = email;
-  if (authPassword && password) authPassword.value = password;
+  return {
+    email: (authEmail?.value || '').trim(),
+    password: authPassword?.value || '',
+  };
+}
+
+function clearAuthPasswords(){
+  const authPassword = document.getElementById('authPassword');
+  if (authPassword) authPassword.value = '';
 }
 
 async function signInFromAuthGate(){
-  syncAuthGateToHistory();
   await signInPersistentHistory();
 }
 
 async function signUpFromAuthGate(){
-  syncAuthGateToHistory();
   await signUpPersistentHistory();
 }
 
 async function requestPasswordResetFromAuthGate(){
-  syncAuthGateToHistory();
   await requestPasswordReset();
 }
 
 async function updateRecoveredPasswordFromAuthGate(){
-  syncAuthGateToHistory();
   await updateRecoveredPassword();
 }
 
@@ -2619,8 +2573,7 @@ async function signInPersistentHistory(){
     renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
-  const email = document.getElementById('historyEmail').value.trim();
-  const password = document.getElementById('historyPassword').value;
+  const { email, password } = authCredentials();
   const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error || !data.session) {
     const message = error ? error.message : 'No session returned';
@@ -2628,8 +2581,7 @@ async function signInPersistentHistory(){
     renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', message), 'error');
     return;
   }
-  document.getElementById('historyPassword').value = '';
-  document.getElementById('authPassword').value = '';
+  clearAuthPasswords();
   jeDbSession = data.session;
   renderJeRoleBadge(data.session);
   renderAuthState(data.session);
@@ -2646,8 +2598,7 @@ async function signUpPersistentHistory(){
     renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
-  const email = document.getElementById('historyEmail').value.trim();
-  const password = document.getElementById('historyPassword').value;
+  const { email, password } = authCredentials();
   const redirectUrl = getAuthRedirectUrl();
   const { data, error } = await client.auth.signUp({
     email,
@@ -2659,8 +2610,7 @@ async function signUpPersistentHistory(){
     renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
     return;
   }
-  document.getElementById('historyPassword').value = '';
-  document.getElementById('authPassword').value = '';
+  clearAuthPasswords();
   if (data.session) {
     jeDbSession = data.session;
     await refreshCurrentUserRoles(data.session);
@@ -2672,34 +2622,6 @@ async function signUpPersistentHistory(){
   renderAuthStatus(message, 'ok');
 }
 
-async function resendSignupConfirmation(){
-  const client = getJeDbClient();
-  if (!client) {
-    renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
-    renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
-    return;
-  }
-  const email = document.getElementById('historyEmail').value.trim();
-  if (!email || !email.includes('@')) {
-    renderPersistentHistoryStatus(UI[currentLang].adminBadEmail, 'error');
-    return;
-  }
-  const redirectUrl = getAuthRedirectUrl();
-  const { error } = await client.auth.resend({
-    type: 'signup',
-    email,
-    options: { emailRedirectTo: redirectUrl },
-  });
-  if (error) {
-    renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
-    renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
-    return;
-  }
-  const message = `${UI[currentLang].historyConfirmResent} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`;
-  renderPersistentHistoryStatus(message, 'ok');
-  renderAuthStatus(message, 'ok');
-}
-
 async function requestPasswordReset(){
   const client = getJeDbClient();
   if (!client) {
@@ -2707,7 +2629,7 @@ async function requestPasswordReset(){
     renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
-  const email = document.getElementById('historyEmail').value.trim();
+  const { email } = authCredentials();
   if (!email || !email.includes('@')) {
     renderPersistentHistoryStatus(UI[currentLang].adminBadEmail, 'error');
     return;
@@ -2733,7 +2655,7 @@ async function updateRecoveredPassword(){
     renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
-  const password = document.getElementById('historyPassword').value;
+  const { password } = authCredentials();
   if (!password || password.length < 6) {
     renderPersistentHistoryStatus(UI[currentLang].historyPasswordTooShort, 'error');
     renderAuthStatus(UI[currentLang].historyPasswordTooShort, 'error');
@@ -2745,8 +2667,7 @@ async function updateRecoveredPassword(){
     renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
     return;
   }
-  document.getElementById('historyPassword').value = '';
-  document.getElementById('authPassword').value = '';
+  clearAuthPasswords();
   isPasswordRecoverySession = false;
   if (data.user) {
     await refreshPersistentHistorySession();
@@ -3549,23 +3470,6 @@ function renderLevelTable(activeCode){
     LEVELS.map(l => `<tr class="${l[0]===activeCode ? 'active':''}"><td>${l[0]}</td><td>${l[1].toLocaleString()}–${l[2].toLocaleString()}</td><td>${l[3][currentLang]}</td></tr>`).join('');
 }
 
-function renderPrintFactorSummary(){
-  const rows = document.getElementById('printFactorRows');
-  if (!rows) return;
-  rows.innerHTML = FACTORS.map((f, index) => {
-    const rationaleText = (rationales[f.key] || '').trim() || UI[currentLang].printRationaleEmpty;
-    const compactRationale = rationaleText.length > 180 ? `${rationaleText.slice(0, 177)}...` : rationaleText;
-    return `
-      <tr>
-        <td>${index + 1}</td>
-        <td>${escapeHtml(f.name[currentLang])}</td>
-        <td class="score-cell">${state[f.key]}</td>
-        <td class="rationale-cell">${escapeHtml(compactRationale)}</td>
-      </tr>
-    `;
-  }).join('');
-}
-
 function compactPrintText(value, limit){
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   if (!text) return UI[currentLang].printRationaleEmpty;
@@ -3680,7 +3584,6 @@ function renderSummary(){
     const pct = (v/100*100).toFixed(0);
     return `<div class="bar-row"><div class="name">${f.name.en}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-val">${v}</div></div>`;
   }).join('');
-  renderPrintFactorSummary();
   renderOnePagePrintSheet();
 }
 
@@ -3748,6 +3651,7 @@ function applyStaticText(){
   document.getElementById('lJobEvidence').textContent = ui.jobEvidence;
   document.getElementById('jobEvidence').placeholder = ui.jobEvidencePh;
   document.getElementById('mWorkflow').textContent = ui.workflow;
+  document.getElementById('mAuditTrail').textContent = ui.auditTrail;
   document.getElementById('mNotificationLog').textContent = ui.notificationLog;
   document.getElementById('lEvaluationId').textContent = ui.evaluationId;
   document.getElementById('lVersionNumber').textContent = ui.versionNumber;
@@ -3770,14 +3674,6 @@ function applyStaticText(){
   document.getElementById('btnCopyRecordLink').textContent = ui.historyCopyLink;
   document.getElementById('recordLinkHelp').textContent = ui.recordLinkHelp;
   document.getElementById('mPersistentHistory').textContent = ui.persistentHistory;
-  document.getElementById('lHistoryEmail').textContent = ui.historyEmail;
-  document.getElementById('lHistoryPassword').textContent = ui.historyPassword;
-  document.getElementById('btnHistorySignIn').textContent = ui.historySignIn;
-  document.getElementById('btnHistorySignUp').textContent = ui.historySignUp;
-  document.getElementById('btnHistoryResendConfirm').textContent = ui.historyResendConfirm;
-  document.getElementById('btnHistoryResetPassword').textContent = ui.historyResetPassword;
-  document.getElementById('btnHistorySetPassword').textContent = ui.historySetPassword;
-  document.getElementById('btnHistorySignOut').textContent = ui.historySignOut;
   document.getElementById('btnHistorySave').textContent = ui.historySave;
   document.getElementById('btnHistoryLoad').textContent = ui.historyLoad;
   document.getElementById('historySearch').placeholder = ui.historySearchPh;
@@ -3805,11 +3701,6 @@ function applyStaticText(){
   document.getElementById('lTotal').textContent = ui.total;
   document.getElementById('btnPrintFormTop').textContent = ui.btnPrintForm;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
-  document.getElementById('printFactorTitle').textContent = ui.printFactorTitle;
-  document.getElementById('printFactorNo').textContent = ui.printFactorNo;
-  document.getElementById('printFactorName').textContent = ui.printFactorName;
-  document.getElementById('printFactorScore').textContent = ui.printFactorScore;
-  document.getElementById('printFactorRationale').textContent = ui.printFactorRationale;
   document.getElementById('btnSave').textContent = ui.btnSave;
   document.getElementById('btnLoad').textContent = ui.btnLoad;
   document.getElementById('btnReset').textContent = ui.btnReset;
