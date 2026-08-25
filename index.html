@@ -89,8 +89,15 @@
   .nav-btn.active{background:var(--navy); color:#fff;}
   .nav-index{font-size:11px; opacity:.72; font-weight:800;}
   .workspace-main{min-width:0;}
+  .workspace-main.evaluation-mode{display:flex; flex-direction:column;}
+  .workspace-main.evaluation-mode [data-section-panel="job"]{order:1;}
+  .workspace-main.evaluation-mode [data-section-panel="score"]{order:2;}
+  .workspace-main.evaluation-mode [data-section-panel="workflow"]{order:3;}
+  .workspace-main.evaluation-mode [data-section-panel="reference"]{order:4;}
+  .workspace-main.evaluation-mode [data-section-panel="signatures"]{order:5;}
   .app-section{display:none;}
   .app-section.active{display:block;}
+  .workspace-main.evaluation-mode .app-section.active{display:block;}
   .section-intro{
     display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
     margin-bottom:12px; background:#fff; border:1px solid var(--border); border-radius:8px; padding:14px 16px;
@@ -289,6 +296,7 @@
     header, .btn-row, .toggle-anchor, .disclaimer, .lang-switch, .ref-filters, .side-nav, .section-intro{display:none !important;}
     .workspace-shell, .layout{display:block !important;}
     .workspace-main, .app-section{display:block !important;}
+    [data-section-panel="history"], [data-section-panel="admin"]{display:none !important;}
     .anchor-table{display:none !important;}
     .ref-table-wrap{max-height:none !important;}
     #refTableCard{page-break-before:always;}
@@ -382,13 +390,9 @@
 <div class="wrap">
   <div class="workspace-shell">
     <nav class="side-nav" id="sideNav" aria-label="Job evaluation sections">
-      <button class="nav-btn active" data-section="job"><span id="navJob">Job Setup</span><span class="nav-index">01</span></button>
-      <button class="nav-btn" data-section="score"><span id="navScore">Scoring</span><span class="nav-index">02</span></button>
-      <button class="nav-btn" data-section="workflow"><span id="navWorkflow">Workflow</span><span class="nav-index">03</span></button>
-      <button class="nav-btn" data-section="history"><span id="navHistory">History</span><span class="nav-index">04</span></button>
-      <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">05</span></button>
-      <button class="nav-btn" data-section="reference"><span id="navReference">Benchmarks</span><span class="nav-index">06</span></button>
-      <button class="nav-btn" data-section="signatures"><span id="navSignatures">Signatures</span><span class="nav-index">07</span></button>
+      <button class="nav-btn active" data-section="evaluation"><span id="navEvaluation">Evaluation Form</span><span class="nav-index">01</span></button>
+      <button class="nav-btn" data-section="history"><span id="navHistory">History</span><span class="nav-index">02</span></button>
+      <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">03</span></button>
     </nav>
 
     <main class="workspace-main">
@@ -639,6 +643,7 @@ const UI = {
     authEmail: 'อีเมล',
     authPassword: 'รหัสผ่าน',
     authRequired: 'กรุณาเข้าสู่ระบบเพื่อใช้งานระบบ',
+    navEvaluation: 'แบบฟอร์มประเมิน/พิมพ์',
     navJob: 'ข้อมูลงาน',
     navScore: 'ให้คะแนน',
     navWorkflow: 'Workflow',
@@ -792,6 +797,7 @@ const UI = {
     authEmail: 'Email',
     authPassword: 'Password',
     authRequired: 'Please sign in to continue.',
+    navEvaluation: 'Evaluation / Print Form',
     navJob: 'Job Setup',
     navScore: 'Scoring',
     navWorkflow: 'Workflow',
@@ -945,6 +951,7 @@ const UI = {
     authEmail: '邮箱',
     authPassword: '密码',
     authRequired: '请登录后继续。',
+    navEvaluation: '评估/打印表单',
     navJob: '职位信息',
     navScore: '评分',
     navWorkflow: '流程',
@@ -1621,7 +1628,8 @@ function bandIndex(v){
 }
 
 let currentLang = 'th';
-let activeSection = sessionStorage.getItem('jeActiveSection') || 'job';
+let activeSection = sessionStorage.getItem('jeActiveSection') || 'evaluation';
+if (!['evaluation', 'history', 'admin'].includes(activeSection)) activeSection = 'evaluation';
 const state = {};
 FACTORS.forEach(f => state[f.key] = 10);
 const rationales = {};
@@ -2739,13 +2747,18 @@ function renderRationaleState(key){
 }
 
 function switchSection(section){
-  const exists = document.querySelector(`[data-section-panel="${section}"]`);
-  if (!exists) section = 'job';
+  if (!['evaluation', 'history', 'admin'].includes(section)) section = 'evaluation';
   activeSection = section;
   sessionStorage.setItem('jeActiveSection', section);
+  const evaluationPanels = ['job', 'score', 'workflow', 'reference', 'signatures'];
   document.querySelectorAll('[data-section-panel]').forEach(panel => {
-    panel.classList.toggle('active', panel.dataset.sectionPanel === section);
+    const panelName = panel.dataset.sectionPanel;
+    const shouldShow = section === 'evaluation'
+      ? evaluationPanels.includes(panelName)
+      : panelName === section;
+    panel.classList.toggle('active', shouldShow);
   });
+  document.querySelector('.workspace-main')?.classList.toggle('evaluation-mode', section === 'evaluation');
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.section === section);
   });
@@ -2849,13 +2862,9 @@ function applyStaticText(){
   document.getElementById('btnAuthCreate').textContent = ui.historySignUp;
   document.getElementById('btnAuthReset').textContent = ui.historyResetPassword;
   document.getElementById('btnAuthSetPassword').textContent = ui.historySetPassword;
-  document.getElementById('navJob').textContent = ui.navJob;
-  document.getElementById('navScore').textContent = ui.navScore;
-  document.getElementById('navWorkflow').textContent = ui.navWorkflow;
+  document.getElementById('navEvaluation').textContent = ui.navEvaluation;
   document.getElementById('navHistory').textContent = ui.navHistory;
   document.getElementById('navAdmin').textContent = ui.navAdmin;
-  document.getElementById('navReference').textContent = ui.navReference;
-  document.getElementById('navSignatures').textContent = ui.navSignatures;
   document.getElementById('sectionJobTitle').textContent = ui.sectionJobTitle;
   document.getElementById('sectionJobDesc').textContent = ui.sectionJobDesc;
   document.getElementById('sectionJobChip').textContent = ui.sectionJobChip;
