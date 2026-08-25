@@ -25,12 +25,56 @@
   header h1{margin:0 0 4px; font-size:21px; color:var(--navy); letter-spacing:0;}
   header p{margin:0; color:var(--grey); font-size:13px;}
   .lang-switch{display:flex; gap:4px; flex-shrink:0; background:#F1F5F9; border:1px solid var(--border); border-radius:999px; padding:3px;}
+  .header-tools{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
   .lang-btn{
     border:none; background:transparent; color:var(--grey); font-size:12px; font-weight:700;
     padding:6px 12px; border-radius:999px; cursor:pointer; flex:none;
   }
   .lang-btn.active{background:var(--navy); color:#fff;}
+  .session-pill{
+    display:none; border:1px solid var(--border); background:#F8FAFC; color:var(--navy);
+    border-radius:999px; padding:7px 11px; font-size:12px; font-weight:800;
+  }
+  .header-signout{
+    display:none; flex:0 0 auto; background:#fff; color:var(--navy); border:1px solid var(--border);
+    border-radius:999px; padding:7px 11px; font-size:12px;
+  }
+  body:not(.auth-locked) .session-pill, body:not(.auth-locked) .header-signout{display:inline-flex;}
   .wrap{max-width:1180px; margin:0 auto; padding:20px;}
+  body.auth-locked .wrap{display:none;}
+  .auth-screen{max-width:1180px; margin:0 auto; padding:28px 20px 40px;}
+  body:not(.auth-locked) .auth-screen{display:none;}
+  .auth-panel{
+    display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:20px; align-items:stretch;
+  }
+  .auth-brief, .auth-card{
+    background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 1px 3px rgba(15,23,42,.05);
+  }
+  .auth-brief{padding:28px;}
+  .auth-kicker{font-size:12px; color:var(--gold); font-weight:900; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;}
+  .auth-brief h2{margin:0; color:var(--navy); font-size:26px; line-height:1.18;}
+  .auth-brief p{margin:12px 0 0; color:var(--grey); line-height:1.6; font-size:14px; max-width:620px;}
+  .auth-points{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:22px;}
+  .auth-point{border:1px solid var(--border); border-radius:8px; padding:12px; background:#F8FAFC;}
+  .auth-point strong{display:block; color:var(--navy); font-size:13px; margin-bottom:3px;}
+  .auth-point span{color:var(--grey); font-size:12px; line-height:1.45;}
+  .auth-card{padding:22px;}
+  .auth-card h2{margin:0 0 14px; color:var(--navy); font-size:17px;}
+  .auth-field{margin-bottom:10px;}
+  .auth-field label{display:block; font-size:12px; color:var(--grey); margin-bottom:4px;}
+  .auth-field input{width:100%; padding:10px 11px; border:1px solid var(--border); border-radius:7px; font-size:14px; font-family:inherit;}
+  .auth-actions{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;}
+  .auth-actions button{width:100%;}
+  .auth-actions .full{grid-column:1 / -1;}
+  .auth-status{font-size:12px; border-radius:8px; padding:9px 11px; margin-top:12px; line-height:1.45; border:1px solid var(--border); background:#F8FAFC; color:#334155;}
+  .auth-status.ok{border-color:#BBF7D0; background:#F0FDF4; color:#166534;}
+  .auth-status.warn{border-color:#FDE68A; background:#FFFBEB; color:#92400E;}
+  .auth-status.error{border-color:#FECACA; background:#FEF2F2; color:#991B1B;}
+  @media (max-width: 850px){
+    .auth-panel{grid-template-columns:1fr;}
+    .auth-points{grid-template-columns:1fr;}
+    .header-tools{justify-content:flex-start;}
+  }
   .workspace-shell{display:grid; grid-template-columns:230px minmax(0,1fr); gap:18px; align-items:start;}
   .side-nav{
     position:sticky; top:14px; background:#fff; border:1px solid var(--border); border-radius:8px;
@@ -288,7 +332,7 @@
   .sign-caption{text-align:center; font-size:11.5px; color:var(--grey); margin-top:4px; margin-bottom:10px;}
 </style>
 </head>
-<body>
+<body class="auth-locked">
 
 <header>
   <div class="header-row">
@@ -296,13 +340,44 @@
       <h1 id="hTitle">⚖️ ระบบประเมินค่างาน 12 ปัจจัย (12-Factor Job Evaluation Calculator)</h1>
       <p id="hSub">ZG Industries (Thailand) Limited — ใช้คู่กับคู่มือเกณฑ์การให้คะแนน (Scoring Anchor Guide) สำหรับคณะกรรมการ JE</p>
     </div>
-    <div class="lang-switch" id="langSwitch">
-      <button class="lang-btn" data-lang="th">TH</button>
-      <button class="lang-btn" data-lang="en">EN</button>
-      <button class="lang-btn" data-lang="zh">中文</button>
+    <div class="header-tools">
+      <div class="session-pill" id="sessionPill"></div>
+      <button class="header-signout" id="headerSignOut" onclick="signOutPersistentHistory()">Sign Out</button>
+      <div class="lang-switch" id="langSwitch">
+        <button class="lang-btn" data-lang="th">TH</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="zh">中文</button>
+      </div>
     </div>
   </div>
 </header>
+
+<section class="auth-screen" id="authScreen">
+  <div class="auth-panel">
+    <div class="auth-brief">
+      <div class="auth-kicker" id="authKicker">Secure HR Workspace</div>
+      <h2 id="authTitle">Sign in before using the Job Evaluation system</h2>
+      <p id="authSubtitle">Access to job data, scoring records, approval workflow, history, and user management is protected by Supabase authentication and role-based permissions.</p>
+      <div class="auth-points">
+        <div class="auth-point"><strong id="authPoint1Title">Protected records</strong><span id="authPoint1Text">Evaluation history and audit trail stay behind login.</span></div>
+        <div class="auth-point"><strong id="authPoint2Title">Role workflow</strong><span id="authPoint2Text">HR Analyst, JE Committee, and HR Head actions remain separated.</span></div>
+        <div class="auth-point"><strong id="authPoint3Title">Admin control</strong><span id="authPoint3Text">HR Head manages user access from the system.</span></div>
+      </div>
+    </div>
+    <div class="auth-card">
+      <h2 id="authCardTitle">Sign In</h2>
+      <div class="auth-field"><label id="lAuthEmail">Email</label><input id="authEmail" type="email" autocomplete="username"></div>
+      <div class="auth-field"><label id="lAuthPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password"></div>
+      <div class="auth-actions">
+        <button class="btn-primary" id="btnAuthSignIn" onclick="signInFromAuthGate()">Sign In</button>
+        <button class="btn-secondary" id="btnAuthCreate" onclick="signUpFromAuthGate()">Create Account</button>
+        <button class="btn-secondary" id="btnAuthReset" onclick="requestPasswordResetFromAuthGate()">Reset Password Email</button>
+        <button class="btn-secondary" id="btnAuthSetPassword" onclick="updateRecoveredPasswordFromAuthGate()">Set New Password</button>
+      </div>
+      <div class="auth-status warn" id="authStatus">Please sign in to continue.</div>
+    </div>
+  </div>
+</section>
 
 <div class="wrap">
   <div class="workspace-shell">
@@ -550,6 +625,20 @@ const UI = {
     pageTitle: 'ระบบประเมินค่างาน 12 ปัจจัย — ZG Industries',
     hTitle: 'ระบบประเมินค่างาน 12 ปัจจัย',
     hSub: 'ZG Industries (Thailand) Limited — ใช้คู่กับคู่มือเกณฑ์การให้คะแนน (Scoring Anchor Guide) สำหรับคณะกรรมการ JE',
+    appSignedIn: 'เข้าสู่ระบบ: {email}',
+    authKicker: 'Secure HR Workspace',
+    authTitle: 'กรุณาเข้าสู่ระบบก่อนใช้งานระบบประเมินค่างาน',
+    authSubtitle: 'ข้อมูลตำแหน่ง คะแนน Workflow ประวัติ และการจัดการผู้ใช้ถูกป้องกันด้วย Supabase Authentication และ role-based permissions',
+    authPoint1Title: 'ข้อมูลประเมินปลอดภัย',
+    authPoint1Text: 'ประวัติและ audit trail จะเปิดให้ดูหลัง login เท่านั้น',
+    authPoint2Title: 'แยกสิทธิ์ตามบทบาท',
+    authPoint2Text: 'HR Analyst, JE Committee และ HR Head ทำงานคนละขั้นตอน',
+    authPoint3Title: 'ควบคุมผู้ใช้จากระบบ',
+    authPoint3Text: 'HR Head เพิ่มผู้ใช้และกำหนด role ได้ในหน้า Admin',
+    authCardTitle: 'เข้าสู่ระบบ',
+    authEmail: 'อีเมล',
+    authPassword: 'รหัสผ่าน',
+    authRequired: 'กรุณาเข้าสู่ระบบเพื่อใช้งานระบบ',
     navJob: 'ข้อมูลงาน',
     navScore: 'ให้คะแนน',
     navWorkflow: 'Workflow',
@@ -689,6 +778,20 @@ const UI = {
     pageTitle: '12-Factor Job Evaluation Calculator — ZG Industries',
     hTitle: '12-Factor Job Evaluation Calculator',
     hSub: 'ZG Industries (Thailand) Limited — companion tool to the JE Committee Scoring Anchor Guide',
+    appSignedIn: 'Signed in: {email}',
+    authKicker: 'Secure HR Workspace',
+    authTitle: 'Sign in before using the Job Evaluation system',
+    authSubtitle: 'Job data, scoring records, workflow, history, and user management are protected by Supabase authentication and role-based permissions.',
+    authPoint1Title: 'Protected records',
+    authPoint1Text: 'Evaluation history and audit trail stay behind login.',
+    authPoint2Title: 'Role workflow',
+    authPoint2Text: 'HR Analyst, JE Committee, and HR Head actions remain separated.',
+    authPoint3Title: 'Admin control',
+    authPoint3Text: 'HR Head manages user access from the system.',
+    authCardTitle: 'Sign In',
+    authEmail: 'Email',
+    authPassword: 'Password',
+    authRequired: 'Please sign in to continue.',
     navJob: 'Job Setup',
     navScore: 'Scoring',
     navWorkflow: 'Workflow',
@@ -828,6 +931,20 @@ const UI = {
     pageTitle: '12要素职位评估计算器 — ZG Industries',
     hTitle: '12要素职位评估计算器',
     hSub: 'ZG Industries (Thailand) Limited — 配合 JE 评估委员会评分指南使用',
+    appSignedIn: '已登录：{email}',
+    authKicker: '安全 HR 工作区',
+    authTitle: '使用职位评估系统前请先登录',
+    authSubtitle: '职位数据、评分记录、审批流程、历史记录和用户管理均受 Supabase 身份验证与角色权限保护。',
+    authPoint1Title: '受保护记录',
+    authPoint1Text: '评估历史和审计记录仅在登录后显示。',
+    authPoint2Title: '角色流程',
+    authPoint2Text: 'HR Analyst、JE Committee 和 HR Head 的操作权限相互分离。',
+    authPoint3Title: '管理员控制',
+    authPoint3Text: 'HR Head 可在系统内管理用户访问权限。',
+    authCardTitle: '登录',
+    authEmail: '邮箱',
+    authPassword: '密码',
+    authRequired: '请登录后继续。',
     navJob: '职位信息',
     navScore: '评分',
     navWorkflow: '流程',
@@ -1763,7 +1880,9 @@ function bindJeAuthStateListener(){
       jeDbSession = session;
       await refreshCurrentUserRoles(session);
       renderJeRoleBadge(session);
+      renderAuthState(session);
       renderPersistentHistoryStatus(UI[currentLang].historyRecoveryReady, 'ok');
+      renderAuthStatus(UI[currentLang].historyRecoveryReady, 'ok');
     }
   });
 }
@@ -1773,6 +1892,66 @@ function renderPersistentHistoryStatus(message, kind = 'warn'){
   if (!el) return;
   el.textContent = message;
   el.className = `history-status ${kind}`;
+}
+
+function renderAuthStatus(message, kind = 'warn'){
+  const el = document.getElementById('authStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `auth-status ${kind}`;
+}
+
+function renderAuthState(session){
+  const signedIn = Boolean(session && !isPasswordRecoverySession);
+  document.body.classList.toggle('auth-locked', !signedIn);
+  const email = session?.user?.email || '';
+  const pill = document.getElementById('sessionPill');
+  if (pill) {
+    pill.textContent = signedIn
+      ? UI[currentLang].appSignedIn.replaceAll('{email}', email)
+      : '';
+  }
+  if (!signedIn && !isPasswordRecoverySession) {
+    renderAuthStatus(UI[currentLang].authRequired, 'warn');
+  }
+}
+
+function syncAuthGateToHistory(){
+  const email = document.getElementById('authEmail')?.value || '';
+  const password = document.getElementById('authPassword')?.value || '';
+  const historyEmail = document.getElementById('historyEmail');
+  const historyPassword = document.getElementById('historyPassword');
+  if (historyEmail) historyEmail.value = email;
+  if (historyPassword) historyPassword.value = password;
+}
+
+function syncHistoryToAuthGate(){
+  const email = document.getElementById('historyEmail')?.value || '';
+  const password = document.getElementById('historyPassword')?.value || '';
+  const authEmail = document.getElementById('authEmail');
+  const authPassword = document.getElementById('authPassword');
+  if (authEmail && email) authEmail.value = email;
+  if (authPassword && password) authPassword.value = password;
+}
+
+async function signInFromAuthGate(){
+  syncAuthGateToHistory();
+  await signInPersistentHistory();
+}
+
+async function signUpFromAuthGate(){
+  syncAuthGateToHistory();
+  await signUpPersistentHistory();
+}
+
+async function requestPasswordResetFromAuthGate(){
+  syncAuthGateToHistory();
+  await requestPasswordReset();
+}
+
+async function updateRecoveredPasswordFromAuthGate(){
+  syncAuthGateToHistory();
+  await updateRecoveredPassword();
 }
 
 function getAuthRedirectUrl(){
@@ -1835,11 +2014,13 @@ async function getCurrentDbSessionSilently(){
     jeDbSession = null;
     currentJeRoles = [];
     renderJeRoleBadge(null);
+    renderAuthState(null);
     return null;
   }
   jeDbSession = data.session;
   await refreshCurrentUserRoles(data.session);
   renderJeRoleBadge(data.session);
+  renderAuthState(data.session);
   return data.session;
 }
 
@@ -1847,6 +2028,8 @@ async function refreshPersistentHistorySession(){
   const client = getJeDbClient();
   if (!client) {
     renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
+    renderAuthState(null);
     return null;
   }
   const { data, error } = await client.auth.getSession();
@@ -1854,12 +2037,14 @@ async function refreshPersistentHistorySession(){
     jeDbSession = null;
     currentJeRoles = [];
     renderJeRoleBadge(null);
+    renderAuthState(null);
     renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
     return null;
   }
   jeDbSession = data.session;
   await refreshCurrentUserRoles(data.session);
   renderJeRoleBadge(data.session);
+  renderAuthState(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || data.session.user.id), 'ok');
   return data.session;
 }
@@ -1868,6 +2053,7 @@ async function signInPersistentHistory(){
   const client = getJeDbClient();
   if (!client) {
     renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
   const email = document.getElementById('historyEmail').value.trim();
@@ -1876,12 +2062,16 @@ async function signInPersistentHistory(){
   if (error || !data.session) {
     const message = error ? error.message : 'No session returned';
     renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', message), 'error');
+    renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', message), 'error');
     return;
   }
   document.getElementById('historyPassword').value = '';
+  document.getElementById('authPassword').value = '';
   jeDbSession = data.session;
   renderJeRoleBadge(data.session);
+  renderAuthState(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || email), 'ok');
+  renderAuthStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || email), 'ok');
   await loadPermanentHistory();
   await loadAdminUsers();
 }
@@ -1890,6 +2080,7 @@ async function signUpPersistentHistory(){
   const client = getJeDbClient();
   if (!client) {
     renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
   const email = document.getElementById('historyEmail').value.trim();
@@ -1902,24 +2093,27 @@ async function signUpPersistentHistory(){
   });
   if (error) {
     renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
+    renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
     return;
   }
   document.getElementById('historyPassword').value = '';
+  document.getElementById('authPassword').value = '';
   if (data.session) {
     jeDbSession = data.session;
     await refreshCurrentUserRoles(data.session);
     renderJeRoleBadge(data.session);
+    renderAuthState(data.session);
   }
-  renderPersistentHistoryStatus(
-    `${UI[currentLang].adminAccountCreated} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`,
-    'ok'
-  );
+  const message = `${UI[currentLang].adminAccountCreated} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`;
+  renderPersistentHistoryStatus(message, 'ok');
+  renderAuthStatus(message, 'ok');
 }
 
 async function resendSignupConfirmation(){
   const client = getJeDbClient();
   if (!client) {
     renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
   const email = document.getElementById('historyEmail').value.trim();
@@ -1935,18 +2129,19 @@ async function resendSignupConfirmation(){
   });
   if (error) {
     renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
+    renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
     return;
   }
-  renderPersistentHistoryStatus(
-    `${UI[currentLang].historyConfirmResent} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`,
-    'ok'
-  );
+  const message = `${UI[currentLang].historyConfirmResent} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`;
+  renderPersistentHistoryStatus(message, 'ok');
+  renderAuthStatus(message, 'ok');
 }
 
 async function requestPasswordReset(){
   const client = getJeDbClient();
   if (!client) {
     renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
   const email = document.getElementById('historyEmail').value.trim();
@@ -1960,36 +2155,41 @@ async function requestPasswordReset(){
   });
   if (error) {
     renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
+    renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
     return;
   }
-  renderPersistentHistoryStatus(
-    `${UI[currentLang].historyResetSent} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`,
-    'ok'
-  );
+  const message = `${UI[currentLang].historyResetSent} ${UI[currentLang].historyConfirmRedirectHelp.replaceAll('{url}', redirectUrl)}`;
+  renderPersistentHistoryStatus(message, 'ok');
+  renderAuthStatus(message, 'ok');
 }
 
 async function updateRecoveredPassword(){
   const client = getJeDbClient();
   if (!client) {
     renderPersistentHistoryStatus(UI[currentLang].historyDbUnavailable, 'error');
+    renderAuthStatus(UI[currentLang].historyDbUnavailable, 'error');
     return;
   }
   const password = document.getElementById('historyPassword').value;
   if (!password || password.length < 6) {
     renderPersistentHistoryStatus(UI[currentLang].historyPasswordTooShort, 'error');
+    renderAuthStatus(UI[currentLang].historyPasswordTooShort, 'error');
     return;
   }
   const { data, error } = await client.auth.updateUser({ password });
   if (error) {
     renderPersistentHistoryStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
+    renderAuthStatus(UI[currentLang].historyBadLogin.replaceAll('{error}', error.message), 'error');
     return;
   }
   document.getElementById('historyPassword').value = '';
+  document.getElementById('authPassword').value = '';
   isPasswordRecoverySession = false;
   if (data.user) {
     await refreshPersistentHistorySession();
   }
   renderPersistentHistoryStatus(UI[currentLang].historyPasswordUpdated, 'ok');
+  renderAuthStatus(UI[currentLang].historyPasswordUpdated, 'ok');
 }
 
 async function signOutPersistentHistory(){
@@ -1998,6 +2198,7 @@ async function signOutPersistentHistory(){
   await client.auth.signOut();
   jeDbSession = null;
   currentJeRoles = [];
+  isPasswordRecoverySession = false;
   persistentHistoryRows = [];
   currentPersistentAuditRecordId = null;
   adminUserRows = [];
@@ -2006,6 +2207,7 @@ async function signOutPersistentHistory(){
   document.getElementById('adminUserList').innerHTML = '';
   document.getElementById('adminAuditLog').textContent = '';
   renderJeRoleBadge(null);
+  renderAuthState(null);
   renderPersistentHistoryStatus(UI[currentLang].historyDisconnected, 'warn');
 }
 
@@ -2630,6 +2832,23 @@ function applyStaticText(){
   document.title = ui.pageTitle;
   document.getElementById('hTitle').textContent = ui.hTitle;
   document.getElementById('hSub').textContent = ui.hSub;
+  document.getElementById('headerSignOut').textContent = ui.historySignOut;
+  document.getElementById('authKicker').textContent = ui.authKicker;
+  document.getElementById('authTitle').textContent = ui.authTitle;
+  document.getElementById('authSubtitle').textContent = ui.authSubtitle;
+  document.getElementById('authPoint1Title').textContent = ui.authPoint1Title;
+  document.getElementById('authPoint1Text').textContent = ui.authPoint1Text;
+  document.getElementById('authPoint2Title').textContent = ui.authPoint2Title;
+  document.getElementById('authPoint2Text').textContent = ui.authPoint2Text;
+  document.getElementById('authPoint3Title').textContent = ui.authPoint3Title;
+  document.getElementById('authPoint3Text').textContent = ui.authPoint3Text;
+  document.getElementById('authCardTitle').textContent = ui.authCardTitle;
+  document.getElementById('lAuthEmail').textContent = ui.authEmail;
+  document.getElementById('lAuthPassword').textContent = ui.authPassword;
+  document.getElementById('btnAuthSignIn').textContent = ui.historySignIn;
+  document.getElementById('btnAuthCreate').textContent = ui.historySignUp;
+  document.getElementById('btnAuthReset').textContent = ui.historyResetPassword;
+  document.getElementById('btnAuthSetPassword').textContent = ui.historySetPassword;
   document.getElementById('navJob').textContent = ui.navJob;
   document.getElementById('navScore').textContent = ui.navScore;
   document.getElementById('navWorkflow').textContent = ui.navWorkflow;
@@ -2723,6 +2942,7 @@ function applyStaticText(){
   document.getElementById('btnReset').textContent = ui.btnReset;
   document.getElementById('disclaimer').textContent = ui.disclaimer;
   document.documentElement.lang = currentLang;
+  renderAuthState(jeDbSession);
 }
 
 function setLang(lang){
@@ -2750,6 +2970,12 @@ document.getElementById('langSwitch').querySelectorAll('.lang-btn').forEach(btn 
 
 document.getElementById('sideNav').querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => switchSection(btn.dataset.section));
+});
+
+['authEmail','authPassword'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', event => {
+    if (event.key === 'Enter') signInFromAuthGate();
+  });
 });
 
 document.getElementById('jobTitle').addEventListener('input', handleJobTitleInput);
