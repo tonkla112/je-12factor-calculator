@@ -1150,25 +1150,26 @@ let myProfile = null; // { role: 'admin' | 'manager', email, full_name }
    penetration/riskScore stripped server-side (they come through as
    undefined here — UI columns for those are hidden via the .admin-col class). */
 function mapEmployeeRow(r) {
+  const riskScore = toNumber(r.risk_score);
   return {
     id: r.id, name: r.name, dept: r.dept, level: r.level, title: r.title,
-    gender: r.gender, age: r.age, base: r.base, allow: r.allow, perf: r.perf,
-    bonusMonths: r.bonus_months, annualTotalCash: r.annual_total_cash,
-    compa: r.compa, payStatus: r.pay_status,
-    tenure: r.tenure, penetration: r.penetration, riskScore: r.risk_score, riskTier: r.risk_tier
+    gender: r.gender, age: toNumber(r.age), base: toNumber(r.base), allow: toNumber(r.allow), perf: r.perf || 'C',
+    bonusMonths: toNumber(r.bonus_months), annualTotalCash: toNumber(r.annual_total_cash),
+    compa: toNumber(r.compa), payStatus: r.pay_status || 'InRange',
+    tenure: toNumber(r.tenure), penetration: toNumber(r.penetration), riskScore, riskTier: r.risk_tier || riskTierFromScore(riskScore)
   };
 }
 
 function mapLevelRow(r) {
   return {
-    level: r.level, spread: r.spread, midpoint: r.midpoint,
-    p25: r.p25, p50: r.p50, p75: r.p75,
-    compA: r.comp_a, compB: r.comp_b, compC: r.comp_c, headcount: r.headcount
+    level: r.level, spread: toNumber(r.spread), midpoint: toNumber(r.midpoint),
+    p25: toNumber(r.p25), p50: toNumber(r.p50), p75: toNumber(r.p75),
+    compA: toNumber(r.comp_a), compB: toNumber(r.comp_b), compC: toNumber(r.comp_c), headcount: toNumber(r.headcount)
   };
 }
 
 function mapJeRow(r) {
-  return { jobId: r.job_id, title: r.title, dept: r.dept, level: r.level, total: r.total };
+  return { jobId: r.job_id, title: r.title, dept: r.dept, level: r.level, total: toNumber(r.total) };
 }
 
 /* ============================================================
@@ -1404,13 +1405,29 @@ const LEVEL_COLORS = {
   L5: '#34d399', L6: '#fbbf24', L7: '#fb923c', L8: '#fb7185'
 };
 let DEPTS = [];
-const money = n => '฿' + Math.round(n).toLocaleString('en-US');
+function toNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+function numberFrom(source, keys, fallback = 0) {
+  const obj = source || {};
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) return toNumber(obj[key], fallback);
+  }
+  return fallback;
+}
+function aggregateObject(raw) {
+  if (Array.isArray(raw)) return raw[0] || {};
+  return raw || {};
+}
+const money = n => '฿' + Math.round(toNumber(n)).toLocaleString('en-US');
 const moneyShort = n => {
+  n = toNumber(n);
   if (n >= 1e6) return '฿' + (n/1e6).toFixed(2) + 'M';
   if (n >= 1e3) return '฿' + (n/1e3).toFixed(0) + 'K';
   return '฿' + Math.round(n);
 };
-const fmt = n => n.toLocaleString('en-US');
+const fmt = n => toNumber(n).toLocaleString('en-US');
 
 /* Debounce — used on the search inputs (Employee Directory, JE Reference
    Table) so a full filter/sort/re-render only fires once typing pauses,
@@ -1578,10 +1595,14 @@ function computeKPIs() {
   // Company-wide aggregates come from the server-side RPC (hr_comp.get_dashboard_aggregates),
   // not from individual EMPLOYEES rows — so these totals are correct for the Manager role too,
   // even though per-employee base/compa are redacted for that role.
-  const k = AGGREGATES ? AGGREGATES.kpi : { headcount: 0, totalRem: 0, avgCompa: 0, flightRiskCritical: 0, flightRiskMedium: 0 };
+  const aggregate = aggregateObject(AGGREGATES);
+  const k = aggregate.kpi || aggregate;
   return {
-    headcount: k.headcount, totalRem: Number(k.totalRem), avgCompa: Number(k.avgCompa),
-    flightRiskCritical: k.flightRiskCritical, flightRiskMedium: k.flightRiskMedium
+    headcount: numberFrom(k, ['headcount', 'head_count']),
+    totalRem: numberFrom(k, ['totalRem', 'total_rem', 'total_remuneration']),
+    avgCompa: numberFrom(k, ['avgCompa', 'avg_compa', 'average_compa']),
+    flightRiskCritical: numberFrom(k, ['flightRiskCritical', 'flight_risk_critical']),
+    flightRiskMedium: numberFrom(k, ['flightRiskMedium', 'flight_risk_medium'])
   };
 }
 
@@ -1679,8 +1700,15 @@ function buildCompaDistChart() {
   const ctx = document.getElementById('chartCompaDist');
   // Server-side aggregate (hr_comp.get_dashboard_aggregates) so this histogram
   // renders correctly for the Manager role too, without exposing individual compa-ratios.
-  const cd = AGGREGATES ? AGGREGATES.compaDist : { lt80: 0, b80_90: 0, b90_100: 0, b100_110: 0, b110_120: 0, ge120: 0 };
-  const counts = [cd.lt80, cd.b80_90, cd.b90_100, cd.b100_110, cd.b110_120, cd.ge120];
+  const cd = aggregateObject(AGGREGATES).compaDist || {};
+  const counts = [
+    numberFrom(cd, ['lt80', 'lt_80']),
+    numberFrom(cd, ['b80_90', '80_90']),
+    numberFrom(cd, ['b90_100', '90_100']),
+    numberFrom(cd, ['b100_110', '100_110']),
+    numberFrom(cd, ['b110_120', '110_120']),
+    numberFrom(cd, ['ge120', 'ge_120'])
+  ];
   const total = counts.reduce((a, b) => a + b, 0) || 1;
   charts.compaDist = new Chart(ctx, {
     type: 'bar',
@@ -1749,7 +1777,8 @@ function buildEquityChart() {
   const ctx = document.getElementById('chartEquity');
   // Server-side per-level/per-gender averages (hr_comp.get_dashboard_aggregates) —
   // works for the Manager role too, since these are aggregates, not individual base pay.
-  const equity = AGGREGATES ? AGGREGATES.equity : [];
+  const equitySource = aggregateObject(AGGREGATES).equity || [];
+  const equity = Array.isArray(equitySource) ? equitySource : [];
   const levels = BASE_LEVELS.map(l => l.level);
   const male = levels.map(lv => Number((equity.find(x => x.level === lv) || {}).male_avg) || 0);
   const female = levels.map(lv => Number((equity.find(x => x.level === lv) || {}).female_avg) || 0);
@@ -1825,7 +1854,8 @@ function buildPerformanceChart() {
 function buildDeptChart() {
   const ctx = document.getElementById('chartDept');
   // Server-side per-department average base salary (aggregate, safe for Manager role).
-  const deptAvg = AGGREGATES ? AGGREGATES.deptAvg : [];
+  const deptSource = aggregateObject(AGGREGATES).deptAvg || aggregateObject(AGGREGATES).dept_avg || [];
+  const deptAvg = Array.isArray(deptSource) ? deptSource : [];
   const data = DEPTS.map(d => {
     const row = deptAvg.find(x => x.dept === d);
     return { dept: d, avg: row ? Number(row.avg) : 0, n: row ? Number(row.n) : 0 };
@@ -2165,7 +2195,7 @@ function payStatusBadge(status) {
     InRange: [t('status_inrange'), 'bg-emerald-100 text-emerald-700'],
     Green: [t('status_green'), 'bg-amber-100 text-amber-700'],
   };
-  const [label, cls] = map[status];
+  const [label, cls] = map[status] || map.InRange;
   return `<span class="badge ${cls}">${label}</span>`;
 }
 function riskBadge(tier, score) {
