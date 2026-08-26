@@ -1601,6 +1601,13 @@ const charts = {};
 function destroyChart(key) {
   if (charts[key]) { charts[key].destroy(); charts[key] = null; }
 }
+function resetAllCharts() {
+  Object.keys(charts).forEach(destroyChart);
+  document.querySelectorAll('canvas').forEach(canvas => {
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+  });
+}
 /* Perf fix (UI/UX audit): language switch used to destroy() + recreate all
    10-12 Chart.js instances on every click — expensive and causes a visible
    flash. Only the TEXT (labels / dataset labels) needs to change; the
@@ -2548,6 +2555,7 @@ document.querySelectorAll('.sim-target-btn').forEach(btn => {
    INIT
    ============================================================ */
 function init() {
+  resetAllCharts();
   renderLangSwitch();
   // Default view mirrors the signed-in account's real, server-enforced role.
   // Admins may still preview the Manager view via the toggle; Managers can never reach Admin view.
