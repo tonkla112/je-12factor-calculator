@@ -89,6 +89,39 @@
   .nav-btn.active{background:var(--navy); color:#fff;}
   .nav-index{font-size:11px; opacity:.72; font-weight:800;}
   .workspace-main{min-width:0;}
+  .suite-home{
+    background:#fff; border:1px solid var(--border); border-radius:8px; padding:18px;
+    box-shadow:0 1px 3px rgba(15,23,42,.05);
+  }
+  .suite-hero{
+    display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:18px; align-items:center;
+    border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;
+  }
+  .suite-hero h2{margin:0; color:var(--navy); font-size:22px; line-height:1.25;}
+  .suite-hero p{margin:7px 0 0; color:var(--grey); font-size:13.5px; line-height:1.55;}
+  .suite-status{
+    border:1px solid var(--border); border-radius:8px; padding:12px; background:#F8FAFC;
+  }
+  .suite-status span{display:block; color:var(--grey); font-size:11.5px; font-weight:700; margin-bottom:3px;}
+  .suite-status strong{display:block; color:var(--navy); font-size:15px;}
+  .module-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+  .module-card{
+    display:flex; flex-direction:column; min-height:166px; text-align:left; border:1px solid var(--border);
+    border-radius:8px; background:#fff; padding:16px; cursor:pointer; color:var(--ink);
+    box-shadow:0 1px 2px rgba(15,23,42,.04); transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .module-card:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(15,23,42,.09); border-color:#B8C6D9; opacity:1;}
+  .module-icon{
+    width:34px; height:34px; display:grid; place-items:center; border-radius:8px;
+    color:var(--navy); background:var(--navy-light); font-size:17px; margin-bottom:10px;
+  }
+  .module-card h3{margin:0; color:var(--navy); font-size:15px;}
+  .module-card p{margin:6px 0 14px; color:var(--grey); font-size:12.5px; line-height:1.45; flex:1;}
+  .module-action{color:var(--navy); font-size:12px; font-weight:800;}
+  @media (max-width: 760px){
+    .suite-hero{grid-template-columns:1fr;}
+    .module-grid{grid-template-columns:1fr;}
+  }
   .workspace-main.evaluation-mode{display:flex; flex-direction:column;}
   .workspace-main.evaluation-mode [data-section-panel="job"]{order:1;}
   .workspace-main.evaluation-mode [data-section-panel="score"]{order:2;}
@@ -388,7 +421,7 @@
     [data-section-panel="job"]{order:1 !important;}
     [data-section-panel="score"]{order:2 !important;}
     [data-section-panel="signatures"]{order:3 !important;}
-    [data-section-panel="workflow"], [data-section-panel="reference"],
+    [data-section-panel="home"], [data-section-panel="workflow"], [data-section-panel="reference"],
     [data-section-panel="history"], [data-section-panel="admin"]{display:none !important;}
     #factorsCol, .anchor-table, #barChart, #levelTable{display:none !important;}
     .meta-card, .summary-card{
@@ -503,14 +536,62 @@
 
 <div class="wrap">
   <div class="workspace-shell">
-    <nav class="side-nav" id="sideNav" aria-label="Job evaluation sections">
-      <button class="nav-btn active" data-section="evaluation"><span id="navEvaluation">Evaluation Form</span><span class="nav-index">01</span></button>
-      <button class="nav-btn" data-section="history"><span id="navHistory">History</span><span class="nav-index">02</span></button>
-      <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">03</span></button>
+    <nav class="side-nav" id="sideNav" aria-label="HR suite sections">
+      <button class="nav-btn active" data-section="home"><span id="navHome">หน้าแรก</span><span class="nav-index">01</span></button>
+      <button class="nav-btn" data-section="evaluation"><span id="navEvaluation">Evaluation Form</span><span class="nav-index">02</span></button>
+      <button class="nav-btn" data-section="history"><span id="navHistory">History</span><span class="nav-index">03</span></button>
+      <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">04</span></button>
     </nav>
 
     <main class="workspace-main">
-  <section class="app-section active" data-section-panel="job">
+  <section class="app-section active" data-section-panel="home">
+    <div class="suite-home">
+      <div class="suite-hero">
+        <div>
+          <h2 id="moduleHomeTitle">HR Compensation & Job Evaluation Suite</h2>
+          <p id="moduleHomeDesc">เลือกงานที่ต้องทำจากหน้าเดียว: ประเมินค่างาน, ตรวจ Dashboard ค่าตอบแทน, ดูทะเบียนประวัติ หรือจัดการผู้ใช้</p>
+        </div>
+        <div class="suite-status">
+          <span id="moduleStatusLabel">Session</span>
+          <strong id="moduleStatusText">Secure workspace</strong>
+        </div>
+      </div>
+      <div class="module-grid">
+        <button class="module-card" type="button" onclick="openSuiteModule('evaluation')">
+          <span class="module-icon">JE</span>
+          <h3 id="moduleJeTitle">Job Evaluation Workflow</h3>
+          <p id="moduleJeText">กรอกข้อมูลงาน ให้คะแนน 12 ปัจจัย ทำ workflow อนุมัติ และพิมพ์แบบฟอร์มลงนาม</p>
+          <span class="module-action" id="moduleJeAction">เปิดแบบฟอร์มประเมิน</span>
+        </button>
+        <button class="module-card" type="button" onclick="openCompensationDashboard('dashboard')">
+          <span class="module-icon">฿</span>
+          <h3 id="moduleCompTitle">HR Compensation Dashboard</h3>
+          <p id="moduleCompText">ดูภาพรวมค่าตอบแทน ความเป็นธรรม Compa-Ratio และข้อมูลกำลังคนระดับองค์กร</p>
+          <span class="module-action" id="moduleCompAction">เปิด Dashboard</span>
+        </button>
+        <button class="module-card" type="button" onclick="openCompensationDashboard('structure')">
+          <span class="module-icon">%</span>
+          <h3 id="moduleSalaryTitle">Salary Structure / Analytics</h3>
+          <p id="moduleSalaryText">วิเคราะห์โครงสร้างเงินเดือน ช่วง Min-Mid-Max benchmark ตลาด และความเสี่ยงเงินเดือนซ้อนทับ</p>
+          <span class="module-action" id="moduleSalaryAction">เปิด Salary Analytics</span>
+        </button>
+        <button class="module-card" type="button" onclick="openSuiteModule('history')">
+          <span class="module-icon">ID</span>
+          <h3 id="moduleRegisterTitle">Evaluation Register</h3>
+          <p id="moduleRegisterText">ติดตามรายการประเมินทั้งหมด สถานะ Pending With ลิงก์ Record/QR และ audit trail</p>
+          <span class="module-action" id="moduleRegisterAction">เปิด Register</span>
+        </button>
+        <button class="module-card" type="button" onclick="openSuiteModule('admin')">
+          <span class="module-icon">AD</span>
+          <h3 id="moduleAdminTitle">Admin / User Management</h3>
+          <p id="moduleAdminText">เพิ่มผู้ใช้ กำหนด role และเปิด/ปิดสิทธิ์การใช้งานสำหรับ HR Analyst, Committee และ HR Head</p>
+          <span class="module-action" id="moduleAdminAction">เปิด Admin</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="app-section" data-section-panel="job">
     <div class="section-intro">
       <div><h2 id="sectionJobTitle">Job Setup</h2><p id="sectionJobDesc">Capture the job context and JD evidence before scoring.</p></div>
       <div class="section-actions">
@@ -808,9 +889,9 @@ window.JE_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJz
    ============================================================ */
 const UI = {
   th: {
-    pageTitle: 'ระบบประเมินค่างาน 12 ปัจจัย — ZG Industries',
-    hTitle: 'ระบบประเมินค่างาน 12 ปัจจัย',
-    hSub: 'ZG Industries (Thailand) Limited — ใช้คู่กับคู่มือเกณฑ์การให้คะแนน (Scoring Anchor Guide) สำหรับคณะกรรมการ JE',
+    pageTitle: 'HR Compensation & Job Evaluation Suite — ZG Industries',
+    hTitle: 'HR Compensation & Job Evaluation Suite',
+    hSub: 'ZG Industries (Thailand) Limited — ระบบประเมินค่างาน Workflow อนุมัติ และ Dashboard ค่าตอบแทน',
     appSignedIn: 'เข้าสู่ระบบ: {email}',
     authKicker: 'Secure HR Workspace',
     authTitle: 'กรุณาเข้าสู่ระบบก่อนใช้งานระบบประเมินค่างาน',
@@ -825,6 +906,7 @@ const UI = {
     authEmail: 'อีเมล',
     authPassword: 'รหัสผ่าน',
     authRequired: 'กรุณาเข้าสู่ระบบเพื่อใช้งานระบบ',
+    navHome: 'หน้าแรก',
     navEvaluation: 'แบบฟอร์มประเมิน/พิมพ์',
     navJob: 'ข้อมูลงาน',
     navScore: 'ให้คะแนน',
@@ -854,6 +936,25 @@ const UI = {
     sectionSignTitle: 'ลงนามรับรอง',
     sectionSignDesc: 'เตรียมข้อมูลผู้ประเมินและผู้อนุมัติสำหรับการพิมพ์หรือ PDF',
     sectionSignChip: 'Approval',
+    moduleHomeTitle: 'HR Compensation & Job Evaluation Suite',
+    moduleHomeDesc: 'เลือกงานที่ต้องทำจากหน้าเดียว: ประเมินค่างาน, ตรวจ Dashboard ค่าตอบแทน, ดูทะเบียนประวัติ หรือจัดการผู้ใช้',
+    moduleStatusLabel: 'Session',
+    moduleStatusText: 'Secure workspace',
+    moduleJeTitle: 'Job Evaluation Workflow',
+    moduleJeText: 'กรอกข้อมูลงาน ให้คะแนน 12 ปัจจัย ทำ workflow อนุมัติ และพิมพ์แบบฟอร์มลงนาม',
+    moduleJeAction: 'เปิดแบบฟอร์มประเมิน',
+    moduleCompTitle: 'HR Compensation Dashboard',
+    moduleCompText: 'ดูภาพรวมค่าตอบแทน ความเป็นธรรม Compa-Ratio และข้อมูลกำลังคนระดับองค์กร',
+    moduleCompAction: 'เปิด Dashboard',
+    moduleSalaryTitle: 'Salary Structure / Analytics',
+    moduleSalaryText: 'วิเคราะห์โครงสร้างเงินเดือน ช่วง Min-Mid-Max benchmark ตลาด และความเสี่ยงเงินเดือนซ้อนทับ',
+    moduleSalaryAction: 'เปิด Salary Analytics',
+    moduleRegisterTitle: 'Evaluation Register',
+    moduleRegisterText: 'ติดตามรายการประเมินทั้งหมด สถานะ Pending With ลิงก์ Record/QR และ audit trail',
+    moduleRegisterAction: 'เปิด Register',
+    moduleAdminTitle: 'Admin / User Management',
+    moduleAdminText: 'เพิ่มผู้ใช้ กำหนด role และเปิด/ปิดสิทธิ์การใช้งานสำหรับ HR Analyst, Committee และ HR Head',
+    moduleAdminAction: 'เปิด Admin',
     jobInfo: 'ข้อมูลตำแหน่งงานที่ประเมิน',
     jobTitle: 'ชื่อตำแหน่งงาน (Job Title)', jobTitlePh: 'เช่น หัวหน้าแผนกผลิต',
     dept: 'แผนก (Department)', deptPh: 'เช่น Production',
@@ -1021,9 +1122,9 @@ const UI = {
     importError: 'ไม่สามารถอ่านไฟล์นี้ได้ กรุณาตรวจสอบว่าเป็นไฟล์ JSON ที่บันทึกจากระบบนี้',
   },
   en: {
-    pageTitle: '12-Factor Job Evaluation Calculator — ZG Industries',
-    hTitle: '12-Factor Job Evaluation Calculator',
-    hSub: 'ZG Industries (Thailand) Limited — companion tool to the JE Committee Scoring Anchor Guide',
+    pageTitle: 'HR Compensation & Job Evaluation Suite — ZG Industries',
+    hTitle: 'HR Compensation & Job Evaluation Suite',
+    hSub: 'ZG Industries (Thailand) Limited — job evaluation workflow, approvals, and compensation dashboard',
     appSignedIn: 'Signed in: {email}',
     authKicker: 'Secure HR Workspace',
     authTitle: 'Sign in before using the Job Evaluation system',
@@ -1038,6 +1139,7 @@ const UI = {
     authEmail: 'Email',
     authPassword: 'Password',
     authRequired: 'Please sign in to continue.',
+    navHome: 'Home',
     navEvaluation: 'Evaluation / Print Form',
     navJob: 'Job Setup',
     navScore: 'Scoring',
@@ -1067,6 +1169,25 @@ const UI = {
     sectionSignTitle: 'Signatures',
     sectionSignDesc: 'Prepare evaluator and approver sign-off details for print/PDF output.',
     sectionSignChip: 'Approval',
+    moduleHomeTitle: 'HR Compensation & Job Evaluation Suite',
+    moduleHomeDesc: 'Choose the work area from one place: job evaluation, compensation dashboard, evaluation register, or user management.',
+    moduleStatusLabel: 'Session',
+    moduleStatusText: 'Secure workspace',
+    moduleJeTitle: 'Job Evaluation Workflow',
+    moduleJeText: 'Capture job details, score the 12 factors, route approval workflow, and print the sign-off form.',
+    moduleJeAction: 'Open evaluation form',
+    moduleCompTitle: 'HR Compensation Dashboard',
+    moduleCompText: 'Review enterprise compensation, pay equity, compa-ratio, and workforce summary analytics.',
+    moduleCompAction: 'Open dashboard',
+    moduleSalaryTitle: 'Salary Structure / Analytics',
+    moduleSalaryText: 'Analyze min-mid-max ranges, market benchmarks, and pay compression risks by job level.',
+    moduleSalaryAction: 'Open salary analytics',
+    moduleRegisterTitle: 'Evaluation Register',
+    moduleRegisterText: 'Track evaluation records, status, pending owner, record links, QR, and audit trail.',
+    moduleRegisterAction: 'Open register',
+    moduleAdminTitle: 'Admin / User Management',
+    moduleAdminText: 'Add users, assign roles, and activate or deactivate access for HR Analyst, Committee, and HR Head.',
+    moduleAdminAction: 'Open admin',
     jobInfo: 'Job Being Evaluated',
     jobTitle: 'Job Title', jobTitlePh: 'e.g. Production Section Head',
     dept: 'Department', deptPh: 'e.g. Production',
@@ -1234,9 +1355,9 @@ const UI = {
     importError: 'Could not read this file — please make sure it is a JSON file saved from this tool.',
   },
   zh: {
-    pageTitle: '12要素职位评估计算器 — ZG Industries',
-    hTitle: '12要素职位评估计算器',
-    hSub: 'ZG Industries (Thailand) Limited — 配合 JE 评估委员会评分指南使用',
+    pageTitle: 'HR Compensation & Job Evaluation Suite — ZG Industries',
+    hTitle: 'HR Compensation & Job Evaluation Suite',
+    hSub: 'ZG Industries (Thailand) Limited — 职位评估流程、审批与薪酬仪表板',
     appSignedIn: '已登录：{email}',
     authKicker: '安全 HR 工作区',
     authTitle: '使用职位评估系统前请先登录',
@@ -1251,6 +1372,7 @@ const UI = {
     authEmail: '邮箱',
     authPassword: '密码',
     authRequired: '请登录后继续。',
+    navHome: '首页',
     navEvaluation: '评估/打印表单',
     navJob: '职位信息',
     navScore: '评分',
@@ -1280,6 +1402,25 @@ const UI = {
     sectionSignTitle: '签署',
     sectionSignDesc: '准备评估人和批准人的签署信息，用于打印/PDF。',
     sectionSignChip: '批准',
+    moduleHomeTitle: 'HR Compensation & Job Evaluation Suite',
+    moduleHomeDesc: '从一个入口选择工作区：职位评估、薪酬仪表板、评估登记表或用户管理。',
+    moduleStatusLabel: '会话',
+    moduleStatusText: '安全工作区',
+    moduleJeTitle: '职位评估流程',
+    moduleJeText: '填写职位信息、12要素评分、流转审批流程，并打印签署表。',
+    moduleJeAction: '打开评估表',
+    moduleCompTitle: '薪酬仪表板',
+    moduleCompText: '查看企业薪酬、薪酬公平性、薪酬比率和人员概览。',
+    moduleCompAction: '打开仪表板',
+    moduleSalaryTitle: '薪资结构/分析',
+    moduleSalaryText: '按职级分析薪资区间、市场基准和薪酬压缩风险。',
+    moduleSalaryAction: '打开薪资分析',
+    moduleRegisterTitle: '评估登记表',
+    moduleRegisterText: '跟踪评估记录、状态、待处理人、记录链接、二维码和审计轨迹。',
+    moduleRegisterAction: '打开登记表',
+    moduleAdminTitle: '用户管理',
+    moduleAdminText: '新增用户、分配角色，并启用或停用HR Analyst、Committee和HR Head权限。',
+    moduleAdminAction: '打开用户管理',
     jobInfo: '被评估职位信息',
     jobTitle: '职位名称 (Job Title)', jobTitlePh: '例如：生产科科长',
     dept: '部门 (Department)', deptPh: '例如：生产部',
@@ -2024,8 +2165,8 @@ function bandIndex(v){
 }
 
 let currentLang = 'th';
-let activeSection = sessionStorage.getItem('jeActiveSection') || 'evaluation';
-if (!['evaluation', 'history', 'admin'].includes(activeSection)) activeSection = 'evaluation';
+let activeSection = sessionStorage.getItem('jeActiveSection') || 'home';
+if (!['home', 'evaluation', 'history', 'admin'].includes(activeSection)) activeSection = 'home';
 const state = {};
 FACTORS.forEach(f => state[f.key] = 10);
 const rationales = {};
@@ -3422,7 +3563,7 @@ function renderRationaleState(key){
 }
 
 function switchSection(section){
-  if (!['evaluation', 'history', 'admin'].includes(section)) section = 'evaluation';
+  if (!['home', 'evaluation', 'history', 'admin'].includes(section)) section = 'home';
   activeSection = section;
   sessionStorage.setItem('jeActiveSection', section);
   const evaluationPanels = ['job', 'score', 'workflow', 'reference', 'signatures'];
@@ -3437,6 +3578,17 @@ function switchSection(section){
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.section === section);
   });
+}
+
+function openSuiteModule(section){
+  switchSection(section);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function openCompensationDashboard(tab = 'dashboard'){
+  const url = new URL('compensation_dashboard.html', window.location.href);
+  url.searchParams.set('tab', tab);
+  window.location.href = url.toString();
 }
 
 function toggleAnchor(key){
@@ -3614,9 +3766,29 @@ function applyStaticText(){
   document.getElementById('btnAuthCreate').textContent = ui.historySignUp;
   document.getElementById('btnAuthReset').textContent = ui.historyResetPassword;
   document.getElementById('btnAuthSetPassword').textContent = ui.historySetPassword;
+  document.getElementById('navHome').textContent = ui.navHome;
   document.getElementById('navEvaluation').textContent = ui.navEvaluation;
   document.getElementById('navHistory').textContent = ui.navHistory;
   document.getElementById('navAdmin').textContent = ui.navAdmin;
+  document.getElementById('moduleHomeTitle').textContent = ui.moduleHomeTitle;
+  document.getElementById('moduleHomeDesc').textContent = ui.moduleHomeDesc;
+  document.getElementById('moduleStatusLabel').textContent = ui.moduleStatusLabel;
+  document.getElementById('moduleStatusText').textContent = ui.moduleStatusText;
+  document.getElementById('moduleJeTitle').textContent = ui.moduleJeTitle;
+  document.getElementById('moduleJeText').textContent = ui.moduleJeText;
+  document.getElementById('moduleJeAction').textContent = ui.moduleJeAction;
+  document.getElementById('moduleCompTitle').textContent = ui.moduleCompTitle;
+  document.getElementById('moduleCompText').textContent = ui.moduleCompText;
+  document.getElementById('moduleCompAction').textContent = ui.moduleCompAction;
+  document.getElementById('moduleSalaryTitle').textContent = ui.moduleSalaryTitle;
+  document.getElementById('moduleSalaryText').textContent = ui.moduleSalaryText;
+  document.getElementById('moduleSalaryAction').textContent = ui.moduleSalaryAction;
+  document.getElementById('moduleRegisterTitle').textContent = ui.moduleRegisterTitle;
+  document.getElementById('moduleRegisterText').textContent = ui.moduleRegisterText;
+  document.getElementById('moduleRegisterAction').textContent = ui.moduleRegisterAction;
+  document.getElementById('moduleAdminTitle').textContent = ui.moduleAdminTitle;
+  document.getElementById('moduleAdminText').textContent = ui.moduleAdminText;
+  document.getElementById('moduleAdminAction').textContent = ui.moduleAdminAction;
   document.getElementById('sectionJobTitle').textContent = ui.sectionJobTitle;
   document.getElementById('sectionJobDesc').textContent = ui.sectionJobDesc;
   document.getElementById('sectionJobChip').textContent = ui.sectionJobChip;

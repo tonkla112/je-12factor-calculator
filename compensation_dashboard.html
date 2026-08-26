@@ -1,0 +1,2691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Compensation &amp; Job Evaluation Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="je_score_grade_model.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        display: ['Sora', 'sans-serif'],
+        body: ['IBM Plex Sans', 'sans-serif'],
+      },
+      colors: {
+        navy: {
+          950: '#050b18', 900: '#0a1428', 850: '#0d1a33', 800: '#111f3d',
+          700: '#16294d', 600: '#1e3660', 500: '#28477a',
+        },
+        slate: {
+          925: '#0b1120',
+        },
+        accent: {
+          teal: '#2dd4bf', gold: '#f5b942', rose: '#fb7185', emerald: '#34d399',
+          amber: '#fbbf24', indigo: '#818cf8',
+        }
+      },
+      boxShadow: {
+        card: '0 1px 2px rgba(8,15,35,0.06), 0 8px 24px -8px rgba(8,15,35,0.10)',
+        cardhover: '0 2px 4px rgba(8,15,35,0.08), 0 16px 32px -12px rgba(8,15,35,0.18)',
+      }
+    }
+  }
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'IBM Plex Sans', sans-serif; background: #f4f6fb; }
+  h1,h2,h3,h4,.font-display { font-family: 'Sora', sans-serif; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c7cfdd; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #a7b1c4; }
+  .tab-panel { display: none; animation: fadeIn .35s ease; }
+  .tab-panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity:1; transform: translateY(0);} }
+  .navlink { position: relative; }
+  .navlink.active { background: linear-gradient(135deg, #16294d, #1e3660); color: #fff; box-shadow: 0 4px 14px -4px rgba(45,212,191,0.25); }
+  .navlink.active .navicon { color: #2dd4bf; }
+  .navlink:not(.active):hover { background: rgba(255,255,255,0.06); }
+  .kpi-card { transition: transform .25s ease, box-shadow .25s ease; }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -12px rgba(8,15,35,0.18); }
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; letter-spacing:.02em; white-space:nowrap;}
+  .range-slider { -webkit-appearance:none; height:6px; border-radius:999px; background:#e2e6f0; outline:none; }
+  .range-slider::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:#16294d; border:3px solid #2dd4bf; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.25); }
+  .range-slider::-moz-range-thumb { width:18px; height:18px; border-radius:50%; background:#16294d; border:3px solid #2dd4bf; cursor:pointer; }
+  .je-slider::-webkit-slider-thumb { background:#0d1a33; border-color:#f5b942; }
+  .je-slider::-moz-range-thumb { background:#0d1a33; border-color:#f5b942; }
+  table th { position: sticky; top: 0; background: #f8f9fc; z-index: 5; }
+  .glass { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); }
+  .score-ring { transition: stroke-dasharray .6s cubic-bezier(.4,0,.2,1); }
+  .fade-row { animation: fadeIn .3s ease; }
+  input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+  .chip { transition: all .18s ease; }
+  .chip.active { background:#0d1a33; color:#fff; }
+  .grain { background-image: radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 3px 3px; }
+  .sim-target-btn { background:#fff; border-color:#e2e8f0; color:#64748b; transition: all .15s ease; }
+  .sim-target-btn.active { background:#0d1a33; border-color:#0d1a33; color:#fff; }
+  .merit-cell { width: 64px; text-align: center; border-radius: 8px; border: 1px solid #e2e8f0; padding: 4px 2px; font-weight: 600; font-size: 13px; }
+
+  /* Frozen identity column — keeps the ID/Level column visible while
+     scrolling wide tables (Structure, Directory, Simulator) horizontally. */
+  table.tbl-frozen th:first-child,
+  table.tbl-frozen td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+    box-shadow: 1px 0 0 0 #f1f5f9;
+  }
+  table.tbl-frozen thead th:first-child {
+    z-index: 6;
+    background: #f8f9fc;
+  }
+  table.tbl-frozen tbody tr:hover td:first-child {
+    background: #f8fafc;
+  }
+
+  /* Manager vs. Admin view (client-side visual filter, not real access
+     control — see the VIEW ROLE comment in app.js for the caveat). Manager
+     view hides individual base salary / compa-ratio / range penetration /
+     numeric flight-risk score and disables Excel export. */
+  body.role-manager .admin-col { display: none !important; }
+
+  /* Print / PDF export — cheap, dependency-free path via the browser's
+     native print dialog (users can "Save as PDF" from there). Hides chrome
+     (sidebar, mobile nav, controls, inputs) and prints only the active tab
+     panel full-width on a plain white background. */
+  @media print {
+    body { background: #fff; }
+    aside, #mobileMenu, .lg\:hidden, #printBtn, #langSwitch,
+    header .hidden.xl\:flex, header .hidden.md\:flex,
+    button, .pg-btn, #empPagination, #empActiveFilters,
+    input[type="range"], input[type="text"], input[type="search"], select {
+      display: none !important;
+    }
+    input.merit-cell { border: none !important; background: transparent !important; -webkit-appearance: none; padding: 2px; }
+    header { position: static !important; box-shadow: none !important; }
+    main { padding-top: 0 !important; }
+    .tab-panel { display: none !important; }
+    .tab-panel.active { display: block !important; }
+    .kpi-card, .shadow-card { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+    .overflow-x-auto, .overflow-y-auto { overflow: visible !important; max-height: none !important; }
+    table.tbl-frozen th:first-child, table.tbl-frozen td:first-child { position: static !important; box-shadow: none !important; }
+    table th { position: static !important; }
+    canvas { max-width: 100% !important; }
+    section.tab-panel > div { break-inside: avoid; }
+  }
+</style>
+</head>
+<body class="text-slate-800 antialiased">
+
+<!-- LOGIN GATE -->
+<div id="loginScreen" class="fixed inset-0 z-[100] flex items-center justify-center bg-navy-950 grain px-4">
+  <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-teal to-navy-600 flex items-center justify-center shadow-lg shrink-0">
+        <i data-lucide="scale" class="w-5 h-5 text-navy-950"></i>
+      </div>
+      <div class="leading-tight">
+        <p class="font-display font-bold text-navy-900 text-[15px]">HR Compensation</p>
+        <p class="text-[11px] text-slate-400 tracking-wide">&amp; Job Evaluation System</p>
+      </div>
+    </div>
+    <h2 id="authTitle" class="font-display text-lg font-bold text-navy-900 mb-1">Sign in</h2>
+    <p id="authSubtitle" class="text-xs text-slate-500 mb-5">Access is restricted to authorized HR &amp; management accounts.</p>
+    <form id="authForm" class="space-y-3">
+      <div>
+        <label class="text-xs font-semibold text-slate-600">Email</label>
+        <input id="authEmail" type="email" required autocomplete="username" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy-800/30" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-slate-600">Password</label>
+        <input id="authPassword" type="password" required autocomplete="current-password" minlength="6" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-navy-800/30" />
+      </div>
+      <p id="authError" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2"></p>
+      <button id="authSubmitBtn" type="submit" class="w-full flex items-center justify-center gap-2 bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+        <span id="authSubmitLabel">Sign in</span>
+      </button>
+    </form>
+    <p class="mt-4 text-[11px] text-slate-500 leading-relaxed">Need access? Ask an HR Admin to provision your account before signing in.</p>
+    <p class="mt-3 text-[10px] text-slate-400 leading-relaxed">Data access is filtered by role at the database level (Manager view redacts individual pay figures).</p>
+  </div>
+</div>
+
+<div id="appShell" class="flex min-h-screen hidden">
+
+  <!-- Sidebar -->
+  <aside class="hidden lg:flex flex-col w-64 shrink-0 bg-gradient-to-b from-navy-950 via-navy-900 to-navy-850 text-slate-200 grain">
+    <div class="px-6 py-6 flex items-center gap-3 border-b border-white/10">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-teal to-navy-600 flex items-center justify-center shadow-lg shrink-0">
+        <i data-lucide="scale" class="w-5 h-5 text-navy-950"></i>
+      </div>
+      <div class="leading-tight">
+        <p class="font-display font-bold text-white text-[15px]">HR Compensation</p>
+        <p class="text-[11px] text-slate-400 tracking-wide" data-i18n="sidebar_subtitle">&amp; Job Evaluation System</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 px-3 py-5 space-y-1.5">
+      <button data-tab="dashboard" class="navlink active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 transition-all">
+        <i data-lucide="layout-dashboard" class="navicon w-[18px] h-[18px]"></i> <span data-i18n="nav_dashboard">Executive Dashboard</span>
+      </button>
+      <button data-tab="jobeval" class="navlink w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 transition-all">
+        <i data-lucide="scale" class="navicon w-[18px] h-[18px]"></i> <span data-i18n="nav_jobeval">Job Evaluation (JE)</span>
+      </button>
+      <button data-tab="structure" class="navlink w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 transition-all">
+        <i data-lucide="trending-up" class="navicon w-[18px] h-[18px]"></i> <span data-i18n="nav_structure">Salary Structure</span>
+      </button>
+      <button data-tab="directory" class="navlink w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 transition-all">
+        <i data-lucide="users" class="navicon w-[18px] h-[18px]"></i> <span data-i18n="nav_directory">Employee Directory</span>
+      </button>
+      <button data-tab="simulator" class="navlink admin-col w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 transition-all">
+        <i data-lucide="calculator" class="navicon w-[18px] h-[18px]"></i> <span data-i18n="nav_simulator">Compensation Simulator</span>
+      </button>
+    </nav>
+
+    <div class="px-4 py-4 mx-3 mb-4 rounded-xl bg-white/5 border border-white/10">
+      <p class="text-[11px] text-slate-400 mb-1" data-i18n="sidebar_data_model">Data Model</p>
+      <p class="text-xs text-slate-300 leading-relaxed" data-i18n="sidebar_data_model_desc">680 employees &middot; 8 job levels &middot; 100 benchmarked roles</p>
+    </div>
+    <div class="px-6 py-4 border-t border-white/10 text-[11px] text-slate-500" data-i18n="sidebar_footer">
+      Thailand Manufacturing &middot; BOI-aligned
+    </div>
+  </aside>
+
+  <!-- Mobile top nav -->
+  <div class="lg:hidden fixed top-0 inset-x-0 z-40 bg-navy-950 text-white flex items-center justify-between px-4 py-3 shadow-lg">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-teal to-navy-600 flex items-center justify-center">
+        <i data-lucide="scale" class="w-4 h-4 text-navy-950"></i>
+      </div>
+      <span class="font-display font-bold text-sm">HR Comp System</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div id="langSwitchMobile" class="flex items-center bg-white/10 rounded-full p-0.5 text-[11px] font-semibold"></div>
+      <button id="mobileMenuBtn" class="p-2"><i data-lucide="menu" class="w-5 h-5"></i></button>
+    </div>
+  </div>
+  <div id="mobileMenu" class="lg:hidden hidden fixed top-[52px] inset-x-0 z-30 bg-navy-900 text-slate-200 px-3 py-3 space-y-1.5 shadow-xl">
+    <button data-tab="dashboard" class="navlink-m w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium">
+      <i data-lucide="layout-dashboard" class="w-[18px] h-[18px]"></i> <span data-i18n="nav_dashboard">Executive Dashboard</span>
+    </button>
+    <button data-tab="jobeval" class="navlink-m w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium">
+      <i data-lucide="scale" class="w-[18px] h-[18px]"></i> <span data-i18n="nav_jobeval">Job Evaluation (JE)</span>
+    </button>
+    <button data-tab="structure" class="navlink-m w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium">
+      <i data-lucide="trending-up" class="w-[18px] h-[18px]"></i> <span data-i18n="nav_structure">Salary Structure</span>
+    </button>
+    <button data-tab="directory" class="navlink-m w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium">
+      <i data-lucide="users" class="w-[18px] h-[18px]"></i> <span data-i18n="nav_directory">Employee Directory</span>
+    </button>
+    <button data-tab="simulator" class="navlink-m admin-col w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium">
+      <i data-lucide="calculator" class="w-[18px] h-[18px]"></i> <span data-i18n="nav_simulator">Compensation Simulator</span>
+    </button>
+  </div>
+
+  <!-- Main -->
+  <main class="flex-1 min-w-0 pt-14 lg:pt-0">
+    <header class="hidden lg:flex items-center justify-between px-8 py-5 bg-white/80 backdrop-blur border-b border-slate-200 sticky top-0 z-20">
+      <div>
+        <h1 id="pageTitle" class="font-display text-xl font-bold text-navy-900">Executive Compensation Dashboard</h1>
+        <p id="pageSubtitle" class="text-sm text-slate-500 mt-0.5">Company-wide pay, equity &amp; job levelling overview</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="hidden xl:flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
+          <i data-lucide="calendar" class="w-3.5 h-3.5"></i> <span id="todayDate"></span>
+        </span>
+        <span class="hidden md:flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> <span data-i18n="live_data_model">Live Data Model</span>
+        </span>
+        <div class="flex items-center gap-1 bg-slate-100 rounded-full p-1" id="roleSwitch" role="group" aria-label="View role selector" title="Server-enforced by your account role; Admins may preview the Manager view"></div>
+        <div class="flex items-center gap-1 bg-slate-100 rounded-full p-1" id="langSwitch" role="group" aria-label="Language selector"></div>
+        <button id="printBtn" class="flex items-center gap-1.5 text-xs font-medium bg-navy-900 hover:bg-navy-800 text-white px-3.5 py-2 rounded-lg transition-colors shadow-sm">
+          <i data-lucide="printer" class="w-3.5 h-3.5"></i> <span data-i18n="print_report">Print / Export PDF</span>
+        </button>
+        <div class="flex items-center gap-1.5 pl-2 ml-1 border-l border-slate-200">
+          <span id="userBadge" class="hidden xl:inline text-xs text-slate-500 max-w-[160px] truncate" title=""></span>
+          <button id="signOutBtn" class="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-rose-600 px-2.5 py-2 rounded-lg transition-colors" title="Sign out">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="px-4 sm:px-6 lg:px-8 py-6 max-w-[1600px] mx-auto">
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-panel active space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="kpi-card bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide" data-i18n="kpi_headcount">Total Headcount</p>
+                <p class="font-display text-3xl font-bold text-navy-900 mt-2" id="kpiHeadcount">0</p>
+                <p class="text-xs text-slate-400 mt-1" id="kpiHeadcountDesc" data-i18n="kpi_headcount_desc">Across 8 job levels &amp; 17 depts</p>
+              </div>
+              <div class="w-11 h-11 rounded-xl bg-navy-900/5 flex items-center justify-center text-navy-800"><i data-lucide="users-round" class="w-5 h-5"></i></div>
+            </div>
+          </div>
+          <div class="kpi-card bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide" data-i18n="kpi_total_rem">Annual Total Remuneration</p>
+                <p class="font-display text-3xl font-bold text-navy-900 mt-2" id="kpiTotalRem">฿0</p>
+                <p class="text-xs text-slate-400 mt-1" data-i18n="kpi_total_rem_desc">Base + allowances + bonus</p>
+              </div>
+              <div class="w-11 h-11 rounded-xl bg-accent-teal/10 flex items-center justify-center text-teal-600"><i data-lucide="wallet" class="w-5 h-5"></i></div>
+            </div>
+          </div>
+          <div class="kpi-card bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide" data-i18n="kpi_compa">Average Compa-Ratio</p>
+                <p class="font-display text-3xl font-bold text-navy-900 mt-2"><span id="kpiCompaRatio">0.00</span></p>
+                <p class="text-xs text-slate-400 mt-1"><span id="kpiCompaRatioPct">0%</span> <span data-i18n="kpi_compa_desc">of market midpoint</span></p>
+              </div>
+              <div class="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500"><i data-lucide="gauge" class="w-5 h-5"></i></div>
+            </div>
+          </div>
+          <div class="kpi-card bg-white rounded-2xl shadow-card border border-rose-100 p-5 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-full -mr-8 -mt-8"></div>
+            <div class="flex items-start justify-between relative">
+              <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide" data-i18n="kpi_flight_risk">High Flight Risk Talent</p>
+                <p class="font-display text-3xl font-bold text-rose-600 mt-2" id="kpiFlightRisk">0</p>
+                <p class="text-[11px] text-slate-400 mt-1" id="kpiFlightRiskDesc" data-i18n="kpi_flight_risk_desc">+{medium} medium-risk</p>
+                <span class="badge bg-rose-100 text-rose-700 mt-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> <span data-i18n="kpi_flight_risk_badge">Retention Alert</span></span>
+              </div>
+              <div class="w-11 h-11 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600"><i data-lucide="flame" class="w-5 h-5"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div><h3 class="font-display font-semibold text-navy-900" data-i18n="chart_benchmark_title">Competitor Benchmark vs. Our Midpoint</h3><p class="text-xs text-slate-400" data-i18n="chart_benchmark_sub">P25 / P50 / P75 / Midpoint / Competitors A-C by level</p></div>
+              <i data-lucide="chart-bar" class="w-4 h-4 text-slate-300"></i>
+            </div>
+            <div class="h-72"><canvas id="chartBenchmark"></canvas></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div><h3 class="font-display font-semibold text-navy-900" data-i18n="chart_equity_title">Pay Equity by Gender</h3><p class="text-xs text-slate-400" data-i18n="chart_equity_sub">Average base salary, Male vs Female, per level</p></div>
+              <i data-lucide="scale" class="w-4 h-4 text-slate-300"></i>
+            </div>
+            <div class="h-72"><canvas id="chartEquity"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <h3 class="font-display font-semibold text-navy-900 mb-4" data-i18n="chart_headcount_title">Headcount by Job Level</h3>
+            <div class="h-64"><canvas id="chartHeadcount"></canvas></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <h3 class="font-display font-semibold text-navy-900 mb-4" data-i18n="chart_paystatus_title">Pay Status Distribution</h3>
+            <div class="h-64"><canvas id="chartPayStatus"></canvas></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <h3 class="font-display font-semibold text-navy-900 mb-4" data-i18n="chart_perf_title">Performance Rating Distribution</h3>
+            <div class="h-64"><canvas id="chartPerformance"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <div class="flex items-center justify-between mb-1">
+              <div><h3 class="font-display font-semibold text-navy-900" data-i18n="chart_compa_dist_title">Compa-Ratio Distribution</h3><p class="text-xs text-slate-400" data-i18n="chart_compa_dist_sub">Headcount by compa-ratio band — a single average can hide this shape</p></div>
+              <i data-lucide="chart-bar" class="w-4 h-4 text-slate-300"></i>
+            </div>
+            <div class="h-64 mt-3"><canvas id="chartCompaDist"></canvas></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+            <div class="flex items-center justify-between mb-1">
+              <div><h3 class="font-display font-semibold text-navy-900" data-i18n="chart_risk_tier_title">Flight Risk Tier Breakdown</h3><p class="text-xs text-slate-400" data-i18n="chart_risk_tier_sub">Weighted score: pay gap + performance + tenure (est.) + level</p></div>
+              <i data-lucide="flame" class="w-4 h-4 text-slate-300"></i>
+            </div>
+            <div class="h-64 mt-3"><canvas id="chartRiskTier"></canvas></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+          <h3 class="font-display font-semibold text-navy-900 mb-4" data-i18n="chart_dept_title">Average Base Salary by Department</h3>
+          <div class="h-96"><canvas id="chartDept"></canvas></div>
+        </div>
+      </section>
+
+      <!-- TAB 2: JOB EVALUATION -->
+      <section id="tab-jobeval" class="tab-panel space-y-6">
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-5">
+          <div class="xl:col-span-3 bg-white rounded-2xl shadow-card border border-slate-100 p-5 sm:p-6">
+            <div class="flex items-center justify-between mb-1">
+              <h3 class="font-display font-semibold text-navy-900" data-i18n="je_calc_title">12-Factor Point Evaluation Calculator</h3>
+              <button id="jeResetBtn" class="text-xs text-slate-500 hover:text-navy-800 flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span data-i18n="reset">Reset</span></button>
+            </div>
+            <p class="text-xs text-slate-400 mb-5" data-i18n="je_calc_sub">Set each factor from 10&ndash;100 to score a role and get an instant recommended job level.</p>
+            <div id="jeFactorsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4"></div>
+          </div>
+
+          <div class="xl:col-span-2 space-y-5">
+            <div class="bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 rounded-2xl shadow-card p-6 text-white relative overflow-hidden grain">
+              <div class="absolute -right-10 -top-10 w-40 h-40 bg-accent-teal/20 rounded-full blur-2xl"></div>
+              <p class="text-xs uppercase tracking-wide text-slate-300 relative" data-i18n="je_total_score">Total Evaluation Score</p>
+              <p class="font-display text-5xl font-extrabold mt-2 relative" id="jeTotalScore">0</p>
+              <p class="text-xs text-slate-400 relative" data-i18n="je_max_points">out of 1,200 max points</p>
+              <div class="mt-5 relative">
+                <div class="flex items-center justify-between text-xs text-slate-300 mb-1">
+                  <span data-i18n="je_recommended_level">Recommended Job Level</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span id="jeRecLevel" class="font-display text-3xl font-bold text-accent-teal">L1</span>
+                  <span id="jeRecTitle" class="text-sm text-slate-200"></span>
+                </div>
+              </div>
+              <div class="mt-4 h-2 rounded-full bg-white/10 overflow-hidden relative">
+                <div id="jeScoreBar" class="h-full bg-gradient-to-r from-accent-teal to-emerald-400 transition-all duration-500" style="width:0%"></div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+              <h4 class="font-display font-semibold text-navy-900 mb-3 text-sm" data-i18n="je_score_bands">Score-to-Level Reference Bands</h4>
+              <div id="jeLevelBands" class="space-y-1.5 text-xs"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+              <h4 class="font-display font-semibold text-navy-900 mb-3 text-sm" data-i18n="je_factor_profile">Factor Score Profile</h4>
+              <div class="h-48"><canvas id="chartJERadar"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+            <h3 class="font-display font-semibold text-navy-900"><span data-i18n="je_ref_table">Evaluation Reference Table</span> <span class="text-slate-400 font-normal text-sm" data-i18n="je_ref_table_count">(100 benchmarked roles)</span></h3>
+            <div class="flex flex-wrap gap-2">
+              <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input id="jeSearch" type="text" data-i18n-placeholder="je_search_ph" placeholder="Search job title or ID..." class="pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-navy-800/20 focus:border-navy-800 w-52">
+              </div>
+              <select id="jeDeptFilter" class="text-sm rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-navy-800/20"><option value="" data-i18n="all_departments">All Departments</option></select>
+              <select id="jeLevelFilter" class="text-sm rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-navy-800/20"><option value="" data-i18n="all_levels">All Levels</option></select>
+            </div>
+          </div>
+          <div class="overflow-x-auto max-h-[480px] overflow-y-auto rounded-xl border border-slate-100">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-left text-slate-500 border-b border-slate-100">
+                  <th class="px-3 py-2.5 font-semibold" data-i18n="col_job_id">Job ID</th>
+                  <th class="px-3 py-2.5 font-semibold" data-i18n="col_job_title">Job Title</th>
+                  <th class="px-3 py-2.5 font-semibold" data-i18n="col_department">Department</th>
+                  <th class="px-3 py-2.5 font-semibold" data-i18n="col_level">Level</th>
+                  <th class="px-3 py-2.5 font-semibold text-right" data-i18n="col_total_score">Total Score</th>
+                </tr>
+              </thead>
+              <tbody id="jeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: SALARY STRUCTURE -->
+      <section id="tab-structure" class="tab-panel space-y-6">
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-display font-semibold text-navy-900 flex items-center gap-2"><i data-lucide="shield-alert" class="w-4 h-4 text-slate-400"></i><span data-i18n="compression_title">Pay Compression Alerts</span></h3>
+          </div>
+          <div id="compressionAlerts" class="space-y-2"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-display font-semibold text-navy-900" data-i18n="struct_title">Level-by-Level Salary Structure</h3>
+            <button id="structResetBtn" class="text-xs text-slate-500 hover:text-navy-800 flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i><span data-i18n="reset_baseline">Reset to baseline</span></button>
+          </div>
+          <p class="text-xs text-slate-400 mb-5" data-i18n="struct_sub">Adjust Range Spread and Midpoint per level with the &ldquo;what-if&rdquo; sliders &mdash; Min/Max recalculate instantly.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[980px] tbl-frozen">
+              <thead>
+                <tr class="text-left text-slate-500 border-b border-slate-100 text-xs uppercase tracking-wide">
+                  <th class="px-3 py-2.5 font-semibold" data-i18n="col_level">Level</th>
+                  <th class="px-3 py-2.5 font-semibold w-48" data-i18n="col_range_spread">Range Spread</th>
+                  <th class="px-3 py-2.5 font-semibold w-56" data-i18n="col_midpoint">Midpoint</th>
+                  <th class="px-3 py-2.5 font-semibold text-right" data-i18n="col_minimum">Minimum</th>
+                  <th class="px-3 py-2.5 font-semibold text-right" data-i18n="col_maximum">Maximum</th>
+                  <th class="px-3 py-2.5 font-semibold text-right" data-i18n="col_p25">Market P25</th>
+                  <th class="px-3 py-2.5 font-semibold text-right" data-i18n="col_p50">Market P50</th>
+                  <th class="px-3 py-2.5 font-semibold text-right" data-i18n="col_p75">Market P75</th>
+                </tr>
+              </thead>
+              <tbody id="structTableBody" class="divide-y divide-slate-50"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+          <h3 class="font-display font-semibold text-navy-900 mb-1" data-i18n="bands_title">Salary Band Range Chart</h3>
+          <p class="text-xs text-slate-400 mb-4" data-i18n="bands_sub">Floating Min &ndash; Midpoint &ndash; Max bracket per job level (live, reflects what-if sliders)</p>
+          <div class="h-96"><canvas id="chartBands"></canvas></div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5">
+          <h3 class="font-display font-semibold text-navy-900 mb-1" data-i18n="progression_title">Midpoint Progression</h3>
+          <p class="text-xs text-slate-400 mb-4" data-i18n="progression_sub">Compa-progression between consecutive job levels</p>
+          <div id="progressionBar" class="grid grid-cols-8 gap-2 text-center text-xs"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: EMPLOYEE DIRECTORY -->
+      <section id="tab-directory" class="tab-panel space-y-5">
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-4 sm:p-5">
+          <div class="flex flex-col xl:flex-row xl:items-center gap-3 xl:justify-between">
+            <div class="relative w-full xl:w-72">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input id="empSearch" type="text" data-i18n-placeholder="emp_search_ph" placeholder="Search ID, name or job title..." class="pl-9 pr-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-navy-800/20 focus:border-navy-800 w-full">
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <select id="empDeptFilter" class="text-sm rounded-lg border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-navy-800/20"><option value="" data-i18n="all_departments">All Departments</option></select>
+              <select id="empLevelFilter" class="text-sm rounded-lg border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-navy-800/20"><option value="" data-i18n="all_levels">All Levels</option></select>
+              <select id="empStatusFilter" class="text-sm rounded-lg border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-navy-800/20">
+                <option value="" data-i18n="all_pay_status">All Pay Status</option>
+                <option value="Red" data-i18n="status_red">Red Circle (High)</option>
+                <option value="InRange" data-i18n="status_inrange">In-Range</option>
+                <option value="Green" data-i18n="status_green">Green Circle (Low)</option>
+              </select>
+              <select id="empRiskFilter" class="text-sm rounded-lg border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-navy-800/20">
+                <option value="" data-i18n="all_flight_risk">All Flight Risk</option>
+                <option value="Critical" data-i18n="risk_critical">Critical</option>
+                <option value="Medium" data-i18n="risk_medium">Medium</option>
+                <option value="Low" data-i18n="risk_low">Low</option>
+              </select>
+              <button id="empExportBtn" class="admin-col flex items-center gap-1.5 text-sm font-medium bg-navy-900 hover:bg-navy-800 text-white px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+                <i data-lucide="download" class="w-4 h-4"></i> <span data-i18n="export">Export</span>
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 mt-3" id="empActiveFilters"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 overflow-hidden">
+          <div class="overflow-x-auto max-h-[560px] overflow-y-auto">
+            <table class="w-full text-xs tbl-frozen">
+              <thead>
+                <tr class="text-left text-slate-500 border-b border-slate-100 select-none">
+                  <th data-sort="id" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800"><span data-i18n="col_emp_id">Emp ID</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="name" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800"><span data-i18n="col_name">Name</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="dept" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800"><span data-i18n="col_department">Department</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="title" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800"><span data-i18n="col_job_title">Job Title</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="level" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800"><span data-i18n="col_level">Level</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="gender" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800"><span data-i18n="col_gender">Gender</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="base" class="admin-col px-3 py-3 font-semibold cursor-pointer hover:text-navy-800 text-right"><span data-i18n="col_base_salary">Base Salary</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="compa" class="admin-col px-3 py-3 font-semibold cursor-pointer hover:text-navy-800 text-right"><span data-i18n="col_compa">Compa-Ratio</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="penetration" class="admin-col px-3 py-3 font-semibold cursor-pointer hover:text-navy-800 text-right"><span data-i18n="col_range_penetration">Range Penetration</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th data-sort="perf" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800 text-center"><span data-i18n="col_perf">Perf.</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                  <th class="px-3 py-3 font-semibold" data-i18n="col_pay_status">Pay Status</th>
+                  <th data-sort="risk" class="px-3 py-3 font-semibold cursor-pointer hover:text-navy-800"><span data-i18n="col_flight_risk">Flight Risk</span> <i data-lucide="chevrons-up-down" class="w-3 h-3 inline"></i></th>
+                </tr>
+              </thead>
+              <tbody id="empTableBody"></tbody>
+            </table>
+          </div>
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3.5 border-t border-slate-100 text-xs text-slate-500">
+            <div class="flex items-center gap-2">
+              <span id="empResultCount">0 employees</span>
+              <span class="text-slate-300">|</span>
+              <label class="flex items-center gap-1.5"><span data-i18n="rows_label">Rows:</span>
+                <select id="empPageSize" class="rounded-md border border-slate-200 px-2 py-1 text-xs focus:outline-none">
+                  <option value="10">10</option>
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                </select>
+              </label>
+            </div>
+            <div class="flex items-center gap-1" id="empPagination"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: COMPENSATION SIMULATOR -->
+      <section id="tab-simulator" class="tab-panel space-y-6">
+
+        <!-- 5A. Budget Simulator -->
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5 sm:p-6">
+          <div class="flex items-center gap-2 mb-1">
+            <i data-lucide="piggy-bank" class="w-4 h-4 text-navy-700"></i>
+            <h3 class="font-display font-semibold text-navy-900" data-i18n="sim_budget_title">Salary Increase Budget Simulator</h3>
+          </div>
+          <p class="text-xs text-slate-400 mb-5" data-i18n="sim_budget_sub">Model an annual increase pool and see the payroll cost and compa-ratio impact before you commit to it.</p>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 space-y-5">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-semibold text-slate-600" data-i18n="sim_budget_pct">Budget (% of annual base payroll)</label>
+                  <span class="text-sm font-bold text-navy-900 bg-slate-100 rounded-md px-2 py-0.5" id="simBudgetVal">3.0%</span>
+                </div>
+                <input type="range" id="simBudgetSlider" min="0" max="8" step="0.25" value="3" class="range-slider w-full">
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-slate-600 mb-1.5 block" data-i18n="sim_strategy">Allocation strategy</label>
+                <select id="simStrategy" class="w-full text-sm rounded-lg border border-slate-200 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-navy-800/20">
+                  <option value="meritWeighted" data-i18n="sim_strategy_merit">Merit-weighted (performance + pay gap)</option>
+                  <option value="flat" data-i18n="sim_strategy_flat">Flat % across all employees</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-1 gap-3 pt-1">
+                <div class="rounded-xl bg-slate-50 border border-slate-100 p-3.5">
+                  <p class="text-[11px] text-slate-500" data-i18n="sim_total_cost">Total Annual Cost</p>
+                  <p class="font-display text-xl font-bold text-navy-900 mt-0.5" id="simTotalCost">฿0</p>
+                </div>
+                <div class="rounded-xl bg-slate-50 border border-slate-100 p-3.5">
+                  <p class="text-[11px] text-slate-500" data-i18n="sim_compa_shift">Avg Compa-Ratio: Before → After</p>
+                  <p class="font-display text-xl font-bold text-navy-900 mt-0.5"><span id="simCompaBefore">1.00</span> → <span id="simCompaAfter" class="text-emerald-600">1.00</span></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-2">
+              <p class="text-xs font-semibold text-slate-500 mb-2" data-i18n="sim_dist_shift">Compa-Ratio Distribution — Before vs After</p>
+              <div class="h-64"><canvas id="chartSimBudget"></canvas></div>
+            </div>
+          </div>
+
+          <div class="mt-5 admin-col">
+            <p class="text-xs font-semibold text-slate-500 mb-2" data-i18n="sim_top_movers">Largest Individual Increases</p>
+            <div class="overflow-x-auto max-h-72 overflow-y-auto rounded-xl border border-slate-100">
+              <table class="w-full text-xs tbl-frozen">
+                <thead>
+                  <tr class="text-left text-slate-500 border-b border-slate-100">
+                    <th class="px-3 py-2 font-semibold" data-i18n="col_emp_id">Emp ID</th>
+                    <th class="px-3 py-2 font-semibold" data-i18n="col_name">Name</th>
+                    <th class="px-3 py-2 font-semibold" data-i18n="col_level">Level</th>
+                    <th class="px-3 py-2 font-semibold text-right" data-i18n="sim_raise_pct">Raise %</th>
+                    <th class="px-3 py-2 font-semibold text-right" data-i18n="sim_new_compa">New Compa-Ratio</th>
+                  </tr>
+                </thead>
+                <tbody id="simBudgetTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5B. Market Adjustment Calculator -->
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5 sm:p-6">
+          <div class="flex items-center gap-2 mb-1">
+            <i data-lucide="arrow-up-circle" class="w-4 h-4 text-amber-600"></i>
+            <h3 class="font-display font-semibold text-navy-900" data-i18n="sim_market_title">Market Adjustment Cost Calculator</h3>
+          </div>
+          <p class="text-xs text-slate-400 mb-5" data-i18n="sim_market_sub">Cost to bring every Green Circle (below-minimum) employee up to a target position in their band.</p>
+
+          <div class="flex flex-wrap items-center gap-2 mb-5" id="simMarketTargetGroup">
+            <button data-target="min" class="sim-target-btn px-4 py-2 rounded-lg text-sm font-medium border" data-i18n="sim_target_min">Bring to Minimum</button>
+            <button data-target="midpoint" class="sim-target-btn px-4 py-2 rounded-lg text-sm font-medium border" data-i18n="sim_target_midpoint">Bring to Midpoint (full correction)</button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+            <div class="rounded-xl bg-amber-50 border border-amber-100 p-3.5">
+              <p class="text-[11px] text-amber-700" data-i18n="sim_affected_count">Employees Affected</p>
+              <p class="font-display text-xl font-bold text-amber-800 mt-0.5" id="simMarketCount">0</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 border border-amber-100 p-3.5">
+              <p class="text-[11px] text-amber-700" data-i18n="sim_monthly_cost">Total Monthly Cost</p>
+              <p class="font-display text-xl font-bold text-amber-800 mt-0.5" id="simMarketMonthly">฿0</p>
+            </div>
+            <div class="rounded-xl bg-amber-50 border border-amber-100 p-3.5">
+              <p class="text-[11px] text-amber-700" data-i18n="sim_annual_cost">Total Annual Cost</p>
+              <p class="font-display text-xl font-bold text-amber-800 mt-0.5" id="simMarketAnnual">฿0</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto max-h-80 overflow-y-auto rounded-xl border border-slate-100 admin-col">
+            <table class="w-full text-xs tbl-frozen">
+              <thead>
+                <tr class="text-left text-slate-500 border-b border-slate-100">
+                  <th class="px-3 py-2 font-semibold" data-i18n="col_emp_id">Emp ID</th>
+                  <th class="px-3 py-2 font-semibold" data-i18n="col_name">Name</th>
+                  <th class="px-3 py-2 font-semibold" data-i18n="col_department">Department</th>
+                  <th class="px-3 py-2 font-semibold" data-i18n="col_level">Level</th>
+                  <th class="px-3 py-2 font-semibold text-right" data-i18n="sim_current_base">Current Base</th>
+                  <th class="px-3 py-2 font-semibold text-right" data-i18n="sim_target_base">Target Base</th>
+                  <th class="px-3 py-2 font-semibold text-right" data-i18n="sim_monthly_delta">Monthly Δ</th>
+                </tr>
+              </thead>
+              <tbody id="simMarketTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 5C. Merit Increase Matrix -->
+        <div class="bg-white rounded-2xl shadow-card border border-slate-100 p-5 sm:p-6">
+          <div class="flex items-center gap-2 mb-1">
+            <i data-lucide="grid-3x3" class="w-4 h-4 text-indigo-500"></i>
+            <h3 class="font-display font-semibold text-navy-900" data-i18n="sim_merit_title">Merit Increase Matrix</h3>
+          </div>
+          <p class="text-xs text-slate-400 mb-5" data-i18n="sim_merit_sub">Editable performance × compa-ratio grid — click any cell to tune the recommended increase %, totals recalculate live.</p>
+
+          <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <div class="xl:col-span-3 overflow-x-auto">
+              <table class="w-full text-sm border-separate" style="border-spacing:6px" id="meritMatrixTable"></table>
+            </div>
+            <div class="xl:col-span-2 space-y-3">
+              <div class="rounded-xl bg-indigo-50 border border-indigo-100 p-4">
+                <p class="text-[11px] text-indigo-700" data-i18n="sim_merit_impact">Total Annual Payroll Impact</p>
+                <p class="font-display text-2xl font-bold text-indigo-800 mt-0.5" id="simMeritImpact">฿0</p>
+              </div>
+              <div class="rounded-xl bg-indigo-50 border border-indigo-100 p-4">
+                <p class="text-[11px] text-indigo-700" data-i18n="sim_merit_avg">Average Increase (company-wide)</p>
+                <p class="font-display text-2xl font-bold text-indigo-800 mt-0.5" id="simMeritAvg">0%</p>
+              </div>
+              <div class="h-40"><canvas id="chartMeritByPerf"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+    <footer class="text-center text-[11px] text-slate-400 py-6" data-i18n="footer_text">HR Compensation &amp; Job Evaluation Management System &middot; Internal HR Tool &middot; Data reflects the current point-factor evaluation &amp; benchmark cycle</footer>
+  </main>
+</div>
+
+<script>
+window.SUPABASE_URL = 'https://glzolrqutjsdfrdwghfy.supabase.co';
+window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdsem9scnF1dGpzZGZyZHdnaGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDU0MzMsImV4cCI6MjA5NDcyMTQzM30.rygOc8EDGha-c1y1As9kNoFxXZOQgScsLFHQFfKKgnI';
+</script>
+
+<script>
+/* ============================================================
+   I18N — centralized translation dictionary (EN / TH / ZH)
+   ============================================================ */
+/* ============================================================
+   I18N — centralized translation dictionary (EN / TH / ZH)
+   ============================================================ */
+/* ============================================================
+   I18N — centralized translation dictionary (EN / TH / ZH)
+   ============================================================ */
+const I18N = {
+en: {
+  sidebar_subtitle: '& Job Evaluation System',
+  nav_dashboard: 'Executive Dashboard',
+  nav_jobeval: 'Job Evaluation (JE)',
+  nav_structure: 'Salary Structure',
+  nav_directory: 'Employee Directory',
+  sidebar_data_model: 'Data Model',
+  sidebar_data_model_desc: '680 employees · 8 job levels · 100 benchmarked roles',
+  sidebar_footer: 'Thailand Manufacturing · BOI-aligned',
+  live_data_model: 'Live Data Model',
+  print_report: 'Print / Export PDF',
+  role_manager: 'Manager View', role_admin: 'Admin View', role_admin_locked: 'Requires an Admin account', admin_only_feature: 'Available in Admin view.',
+
+  page_dashboard_title: 'Executive Compensation Dashboard',
+  page_dashboard_sub: 'Company-wide pay, equity & job levelling overview',
+  page_jobeval_title: '12-Factor Job Evaluation Matrix & Calculator',
+  page_jobeval_sub: 'Point-factor scoring engine with instant level recommendation',
+  page_structure_title: 'Salary Structure & Market Benchmark',
+  page_structure_sub: 'What-if modelling of range spread and midpoint by job level',
+  page_directory_title: 'Employee Master Directory & Analytics',
+  page_directory_sub: 'Search, filter and export the full employee compensation record',
+
+  kpi_headcount: 'Total Headcount',
+  kpi_headcount_desc: 'Across 8 job levels & {n} depts',
+  kpi_total_rem: 'Annual Total Remuneration',
+  kpi_total_rem_desc: 'Base + allowances + bonus',
+  kpi_compa: 'Average Compa-Ratio',
+  kpi_compa_desc: 'of market midpoint',
+  kpi_flight_risk: 'High Flight Risk Talent',
+  kpi_flight_risk_badge: 'Retention Alert',
+  kpi_flight_risk_desc: '+{medium} medium-risk',
+
+  chart_benchmark_title: 'Competitor Benchmark vs. Our Midpoint',
+  chart_benchmark_sub: 'P25 / P50 / P75 / Midpoint / Competitors A-C by level',
+  chart_equity_title: 'Pay Equity by Gender',
+  chart_equity_sub: 'Average base salary, Male vs Female, per level',
+  chart_headcount_title: 'Headcount by Job Level',
+  chart_paystatus_title: 'Pay Status Distribution',
+  chart_perf_title: 'Performance Rating Distribution',
+  chart_dept_title: 'Average Base Salary by Department',
+  chart_compa_dist_title: 'Compa-Ratio Distribution',
+  chart_compa_dist_sub: 'Headcount by compa-ratio band — a single average can hide this shape',
+  chart_risk_tier_title: 'Flight Risk Tier Breakdown',
+  chart_risk_tier_sub: 'Weighted score: pay gap + performance + tenure (est.) + level',
+  compression_title: 'Pay Compression Alerts',
+  compression_none: 'No pay compression detected between adjacent levels at the current structure.',
+  compression_alert: 'Level {lower} and {upper} overlap by {pct}% — {count} employee(s) in {lower} are already paid at or above {upper}\'s minimum.',
+
+  ds_p25: 'Market P25', ds_p50: 'Market P50', ds_p75: 'Market P75',
+  ds_midpoint: 'Our Midpoint', ds_compA: 'Competitor A (Global)', ds_compB: 'Competitor B (Local)', ds_compC: 'Competitor C (FMCG)',
+  ds_male: 'Male', ds_female: 'Female',
+  ds_minmax_range: 'Min – Max Range', ds_minimum_base: 'Minimum (base)', ds_avg_base_salary: 'Avg Base Salary',
+  ds_rating_prefix: 'Rating',
+  tooltip_employees: 'employees',
+
+  je_calc_title: '12-Factor Point Evaluation Calculator',
+  je_calc_sub: 'Set each factor from 10–100 to score a role and get an instant recommended job level.',
+  reset: 'Reset',
+  je_total_score: 'Total Evaluation Score',
+  je_max_points: 'out of 1,200 max points',
+  je_recommended_level: 'Recommended Job Level',
+  je_score_bands: 'Score-to-Level Reference Bands',
+  je_factor_profile: 'Factor Score Profile',
+  je_ref_table: 'Evaluation Reference Table',
+  je_ref_table_count: '(100 benchmarked roles)',
+  je_search_ph: 'Search job title or ID...',
+  pts_suffix: 'pts',
+
+  factor_edu: '1. Education', factor_exp: '2. Experience', factor_ana: '3. Analysis', factor_prob: '4. Problem Solving',
+  factor_dec: '5. Decision Making', factor_imp: '6. Impact', factor_ic: '7. Internal Comm', factor_ec: '8. External Comm',
+  factor_lead: '9. Leadership', factor_phys: '10. Physical Demand', factor_env: '11. Work Environment', factor_inno: '12. Innovation',
+  je_view_bands: 'View all 4 score bands',
+  factor_edu_short: 'Education', factor_exp_short: 'Experience', factor_ana_short: 'Analysis', factor_prob_short: 'Problem Solving',
+  factor_dec_short: 'Decision Making', factor_imp_short: 'Impact', factor_ic_short: 'Internal Comm', factor_ec_short: 'External Comm',
+  factor_lead_short: 'Leadership', factor_phys_short: 'Physical Demand', factor_env_short: 'Work Environment', factor_inno_short: 'Innovation',
+
+  struct_title: 'Level-by-Level Salary Structure',
+  reset_baseline: 'Reset to baseline',
+  struct_sub: 'Adjust Range Spread and Midpoint per level with the "what-if" sliders — Min/Max recalculate instantly.',
+  bands_title: 'Salary Band Range Chart',
+  bands_sub: 'Floating Min – Midpoint – Max bracket per job level (live, reflects what-if sliders)',
+  progression_title: 'Midpoint Progression',
+  progression_sub: 'Compa-progression between consecutive job levels',
+
+  col_level: 'Level', col_range_spread: 'Range Spread', col_midpoint: 'Midpoint', col_minimum: 'Minimum', col_maximum: 'Maximum',
+  col_p25: 'Market P25', col_p50: 'Market P50', col_p75: 'Market P75',
+  col_job_id: 'Job ID', col_job_title: 'Job Title', col_department: 'Department', col_total_score: 'Total Score',
+  col_emp_id: 'Emp ID', col_name: 'Name', col_gender: 'Gender', col_base_salary: 'Base Salary', col_compa: 'Compa-Ratio',
+  col_perf: 'Perf.', col_pay_status: 'Pay Status', col_flight_risk: 'Flight Risk',
+
+  emp_search_ph: 'Search ID, name or job title...',
+  all_departments: 'All Departments', all_levels: 'All Levels', all_pay_status: 'All Pay Status', all_flight_risk: 'All Flight Risk',
+  status_red: 'Red Circle (High)', status_inrange: 'In-Range', status_green: 'Green Circle (Low)',
+  risk_critical: 'Critical', risk_medium: 'Medium', risk_low: 'Low',
+  col_range_penetration: 'Range Penetration', flight_risk_score: 'Flight Risk Score',
+  export: 'Export', rows_label: 'Rows:',
+  no_employees_match: 'No employees match the current filters',
+  no_roles_match: 'No matching roles found',
+  employees_suffix: 'employee', employees_suffix_pl: 'employees', of_total: 'of',
+
+  footer_text: 'HR Compensation & Job Evaluation Management System · Internal HR Tool · Data reflects the current point-factor evaluation & benchmark cycle',
+
+  nav_simulator: 'Compensation Simulator',
+  page_simulator_title: 'Compensation Simulator',
+  page_simulator_sub: 'Model budget scenarios, market adjustments, and merit increases before committing to them',
+
+  sim_budget_title: 'Salary Increase Budget Simulator',
+  sim_budget_sub: 'Model an annual increase pool and see the payroll cost and compa-ratio impact before you commit to it.',
+  sim_budget_pct: 'Budget (% of annual base payroll)',
+  sim_strategy: 'Allocation strategy',
+  sim_strategy_merit: 'Merit-weighted (performance + pay gap)',
+  sim_strategy_flat: 'Flat % across all employees',
+  sim_total_cost: 'Total Annual Cost',
+  sim_compa_shift: 'Avg Compa-Ratio: Before → After',
+  sim_dist_shift: 'Compa-Ratio Distribution — Before vs After',
+  sim_before: 'Before', sim_after: 'After',
+  sim_top_movers: 'Largest Individual Increases',
+  sim_raise_pct: 'Raise %', sim_new_compa: 'New Compa-Ratio',
+
+  sim_market_title: 'Market Adjustment Cost Calculator',
+  sim_market_sub: 'Cost to bring every Green Circle (below-minimum) employee up to a target position in their band.',
+  sim_target_min: 'Bring to Minimum', sim_target_midpoint: 'Bring to Midpoint (full correction)',
+  sim_affected_count: 'Employees Affected', sim_monthly_cost: 'Total Monthly Cost', sim_annual_cost: 'Total Annual Cost',
+  sim_current_base: 'Current Base', sim_target_base: 'Target Base', sim_monthly_delta: 'Monthly Δ',
+
+  sim_merit_title: 'Merit Increase Matrix',
+  sim_merit_sub: 'Editable performance × compa-ratio grid — click any cell to tune the recommended increase %, totals recalculate live.',
+  sim_merit_perf: 'Performance', sim_band_low: 'Compa <0.90', sim_band_mid: 'Compa 0.90–1.10', sim_band_high: 'Compa ≥1.10',
+  sim_merit_impact: 'Total Annual Payroll Impact', sim_merit_avg: 'Average Increase (company-wide)',
+
+  level_title_L1: 'Operator / Staff', level_title_L2: 'Officer / Technician', level_title_L3: 'Senior Officer',
+  level_title_L4: 'Specialist', level_title_L5: 'Manager', level_title_L6: 'Senior Manager',
+  level_title_L7: 'Director', level_title_L8: 'Managing Director',
+},
+
+th: {
+  sidebar_subtitle: 'และการประเมินค่างาน',
+  nav_dashboard: 'แดชบอร์ดผู้บริหาร',
+  nav_jobeval: 'การประเมินค่างาน (JE)',
+  nav_structure: 'โครงสร้างเงินเดือน',
+  nav_directory: 'ทำเนียบพนักงาน',
+  sidebar_data_model: 'โมเดลข้อมูล',
+  sidebar_data_model_desc: 'พนักงาน 680 คน · 8 ระดับตำแหน่ง · 100 ตำแหน่งอ้างอิงตลาด',
+  sidebar_footer: 'โรงงานอุตสาหกรรมไทย · สอดคล้อง BOI',
+  live_data_model: 'ข้อมูลเรียลไทม์',
+  print_report: 'พิมพ์ / ส่งออก PDF',
+  role_manager: 'มุมมองผู้จัดการ', role_admin: 'มุมมองผู้ดูแลระบบ', role_admin_locked: 'ต้องใช้บัญชี Admin เท่านั้น', admin_only_feature: 'ใช้งานได้เฉพาะมุมมอง Admin เท่านั้น',
+
+  page_dashboard_title: 'แดชบอร์ดค่าตอบแทนผู้บริหาร',
+  page_dashboard_sub: 'ภาพรวมค่าตอบแทน ความเป็นธรรม และระดับตำแหน่งทั้งองค์กร',
+  page_jobeval_title: 'เมทริกซ์และเครื่องคำนวณการประเมินค่างาน 12 ปัจจัย',
+  page_jobeval_sub: 'ระบบให้คะแนนแบบ Point-Factor พร้อมแนะนำระดับตำแหน่งทันที',
+  page_structure_title: 'โครงสร้างเงินเดือนและการเทียบเคียงตลาด',
+  page_structure_sub: 'จำลองสถานการณ์ What-if ปรับช่วงเงินเดือนและจุดกึ่งกลางตามระดับตำแหน่ง',
+  page_directory_title: 'ทำเนียบพนักงานและการวิเคราะห์',
+  page_directory_sub: 'ค้นหา กรอง และส่งออกข้อมูลค่าตอบแทนพนักงานทั้งหมด',
+
+  kpi_headcount: 'จำนวนพนักงานทั้งหมด',
+  kpi_headcount_desc: 'ครอบคลุม 8 ระดับตำแหน่ง และ {n} แผนก',
+  kpi_total_rem: 'ค่าตอบแทนรวมรายปี',
+  kpi_total_rem_desc: 'เงินเดือนพื้นฐาน + เบี้ยเลี้ยง + โบนัส',
+  kpi_compa: 'อัตราส่วนเปรียบเทียบเฉลี่ย (Compa-Ratio)',
+  kpi_compa_desc: 'ของจุดกึ่งกลางตลาด',
+  kpi_flight_risk: 'พนักงานกลุ่มเสี่ยงลาออกสูง',
+  kpi_flight_risk_badge: 'แจ้งเตือนการรักษาพนักงาน',
+  kpi_flight_risk_desc: '+{medium} ความเสี่ยงปานกลาง',
+
+  chart_benchmark_title: 'เทียบเคียงคู่แข่งกับจุดกึ่งกลางของเรา',
+  chart_benchmark_sub: 'P25 / P50 / P75 / จุดกึ่งกลาง / คู่แข่ง A-C แยกตามระดับ',
+  chart_equity_title: 'ความเป็นธรรมด้านค่าจ้างตามเพศ',
+  chart_equity_sub: 'เงินเดือนพื้นฐานเฉลี่ย ชาย เทียบกับ หญิง แยกตามระดับ',
+  chart_headcount_title: 'จำนวนพนักงานตามระดับตำแหน่ง',
+  chart_paystatus_title: 'การกระจายสถานะเงินเดือน',
+  chart_perf_title: 'การกระจายผลการปฏิบัติงาน',
+  chart_dept_title: 'เงินเดือนพื้นฐานเฉลี่ยตามแผนก',
+  chart_compa_dist_title: 'การกระจายตัว Compa-Ratio',
+  chart_compa_dist_sub: 'จำนวนพนักงานแยกตามช่วง Compa-Ratio — ค่าเฉลี่ยเพียงตัวเดียวอาจซ่อนรูปแบบนี้ไว้',
+  chart_risk_tier_title: 'สัดส่วนระดับความเสี่ยงลาออก',
+  chart_risk_tier_sub: 'คะแนนถ่วงน้ำหนัก: ช่องว่างค่าจ้าง + ผลงาน + อายุงาน (โดยประมาณ) + ระดับตำแหน่ง',
+  compression_title: 'การแจ้งเตือนเงินเดือนซ้อนทับ (Pay Compression)',
+  compression_none: 'ไม่พบเงินเดือนซ้อนทับระหว่างระดับตำแหน่งที่ติดกันในโครงสร้างปัจจุบัน',
+  compression_alert: 'ระดับ {lower} และ {upper} ซ้อนทับกัน {pct}% — พนักงาน {count} คนในระดับ {lower} ได้รับค่าจ้างเท่ากับหรือสูงกว่าค่าต่ำสุดของระดับ {upper} แล้ว',
+
+  ds_p25: 'ตลาด P25', ds_p50: 'ตลาด P50', ds_p75: 'ตลาด P75',
+  ds_midpoint: 'จุดกึ่งกลางของเรา', ds_compA: 'คู่แข่ง A (สากล)', ds_compB: 'คู่แข่ง B (ในประเทศ)', ds_compC: 'คู่แข่ง C (FMCG)',
+  ds_male: 'ชาย', ds_female: 'หญิง',
+  ds_minmax_range: 'ช่วง Min – Max', ds_minimum_base: 'ขั้นต่ำ (ฐาน)', ds_avg_base_salary: 'เงินเดือนพื้นฐานเฉลี่ย',
+  ds_rating_prefix: 'ระดับ',
+  tooltip_employees: 'คน',
+
+  je_calc_title: 'เครื่องคำนวณการประเมินค่างาน 12 ปัจจัย',
+  je_calc_sub: 'ปรับแต่ละปัจจัยระหว่าง 10–100 เพื่อให้คะแนนตำแหน่งงานและรับคำแนะนำระดับตำแหน่งทันที',
+  reset: 'รีเซ็ต',
+  je_total_score: 'คะแนนรวมการประเมิน',
+  je_max_points: 'จากคะแนนเต็ม 1,200 คะแนน',
+  je_recommended_level: 'ระดับตำแหน่งที่แนะนำ',
+  je_score_bands: 'ช่วงคะแนนอ้างอิงตามระดับตำแหน่ง',
+  je_factor_profile: 'โปรไฟล์คะแนนแต่ละปัจจัย',
+  je_ref_table: 'ตารางอ้างอิงการประเมินค่างาน',
+  je_ref_table_count: '(100 ตำแหน่งอ้างอิง)',
+  je_search_ph: 'ค้นหาชื่อตำแหน่งหรือรหัส...',
+  pts_suffix: 'คะแนน',
+
+  factor_edu: '1. การศึกษา', factor_exp: '2. ประสบการณ์', factor_ana: '3. การวิเคราะห์', factor_prob: '4. การแก้ปัญหา',
+  factor_dec: '5. การตัดสินใจ', factor_imp: '6. ผลกระทบ', factor_ic: '7. การสื่อสารภายใน', factor_ec: '8. การสื่อสารภายนอก',
+  factor_lead: '9. ภาวะผู้นำ', factor_phys: '10. ภาระทางกาย', factor_env: '11. สภาพแวดล้อมการทำงาน', factor_inno: '12. นวัตกรรม',
+  je_view_bands: 'ดูเกณฑ์ทั้ง 4 ระดับ',
+  factor_edu_short: 'การศึกษา', factor_exp_short: 'ประสบการณ์', factor_ana_short: 'การวิเคราะห์', factor_prob_short: 'การแก้ปัญหา',
+  factor_dec_short: 'การตัดสินใจ', factor_imp_short: 'ผลกระทบ', factor_ic_short: 'สื่อสารภายใน', factor_ec_short: 'สื่อสารภายนอก',
+  factor_lead_short: 'ภาวะผู้นำ', factor_phys_short: 'ภาระทางกาย', factor_env_short: 'สภาพแวดล้อม', factor_inno_short: 'นวัตกรรม',
+
+  struct_title: 'โครงสร้างเงินเดือนแยกตามระดับตำแหน่ง',
+  reset_baseline: 'รีเซ็ตเป็นค่าเริ่มต้น',
+  struct_sub: 'ปรับช่วงเงินเดือนและจุดกึ่งกลางของแต่ละระดับด้วยตัวเลื่อน "What-if" — ค่าต่ำสุด/สูงสุดจะคำนวณใหม่ทันที',
+  bands_title: 'กราฟช่วงเงินเดือน',
+  bands_sub: 'แสดงกรอบ ต่ำสุด–กึ่งกลาง–สูงสุด ของแต่ละระดับตำแหน่ง (อัปเดตตามตัวเลื่อน What-if)',
+  progression_title: 'ความก้าวหน้าของจุดกึ่งกลาง',
+  progression_sub: 'อัตราการเพิ่มขึ้นของจุดกึ่งกลางระหว่างระดับตำแหน่งที่ติดกัน',
+
+  col_level: 'ระดับ', col_range_spread: 'ช่วงเงินเดือน', col_midpoint: 'จุดกึ่งกลาง', col_minimum: 'ขั้นต่ำ', col_maximum: 'ขั้นสูงสุด',
+  col_p25: 'ตลาด P25', col_p50: 'ตลาด P50', col_p75: 'ตลาด P75',
+  col_job_id: 'รหัสตำแหน่ง', col_job_title: 'ชื่อตำแหน่ง', col_department: 'แผนก', col_total_score: 'คะแนนรวม',
+  col_emp_id: 'รหัสพนักงาน', col_name: 'ชื่อ', col_gender: 'เพศ', col_base_salary: 'เงินเดือนพื้นฐาน', col_compa: 'Compa-Ratio',
+  col_perf: 'ผลงาน', col_pay_status: 'สถานะเงินเดือน', col_flight_risk: 'ความเสี่ยงลาออก',
+
+  emp_search_ph: 'ค้นหารหัส ชื่อ หรือชื่อตำแหน่ง...',
+  all_departments: 'ทุกแผนก', all_levels: 'ทุกระดับ', all_pay_status: 'ทุกสถานะเงินเดือน', all_flight_risk: 'ทุกความเสี่ยง',
+  status_red: 'วงกลมแดง (สูงเกิน)', status_inrange: 'อยู่ในเกณฑ์', status_green: 'วงกลมเขียว (ต่ำกว่าเกณฑ์)',
+  risk_critical: 'วิกฤต', risk_medium: 'ปานกลาง', risk_low: 'ต่ำ',
+  col_range_penetration: 'ระยะห่างในช่วงเงินเดือน (%)', flight_risk_score: 'คะแนนความเสี่ยงลาออก',
+  export: 'ส่งออก', rows_label: 'แถว:',
+  no_employees_match: 'ไม่พบพนักงานที่ตรงกับตัวกรองปัจจุบัน',
+  no_roles_match: 'ไม่พบตำแหน่งที่ตรงกัน',
+  employees_suffix: 'คน', employees_suffix_pl: 'คน', of_total: 'จาก',
+
+  footer_text: 'ระบบบริหารค่าตอบแทนและการประเมินค่างาน · เครื่องมือ HR ภายในองค์กร · ข้อมูลอ้างอิงตามรอบการประเมินค่างานและเทียบเคียงตลาดปัจจุบัน',
+
+  nav_simulator: 'เครื่องมือจำลองค่าตอบแทน',
+  page_simulator_title: 'เครื่องมือจำลองค่าตอบแทน',
+  page_simulator_sub: 'จำลองสถานการณ์งบประมาณ การปรับตามตลาด และการขึ้นเงินเดือนตามผลงาน ก่อนตัดสินใจจริง',
+
+  sim_budget_title: 'เครื่องมือจำลองงบประมาณปรับขึ้นเงินเดือน',
+  sim_budget_sub: 'จำลองวงเงินปรับขึ้นเงินเดือนประจำปี และดูผลกระทบต่อต้นทุนค่าจ้างและ Compa-Ratio ก่อนตัดสินใจจริง',
+  sim_budget_pct: 'งบประมาณ (% ของฐานเงินเดือนรวมรายปี)',
+  sim_strategy: 'กลยุทธ์การจัดสรร',
+  sim_strategy_merit: 'ถ่วงน้ำหนักตามผลงาน (ผลงาน + ช่องว่างค่าจ้าง)',
+  sim_strategy_flat: 'ปรับเท่ากันทุกคน (Flat %)',
+  sim_total_cost: 'ต้นทุนรวมรายปี',
+  sim_compa_shift: 'Compa-Ratio เฉลี่ย: ก่อน → หลัง',
+  sim_dist_shift: 'การกระจายตัว Compa-Ratio — ก่อนและหลัง',
+  sim_before: 'ก่อน', sim_after: 'หลัง',
+  sim_top_movers: 'พนักงานที่ได้ปรับขึ้นมากที่สุด',
+  sim_raise_pct: '% ที่ปรับขึ้น', sim_new_compa: 'Compa-Ratio ใหม่',
+
+  sim_market_title: 'เครื่องคำนวณต้นทุนการปรับตามตลาด',
+  sim_market_sub: 'ต้นทุนในการปรับพนักงานกลุ่มวงกลมเขียว (ต่ำกว่าขั้นต่ำ) ให้ถึงตำแหน่งเป้าหมายในช่วงเงินเดือน',
+  sim_target_min: 'ปรับถึงขั้นต่ำ', sim_target_midpoint: 'ปรับถึงจุดกึ่งกลาง (แก้ไขเต็มจำนวน)',
+  sim_affected_count: 'พนักงานที่ได้รับผลกระทบ', sim_monthly_cost: 'ต้นทุนรวมต่อเดือน', sim_annual_cost: 'ต้นทุนรวมต่อปี',
+  sim_current_base: 'เงินเดือนปัจจุบัน', sim_target_base: 'เงินเดือนเป้าหมาย', sim_monthly_delta: 'ส่วนต่างต่อเดือน',
+
+  sim_merit_title: 'ตารางการขึ้นเงินเดือนตามผลงาน (Merit Matrix)',
+  sim_merit_sub: 'ตารางแบบแก้ไขได้ ระหว่างผลงาน × Compa-Ratio — คลิกช่องใดก็ได้เพื่อปรับ % ที่แนะนำ ยอดรวมจะคำนวณใหม่ทันที',
+  sim_merit_perf: 'ผลงาน', sim_band_low: 'Compa <0.90', sim_band_mid: 'Compa 0.90–1.10', sim_band_high: 'Compa ≥1.10',
+  sim_merit_impact: 'ผลกระทบต่อค่าจ้างรวมรายปี', sim_merit_avg: '% เพิ่มขึ้นเฉลี่ย (ทั้งองค์กร)',
+
+  level_title_L1: 'พนักงานปฏิบัติการ / เจ้าหน้าที่', level_title_L2: 'เจ้าหน้าที่ / ช่างเทคนิค', level_title_L3: 'เจ้าหน้าที่อาวุโส',
+  level_title_L4: 'ผู้เชี่ยวชาญ', level_title_L5: 'ผู้จัดการ', level_title_L6: 'ผู้จัดการอาวุโส',
+  level_title_L7: 'ผู้อำนวยการ', level_title_L8: 'กรรมการผู้จัดการ',
+},
+
+zh: {
+  sidebar_subtitle: '与职位评估系统',
+  nav_dashboard: '高管仪表板',
+  nav_jobeval: '职位评估 (JE)',
+  nav_structure: '薪资结构',
+  nav_directory: '员工名录',
+  sidebar_data_model: '数据模型',
+  sidebar_data_model_desc: '680名员工 · 8个职级 · 100个基准职位',
+  sidebar_footer: '泰国制造业 · 符合BOI标准',
+  live_data_model: '实时数据模型',
+  print_report: '打印 / 导出 PDF',
+  role_manager: '经理视图', role_admin: '管理员视图', role_admin_locked: '需要管理员账户', admin_only_feature: '仅管理员视图可用。',
+
+  page_dashboard_title: '高管薪酬仪表板',
+  page_dashboard_sub: '全公司薪酬、薪酬公平性与职级概览',
+  page_jobeval_title: '12要素职位评估矩阵与计算器',
+  page_jobeval_sub: '要素评分体系，即时推荐职级',
+  page_structure_title: '薪资结构与市场基准',
+  page_structure_sub: '按职级对薪资幅度与中位值进行假设情景建模',
+  page_directory_title: '员工主数据名录与分析',
+  page_directory_sub: '搜索、筛选并导出完整的员工薪酬记录',
+
+  kpi_headcount: '员工总数',
+  kpi_headcount_desc: '涵盖8个职级和{n}个部门',
+  kpi_total_rem: '年度总薪酬',
+  kpi_total_rem_desc: '基本工资 + 津贴 + 奖金',
+  kpi_compa: '平均薪酬比率 (Compa-Ratio)',
+  kpi_compa_desc: '占市场中位值比例',
+  kpi_flight_risk: '高离职风险人才',
+  kpi_flight_risk_badge: '保留预警',
+  kpi_flight_risk_desc: '+{medium} 中等风险',
+
+  chart_benchmark_title: '竞争对手基准 vs 我方中位值',
+  chart_benchmark_sub: '按职级显示 P25 / P50 / P75 / 中位值 / 竞争对手 A-C',
+  chart_equity_title: '按性别的薪酬公平性',
+  chart_equity_sub: '按职级显示男女平均基本工资',
+  chart_headcount_title: '按职级划分的员工人数',
+  chart_paystatus_title: '薪酬状态分布',
+  chart_perf_title: '绩效评级分布',
+  chart_dept_title: '各部门平均基本工资',
+  chart_compa_dist_title: '薪酬比率分布',
+  chart_compa_dist_sub: '按薪酬比率区间划分的员工人数——单一平均值可能掩盖这种分布形态',
+  chart_risk_tier_title: '离职风险等级分布',
+  chart_risk_tier_sub: '加权评分：薪酬差距 + 绩效 + 预估司龄 + 职级',
+  compression_title: '薪酬压缩（Pay Compression）预警',
+  compression_none: '当前结构下相邻职级之间未检测到薪酬压缩。',
+  compression_alert: '{lower} 级与 {upper} 级薪资区间重叠 {pct}%——{lower} 级中有 {count} 名员工的薪资已达到或超过 {upper} 级的最低值。',
+
+  ds_p25: '市场 P25', ds_p50: '市场 P50', ds_p75: '市场 P75',
+  ds_midpoint: '我方中位值', ds_compA: '竞争对手 A（全球）', ds_compB: '竞争对手 B（本地）', ds_compC: '竞争对手 C（快消品）',
+  ds_male: '男性', ds_female: '女性',
+  ds_minmax_range: '最小值–最大值区间', ds_minimum_base: '最小值（基础）', ds_avg_base_salary: '平均基本工资',
+  ds_rating_prefix: '评级',
+  tooltip_employees: '名员工',
+
+  je_calc_title: '12要素点数评估计算器',
+  je_calc_sub: '将每个要素设置为10–100分，为职位评分并即时获得推荐职级。',
+  reset: '重置',
+  je_total_score: '评估总分',
+  je_max_points: '满分1,200分',
+  je_recommended_level: '推荐职级',
+  je_score_bands: '分数-职级对照表',
+  je_factor_profile: '要素得分概况',
+  je_ref_table: '评估参考表',
+  je_ref_table_count: '（100个基准职位）',
+  je_search_ph: '搜索职位名称或编号...',
+  pts_suffix: '分',
+
+  factor_edu: '1. 教育背景', factor_exp: '2. 工作经验', factor_ana: '3. 分析能力', factor_prob: '4. 解决问题',
+  factor_dec: '5. 决策能力', factor_imp: '6. 影响力', factor_ic: '7. 内部沟通', factor_ec: '8. 外部沟通',
+  factor_lead: '9. 领导力', factor_phys: '10. 体力要求', factor_env: '11. 工作环境', factor_inno: '12. 创新能力',
+  je_view_bands: '查看全部4个评分区间',
+  factor_edu_short: '教育背景', factor_exp_short: '工作经验', factor_ana_short: '分析能力', factor_prob_short: '解决问题',
+  factor_dec_short: '决策能力', factor_imp_short: '影响力', factor_ic_short: '内部沟通', factor_ec_short: '外部沟通',
+  factor_lead_short: '领导力', factor_phys_short: '体力要求', factor_env_short: '工作环境', factor_inno_short: '创新能力',
+
+  struct_title: '各职级薪资结构',
+  reset_baseline: '重置为基准值',
+  struct_sub: '使用"假设情景"滑块调整各职级的薪资幅度与中位值——最小/最大值即时重新计算。',
+  bands_title: '薪资区间图',
+  bands_sub: '按职级显示浮动的 最小值–中位值–最大值 区间（实时反映假设情景滑块）',
+  progression_title: '中位值级差递进',
+  progression_sub: '相邻职级之间的中位值递进幅度',
+
+  col_level: '职级', col_range_spread: '薪资幅度', col_midpoint: '中位值', col_minimum: '最小值', col_maximum: '最大值',
+  col_p25: '市场 P25', col_p50: '市场 P50', col_p75: '市场 P75',
+  col_job_id: '职位编号', col_job_title: '职位名称', col_department: '部门', col_total_score: '总分',
+  col_emp_id: '员工编号', col_name: '姓名', col_gender: '性别', col_base_salary: '基本工资', col_compa: '薪酬比率',
+  col_perf: '绩效', col_pay_status: '薪酬状态', col_flight_risk: '离职风险',
+
+  emp_search_ph: '搜索编号、姓名或职位名称...',
+  all_departments: '所有部门', all_levels: '所有职级', all_pay_status: '所有薪酬状态', all_flight_risk: '所有离职风险',
+  status_red: '红圈（超出上限）', status_inrange: '范围内', status_green: '绿圈（低于下限）',
+  risk_critical: '严重', risk_medium: '中等', risk_low: '低',
+  col_range_penetration: '区间渗透率', flight_risk_score: '离职风险分数',
+  export: '导出', rows_label: '每页行数：',
+  no_employees_match: '没有符合当前筛选条件的员工',
+  no_roles_match: '未找到匹配的职位',
+  employees_suffix: '名员工', employees_suffix_pl: '名员工', of_total: '共',
+
+  footer_text: '人力资源薪酬与职位评估管理系统 · 内部人力资源工具 · 数据反映当前的要素评估与基准周期',
+
+  nav_simulator: '薪酬模拟器',
+  page_simulator_title: '薪酬模拟器',
+  page_simulator_sub: '在正式决策前，模拟预算方案、市场调薪和绩效加薪',
+
+  sim_budget_title: '加薪预算模拟器',
+  sim_budget_sub: '模拟年度加薪池，在正式决策前查看薪酬成本与薪酬比率的影响。',
+  sim_budget_pct: '预算（占年度基本工资总额的百分比）',
+  sim_strategy: '分配策略',
+  sim_strategy_merit: '按绩效加权（绩效 + 薪酬差距）',
+  sim_strategy_flat: '所有员工统一比例',
+  sim_total_cost: '年度总成本',
+  sim_compa_shift: '平均薪酬比率：调整前 → 调整后',
+  sim_dist_shift: '薪酬比率分布 — 调整前后对比',
+  sim_before: '调整前', sim_after: '调整后',
+  sim_top_movers: '涨幅最大的员工',
+  sim_raise_pct: '涨幅 %', sim_new_compa: '调整后薪酬比率',
+
+  sim_market_title: '市场调薪成本计算器',
+  sim_market_sub: '将所有绿圈（低于最低值）员工调整至目标薪资位置所需的成本。',
+  sim_target_min: '调整至最低值', sim_target_midpoint: '调整至中位值（完全修正）',
+  sim_affected_count: '受影响员工数', sim_monthly_cost: '月度总成本', sim_annual_cost: '年度总成本',
+  sim_current_base: '当前基本工资', sim_target_base: '目标基本工资', sim_monthly_delta: '月度差额',
+
+  sim_merit_title: '绩效加薪矩阵',
+  sim_merit_sub: '可编辑的绩效 × 薪酬比率表格——点击任意单元格调整建议加薪百分比，总计将即时重新计算。',
+  sim_merit_perf: '绩效', sim_band_low: '薪酬比率 <0.90', sim_band_mid: '薪酬比率 0.90–1.10', sim_band_high: '薪酬比率 ≥1.10',
+  sim_merit_impact: '年度薪酬总影响', sim_merit_avg: '平均加薪幅度（全公司）',
+
+  level_title_L1: '操作员 / 职员', level_title_L2: '专员 / 技术员', level_title_L3: '高级专员',
+  level_title_L4: '专业人员', level_title_L5: '经理', level_title_L6: '高级经理',
+  level_title_L7: '总监', level_title_L8: '董事总经理',
+},
+};
+
+const LANG_LABELS = { en: 'EN', th: 'TH', zh: '中文' };
+
+/* ============================================================
+   HR Compensation & Job Evaluation Management System
+   ============================================================ */
+
+lucide.createIcons();
+
+/* ---------- Supabase-backed data (replaces embedded plaintext JSON) ----------
+   Individual compensation data now lives only in Postgres, behind Supabase
+   Auth + Row Level Security + a role-aware RPC (public.hr_get_employees()).
+   Nothing sensitive is embedded in this file or the HTML anymore.
+   NOTE: uses the default `public` schema — hosted Supabase's REST API only
+   exposes `public` unless another schema is added via the project Dashboard's
+   "Exposed schemas" setting (not reliably changeable via SQL). Tables/RPCs use
+   an `hr_`-prefixed namespace inside `public` to avoid colliding with this
+   project's existing unrelated tables. */
+const supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+let EMPLOYEES = [];
+let JE_RECORDS = [];
+let BASE_LEVELS = [];
+let AGGREGATES = null;
+let myProfile = null; // { role: 'admin' | 'manager', email, full_name }
+
+/* Employee row from public.hr_get_employees() -> UI object. Admin gets every
+   field; Manager gets the same shape with base/allow/annualTotalCash/compa/
+   penetration/riskScore stripped server-side (they come through as
+   undefined here — UI columns for those are hidden via the .admin-col class). */
+function mapEmployeeRow(r) {
+  return {
+    id: r.id, name: r.name, dept: r.dept, level: r.level, title: r.title,
+    gender: r.gender, age: r.age, base: r.base, allow: r.allow, perf: r.perf,
+    bonusMonths: r.bonus_months, annualTotalCash: r.annual_total_cash,
+    compa: r.compa, payStatus: r.pay_status,
+    tenure: r.tenure, penetration: r.penetration, riskScore: r.risk_score, riskTier: r.risk_tier
+  };
+}
+
+function mapLevelRow(r) {
+  return {
+    level: r.level, spread: r.spread, midpoint: r.midpoint,
+    p25: r.p25, p50: r.p50, p75: r.p75,
+    compA: r.comp_a, compB: r.comp_b, compC: r.comp_c, headcount: r.headcount
+  };
+}
+
+function mapJeRow(r) {
+  return { jobId: r.job_id, title: r.title, dept: r.dept, level: r.level, total: r.total };
+}
+
+/* ============================================================
+   ANALYTICS ENRICHMENT — Range Penetration, estimated tenure,
+   and a weighted Flight Risk score (replaces the old binary flag)
+   ============================================================ */
+
+/* Deterministic 0..1 pseudo-random derived from a string, so the same
+   employee always gets the same estimated figure on every page load
+   (keeps the dashboard reproducible rather than reshuffling on refresh). */
+function seededUnit(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return (Math.abs(h) % 10000) / 10000;
+}
+
+/* NOTE: the source HRIS export has no hire-date/tenure field. Until one is
+   added (see audit — "add hireDate to the Employee Data sheet"), tenure is
+   ESTIMATED from age + job level as a placeholder signal for the Flight
+   Risk score below. Every tenure value in the UI is labelled "(est.)". */
+function estimateTenureYears(e) {
+  const levelIndex = Number(e.level.slice(1));
+  const r = seededUnit(e.id);
+  const entryAge = 19 + Math.floor(r * 4); // assumed working-age entry, 19–22
+  const levelFloor = Math.min(levelIndex * 1.1, 9); // higher levels imply more minimum time-in-role
+  let tenure = (e.age - entryAge) * (0.35 + r * 0.45); // years-since-entry scaled down to a single-employer estimate
+  tenure = Math.max(levelFloor, tenure);
+  tenure = Math.min(tenure, Math.max(0, e.age - 18));
+  return Math.round(tenure * 10) / 10;
+}
+
+/* Range Penetration = how far through the Min–Max band an employee sits (0–100%).
+   More intuitive for HR review than a raw compa-ratio, and comparable across
+   levels even though Range Spread differs by level. Computed against the
+   canonical (baseline) structure so it stays consistent with the precomputed
+   Pay Status/Compa-Ratio fields — same convention as the rest of the dataset;
+   Tab 3's "what-if" sliders intentionally simulate a *policy* change, they
+   don't retroactively re-grade the actual employee population. */
+function rangePenetration(base, min, max) {
+  if (max <= min) return 0;
+  return Math.max(0, Math.min(1, (base - min) / (max - min))); // clamped so far-outliers don't break the UI
+}
+
+/* Weighted Flight Risk score (0–100), replacing the old binary
+   "Green Circle + Performance A/B" flag with a composite signal:
+   how underpaid someone is, how strong a performer they are,
+   estimated tenure, and how hard the role is to backfill (level). */
+function flightRiskScore(e, level) {
+  let score = 0;
+  // 1) Compa-ratio severity — only the underpaid contribute here, worse gap = more points (cap 40)
+  if (e.compa < 1.0) score += Math.min(40, (1.0 - e.compa) * 100);
+  // 2) Performance weight — losing a top performer hurts more (cap 30)
+  score += { A: 30, B: 18, C: 6, D: 0 }[e.perf] || 0;
+  // 3) Estimated tenure — longer-tenured talent is costlier to replace (cap 20)
+  score += Math.min(20, e.tenure * 2);
+  // 4) Level criticality — L5+ roles are slower/harder to backfill (cap 10)
+  const levelIndex = Number(e.level.slice(1));
+  score += Math.min(10, Math.max(0, levelIndex - 4) * 2.5);
+  return Math.round(Math.min(100, score));
+}
+function riskTierFromScore(score) {
+  return score >= 65 ? 'Critical' : score >= 40 ? 'Medium' : 'Low';
+}
+
+/* NOTE: tenure/penetration/riskScore/riskTier are now computed once, server-side,
+   in Postgres at data-load time (using these exact same formulas, ported to
+   Python) and returned already-enriched by hr_comp.get_employees(). This keeps
+   Manager-role responses consistent even though penetration/riskScore are
+   redacted for that role (they can't be recomputed client-side without compa/
+   base). seededUnit/estimateTenureYears/rangePenetration/flightRiskScore/
+   riskTierFromScore above are kept only as the documented reference for that
+   server-side logic. */
+
+const SCORE_BANDS = window.JE_SCORE_GRADE_MODEL.bands;
+
+const FACTOR_DEFS = [
+  { key: 'edu',  i18nKey: 'factor_edu',  icon: 'graduation-cap' },
+  { key: 'exp',  i18nKey: 'factor_exp',  icon: 'briefcase' },
+  { key: 'ana',  i18nKey: 'factor_ana',  icon: 'search-code' },
+  { key: 'prob', i18nKey: 'factor_prob', icon: 'puzzle' },
+  { key: 'dec',  i18nKey: 'factor_dec',  icon: 'git-branch' },
+  { key: 'imp',  i18nKey: 'factor_imp',  icon: 'target' },
+  { key: 'ic',   i18nKey: 'factor_ic',   icon: 'message-square' },
+  { key: 'ec',   i18nKey: 'factor_ec',   icon: 'globe' },
+  { key: 'lead', i18nKey: 'factor_lead', icon: 'crown' },
+  { key: 'phys', i18nKey: 'factor_phys', icon: 'dumbbell' },
+  { key: 'env',  i18nKey: 'factor_env',  icon: 'cloud-sun' },
+  { key: 'inno', i18nKey: 'factor_inno', icon: 'lightbulb' },
+];
+
+/* ---------- JE Scoring Anchor Guide ----------
+   Per-factor, per-band (10-20 / 30-50 / 60-80 / 90-100) reference descriptions,
+   sourced from the committee scoring-anchor guide (JE_12Factor_Scoring_Anchor_Guide.docx).
+   Purely reference copy shown alongside the sliders — not sent to the backend. */
+const JE_BAND_LABELS = {
+  en: ['10–20 · Basic', '30–50 · Operational', '60–80 · Managerial', '90–100 · Strategic/Expert'],
+  th: ['10–20 · พื้นฐาน', '30–50 · ปฏิบัติการ', '60–80 · บริหารจัดการ', '90–100 · กลยุทธ์/ผู้เชี่ยวชาญ'],
+};
+const JE_ANCHORS = {
+  en: {
+    edu: ['No specific qualification required, or secondary education — learns the job through short on-the-job training.',
+          'Vocational diploma (ปวช./ปวส.) or a general bachelor’s degree relevant to the role.',
+          'Bachelor’s degree in a specialised field required by the role, or bachelor’s + professional certification equivalent to a master’s.',
+          'Master’s degree or higher in a relevant field, or a rare, high-level professional license/expertise.'],
+    exp: ['No prior experience required, or under 1 year.',
+          '1–3 years in a similar or related role.',
+          '4–8 years, including experience supervising a team or managing mid-sized projects.',
+          'Over 8 years, with senior-level expertise and enterprise-level management experience.'],
+    ana: ['Work follows clearly defined procedures (SOPs); little to no independent analysis required.',
+          'Analyses routine, non-complex issues using data and methods that already exist.',
+          'Analyses data from multiple related sources; semi-structured problems requiring evaluation of options.',
+          'Enterprise-level strategic analysis; complex, unstructured data with long-term business impact.'],
+    prob: ['Solves problems by following a manual or established SOP.',
+           'Solves day-to-day problems within own scope of work, with reference guidelines available.',
+           'Solves problems with no clear precedent; must adapt multiple approaches to the situation.',
+           'Solves systemic or unprecedented problems requiring innovation, with cross-departmental impact.'],
+    dec: ['No decision-making authority, or decisions strictly within a fixed, pre-defined framework.',
+          'Makes routine day-to-day decisions; impact limited to own scope of work.',
+          'Makes decisions affecting a team or department; must weigh risk.',
+          'Makes strategic decisions affecting the whole organisation; high risk, long-term impact.'],
+    imp: ['Impact limited to the individual’s own work.',
+          'Impact on the immediate team or a sub-process.',
+          'Impact on the performance of a department or business unit.',
+          'Impact on company-wide financial results, reputation, or strategic direction.'],
+    ic: ['Communicates basic information within the same team.',
+         'Coordinates across teams/departments on routine operational matters.',
+         'Communicates with and influences mid-level management, or coordinates multiple departments on major projects.',
+         'Strategic communication with senior executives or the board; influences organisation-wide decisions.'],
+    ec: ['Rarely, if ever, deals with parties outside the organisation.',
+         'Deals with customers/suppliers on routine operational matters.',
+         'Negotiates with business partners, government agencies, or key customers.',
+         'Represents the organisation in high-level strategic negotiations/relationships (foreign partners, investors, regulators).'],
+    lead: ['No direct reports; responsible only for own work.',
+           'Supervises a small team or work unit (e.g. production line leader).',
+           'Manages a team/department — workforce planning, assignment, and performance appraisal of direct reports.',
+           'Manages multiple departments/functions — sets strategy and develops the next generation of leaders.'],
+    phys: ['Typical office work; little to no physical effort required.',
+           'Periodic standing/walking; occasional light lifting.',
+           'Regular physical effort — heavy lifting or continuous shift work.',
+           'Continuous heavy physical exertion, or work in conditions with high physical risk.'],
+    env: ['Normal, safe, temperature-controlled office environment.',
+          'General production floor — minor noise/dust, standard safety controls in place.',
+          'Exposure to heat, chemicals, loud noise, or machinery with moderate risk.',
+          'Continuous high-risk environment (hazardous chemicals, high heat, heavy machinery) — full PPE required at all times.'],
+    inno: ['Follows established standards; no creative input required.',
+           'Makes small improvements within own scope (individual-level Kaizen).',
+           'Initiates process improvements affecting a team or department.',
+           'Drives innovation or strategic change that creates a company-wide competitive advantage.'],
+  },
+  th: {
+    edu: ['ไม่จำเป็นต้องมีวุฒิเฉพาะทาง หรือระดับมัธยมศึกษา เรียนรู้งานได้จากการฝึกอบรมหน้างานระยะสั้น',
+          'ระดับ ปวช./ปวส. หรือปริญญาตรีในสาขาทั่วไปที่เกี่ยวข้องกับงาน',
+          'ปริญญาตรีในสาขาเฉพาะทางที่จำเป็นต่องาน หรือปริญญาตรี + ใบประกอบวิชาชีพเฉพาะที่เทียบเท่าปริญญาโท',
+          'ปริญญาโทขึ้นไปในสาขาที่เกี่ยวข้อง หรือใบประกอบวิชาชีพ/ความเชี่ยวชาญเฉพาะทางระดับสูงที่หาทดแทนได้ยาก'],
+    exp: ['ไม่ต้องมีประสบการณ์มาก่อน หรือน้อยกว่า 1 ปี',
+          '1–3 ปี ในงานลักษณะเดียวกันหรือใกล้เคียง',
+          '4–8 ปี รวมประสบการณ์การควบคุมดูแลทีมงานหรือบริหารโครงการระดับกลาง',
+          'มากกว่า 8 ปี มีความเชี่ยวชาญระดับสูง ผ่านการบริหารระดับองค์กร'],
+    ana: ['งานเป็นไปตามขั้นตอนที่กำหนดไว้ชัดเจนแล้ว (SOP) แทบไม่ต้องวิเคราะห์ด้วยตนเอง',
+          'วิเคราะห์ปัญหาประจำวันที่ไม่ซับซ้อน โดยใช้ข้อมูลที่มีอยู่แล้วเป็นหลัก',
+          'วิเคราะห์ข้อมูลจากหลายแหล่งที่เกี่ยวเนื่องกัน สถานการณ์กึ่งโครงสร้าง ต้องประเมินทางเลือก',
+          'วิเคราะห์เชิงกลยุทธ์ระดับองค์กร ข้อมูลซับซ้อนไม่มีแบบแผนตายตัว ส่งผลกระทบระยะยาว'],
+    prob: ['แก้ปัญหาตามคู่มือหรือ SOP ที่กำหนดไว้แล้วอย่างชัดเจน',
+           'แก้ปัญหาเฉพาะหน้าภายในขอบเขตงานของตนเอง โดยมีแนวทางอ้างอิงได้',
+           'แก้ปัญหาที่ไม่มีบรรทัดฐานชัดเจน ต้องประยุกต์ใช้หลายแนวทาง',
+           'แก้ปัญหาเชิงระบบหรือปัญหาใหม่ที่ไม่เคยเกิดขึ้นมาก่อน ส่งผลกระทบข้ามหน่วยงาน'],
+    dec: ['ไม่มีอำนาจตัดสินใจ หรือตัดสินใจได้เฉพาะภายในกรอบที่กำหนดไว้ตายตัว',
+         'ตัดสินใจในงานประจำวันของตนเอง ผลกระทบจำกัดในขอบเขตงานของตน',
+         'ตัดสินใจที่มีผลต่อทีมงานหรือแผนก ต้องพิจารณาความเสี่ยง',
+         'ตัดสินใจเชิงกลยุทธ์ที่มีผลต่อทั้งองค์กร ความเสี่ยงสูงและส่งผลระยะยาว'],
+    imp: ['ผลกระทบจำกัดอยู่เฉพาะงานของตนเองเท่านั้น',
+         'ผลกระทบต่อทีมงานหรือกระบวนการย่อยที่ตนรับผิดชอบ',
+         'ผลกระทบต่อผลการดำเนินงานของแผนกหรือสายงาน',
+         'ผลกระทบต่อผลประกอบการ ภาพลักษณ์ หรือทิศทางกลยุทธ์ขององค์กรโดยรวม'],
+    ic: ['สื่อสารข้อมูลพื้นฐานภายในทีมงานเดียวกัน',
+        'ประสานงานข้ามทีม/แผนกในเรื่องการปฏิบัติงานทั่วไป',
+        'สื่อสารและโน้มน้าวผู้บริหารระดับกลาง หรือประสานงานหลายแผนกในโครงการสำคัญ',
+        'สื่อสารเชิงกลยุทธ์กับผู้บริหารระดับสูงหรือคณะกรรมการบริษัท'],
+    ec: ['แทบไม่ต้องติดต่อกับบุคคลภายนอกองค์กร',
+        'ติดต่อลูกค้าหรือซัพพลายเออร์ในเรื่องการปฏิบัติงานทั่วไป',
+        'เจรจาต่อรองกับคู่ค้า หน่วยงานราชการ หรือลูกค้ารายสำคัญ',
+        'เป็นตัวแทนองค์กรเจรจา/สร้างความสัมพันธ์เชิงกลยุทธ์ระดับสูง (คู่ค้าต่างประเทศ นักลงทุน หน่วยงานกำกับดูแล)'],
+    lead: ['ไม่มีผู้ใต้บังคับบัญชา ดูแลรับผิดชอบเฉพาะงานของตนเอง',
+          'ควบคุมดูแลงานหรือทีมงานขนาดเล็ก (เช่น Line Leader)',
+          'บริหารทีมงาน/แผนก วางแผนกำลังคน ประเมินผลงานผู้ใต้บังคับบัญชา',
+          'บริหารหลายแผนก/สายงาน วางกลยุทธ์และพัฒนาผู้นำรุ่นถัดไป'],
+    phys: ['งานสำนักงานทั่วไป แทบไม่ต้องใช้แรงกาย',
+           'ยืนหรือเดินเป็นระยะ ยกของเบาเป็นครั้งคราว',
+           'ใช้แรงกายอย่างสม่ำเสมอ ยกของหนัก หรือทำงานเป็นกะต่อเนื่อง',
+           'ใช้แรงกายหนักต่อเนื่อง หรือสภาพเสี่ยงทางกายภาพสูง'],
+    env: ['สำนักงานปกติ ปลอดภัย ควบคุมอุณหภูมิ',
+         'พื้นที่การผลิตทั่วไป มีเสียง/ฝุ่นเล็กน้อย มีมาตรการความปลอดภัยมาตรฐาน',
+         'สัมผัสความร้อน สารเคมี เสียงดัง หรือเครื่องจักรที่มีความเสี่ยงปานกลาง',
+         'สภาพแวดล้อมที่มีความเสี่ยงสูงต่อเนื่อง ต้องสวม PPE เต็มรูปแบบตลอดเวลา'],
+    inno: ['ปฏิบัติงานตามมาตรฐานที่กำหนดไว้ ไม่ต้องใช้ความคิดสร้างสรรค์',
+           'ปรับปรุงงานเล็กน้อยภายในขอบเขตของตนเอง (Kaizen รายบุคคล)',
+           'ริเริ่มปรับปรุงกระบวนการที่ส่งผลต่อทีมงานหรือแผนก',
+           'ริเริ่มนวัตกรรมหรือการเปลี่ยนแปลงเชิงกลยุทธ์ที่สร้างความได้เปรียบระดับองค์กร'],
+  },
+};
+function jeBandIndex(score) {
+  if (score <= 20) return 0;
+  if (score <= 50) return 1;
+  if (score <= 80) return 2;
+  return 3;
+}
+function jeAnchorsForLang() { return JE_ANCHORS[currentLang] || JE_ANCHORS.en; }
+function jeBandLabelsForLang() { return JE_BAND_LABELS[currentLang] || JE_BAND_LABELS.en; }
+
+/* ============================================================
+   I18N — language state & helpers
+   ============================================================ */
+let currentLang = 'en';
+try {
+  const saved = localStorage.getItem('hrAppLang');
+  if (saved && I18N[saved]) currentLang = saved;
+} catch (e) { /* localStorage unavailable — fall back to default */ }
+
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || (I18N.en && I18N.en[key]) || key;
+}
+function persistLang(lang) {
+  try { localStorage.setItem('hrAppLang', lang); } catch (e) { /* ignore */ }
+}
+/* Replaces every {token} occurrence (not just the first) — needed since some
+   translated strings (e.g. the compression alert) repeat the same token twice. */
+function fillTemplate(str, vars) {
+  return Object.keys(vars).reduce((s, k) => s.split('{' + k + '}').join(vars[k]), str);
+}
+
+const LEVEL_COLORS = {
+  L1: '#94a3b8', L2: '#60a5fa', L3: '#38bdf8', L4: '#2dd4bf',
+  L5: '#34d399', L6: '#fbbf24', L7: '#fb923c', L8: '#fb7185'
+};
+let DEPTS = [];
+const money = n => '฿' + Math.round(n).toLocaleString('en-US');
+const moneyShort = n => {
+  if (n >= 1e6) return '฿' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '฿' + (n/1e3).toFixed(0) + 'K';
+  return '฿' + Math.round(n);
+};
+const fmt = n => n.toLocaleString('en-US');
+
+/* Debounce — used on the search inputs (Employee Directory, JE Reference
+   Table) so a full filter/sort/re-render only fires once typing pauses,
+   instead of on every keystroke. */
+function debounce(fn, delay = 250) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+Chart.defaults.color = '#64748b';
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.boxWidth = 8;
+Chart.defaults.plugins.legend.labels.boxHeight = 8;
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const TITLE_KEYS = {
+  dashboard: ['page_dashboard_title', 'page_dashboard_sub'],
+  jobeval: ['page_jobeval_title', 'page_jobeval_sub'],
+  structure: ['page_structure_title', 'page_structure_sub'],
+  directory: ['page_directory_title', 'page_directory_sub'],
+  simulator: ['page_simulator_title', 'page_simulator_sub'],
+};
+let activeTabName = 'dashboard';
+function requestedInitialTab() {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab') || window.location.hash.replace('#', '');
+  return TITLE_KEYS[tab] ? tab : 'dashboard';
+}
+
+function activateTab(tab) {
+  if (tab === 'simulator' && viewRole !== 'admin') tab = 'dashboard'; // server-redacted data for Manager role
+  activeTabName = tab;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelectorAll('.navlink').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.navlink-m').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  updatePageHeader();
+  document.getElementById('mobileMenu').classList.add('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function updatePageHeader() {
+  const keys = TITLE_KEYS[activeTabName];
+  document.getElementById('pageTitle').textContent = t(keys[0]);
+  document.getElementById('pageSubtitle').textContent = t(keys[1]);
+}
+document.querySelectorAll('.navlink, .navlink-m').forEach(btn => {
+  btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+});
+document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+  document.getElementById('mobileMenu').classList.toggle('hidden');
+});
+const LOCALE_MAP = { en: 'en-GB', th: 'th-TH-u-ca-gregory', zh: 'zh-CN' };
+function renderTodayDate() {
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString(LOCALE_MAP[currentLang] || 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+renderTodayDate();
+
+/* ============================================================
+   I18N — apply translations to static DOM + language switch UI
+   ============================================================ */
+function applyStaticTranslations() {
+  document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  const headcountDesc = document.getElementById('kpiHeadcountDesc');
+  if (headcountDesc) headcountDesc.textContent = fillTemplate(t('kpi_headcount_desc'), { n: DEPTS.length });
+  updatePageHeader();
+  renderTodayDate();
+}
+
+function renderLangSwitch() {
+  const html = Object.keys(LANG_LABELS).map(lang => `
+    <button data-lang="${lang}" class="lang-btn px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${lang === currentLang ? 'bg-navy-900 text-white shadow-sm' : 'text-slate-500 hover:text-navy-800'}">${LANG_LABELS[lang]}</button>
+  `).join('');
+  const desktop = document.getElementById('langSwitch');
+  const mobile = document.getElementById('langSwitchMobile');
+  if (desktop) desktop.innerHTML = html;
+  if (mobile) mobile.innerHTML = Object.keys(LANG_LABELS).map(lang => `
+    <button data-lang="${lang}" class="lang-btn px-2 py-1 rounded-full transition-all ${lang === currentLang ? 'bg-white/20 text-white' : 'text-slate-300'}">${LANG_LABELS[lang]}</button>
+  `).join('');
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => setLanguage(btn.dataset.lang));
+  });
+}
+
+/* ============================================================
+   VIEW ROLE — Manager vs. Admin visibility toggle
+   ------------------------------------------------------------
+   IMPORTANT: this is a client-side visual filter only. Every field is
+   still present in the page's DOM/JS the moment it loads (there is no
+   backend, so there is nothing to actually withhold) — this toggle just
+   hides individual pay figures from the screen and disables the Excel
+   export by default, to reduce accidental over-the-shoulder exposure of
+   sensitive comp data when e.g. presenting on a shared screen. It is NOT
+   an access-control boundary: anyone with browser devtools (or the file
+   itself) can still see the underlying numbers. Treat "Manager view" as
+   a courtesy default, not security — see the audit's Code & Security
+   section for what real access control would require.
+   ============================================================ */
+let viewRole = 'manager';
+
+function renderRoleSwitch() {
+  const wrap = document.getElementById('roleSwitch');
+  if (!wrap) return;
+  const realRole = myProfile ? myProfile.role : 'manager';
+  wrap.innerHTML = ['manager', 'admin'].map(r => {
+    const disabled = r === 'admin' && realRole !== 'admin'; // Manager accounts can never see Admin view — enforced server-side, not just here
+    return `<button data-role="${r}" ${disabled ? 'disabled' : ''} class="role-btn px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${r === viewRole ? 'bg-navy-900 text-white shadow-sm' : disabled ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-navy-800'}" ${disabled ? `title="${t('role_admin_locked')}"` : ''}>${t('role_' + r)}</button>`;
+  }).join('');
+  wrap.querySelectorAll('.role-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => setViewRole(btn.dataset.role));
+  });
+}
+
+function setViewRole(role) {
+  if (role !== 'manager' && role !== 'admin') return;
+  const realRole = myProfile ? myProfile.role : 'manager';
+  if (role === 'admin' && realRole !== 'admin') return; // server would redact anyway; block the UI switch too
+  viewRole = role;
+  document.body.classList.toggle('role-manager', role === 'manager');
+  document.body.classList.toggle('role-admin', role === 'admin');
+  renderRoleSwitch();
+  // Re-render views that branch on viewRole (risk badge tooltip/score visibility, admin-only cards/tabs)
+  renderEmployeeTable();
+  renderCompressionAlerts();
+  if (activeTabName === 'simulator' && role !== 'admin') activateTab('dashboard'); else if (activeTabName === 'simulator') renderSimulatorTab();
+  lucide.createIcons();
+}
+
+function setLanguage(lang) {
+  if (!I18N[lang]) return;
+  if (lang === currentLang) return;
+  currentLang = lang;
+  persistLang(currentLang);
+  applyStaticTranslations();
+  renderLangSwitch();
+  renderRoleSwitch();
+  renderKPIs();
+  renderJEFactors();
+  updateJETotals();
+  renderJETable();
+  renderStructureTable();
+  renderProgression();
+  renderCompressionAlerts();
+  renderEmployeeTable();
+  relabelCharts();
+  renderSimulatorTab();
+  lucide.createIcons();
+}
+
+/* ============================================================
+   TAB 1 — EXECUTIVE DASHBOARD
+   ============================================================ */
+function computeKPIs() {
+  // Company-wide aggregates come from the server-side RPC (hr_comp.get_dashboard_aggregates),
+  // not from individual EMPLOYEES rows — so these totals are correct for the Manager role too,
+  // even though per-employee base/compa are redacted for that role.
+  const k = AGGREGATES ? AGGREGATES.kpi : { headcount: 0, totalRem: 0, avgCompa: 0, flightRiskCritical: 0, flightRiskMedium: 0 };
+  return {
+    headcount: k.headcount, totalRem: Number(k.totalRem), avgCompa: Number(k.avgCompa),
+    flightRiskCritical: k.flightRiskCritical, flightRiskMedium: k.flightRiskMedium
+  };
+}
+
+function renderKPIs() {
+  const k = computeKPIs();
+  document.getElementById('kpiHeadcount').textContent = fmt(k.headcount);
+  document.getElementById('kpiTotalRem').textContent = money(k.totalRem);
+  document.getElementById('kpiCompaRatio').textContent = k.avgCompa.toFixed(2);
+  document.getElementById('kpiCompaRatioPct').textContent = (k.avgCompa * 100).toFixed(2) + '%';
+  document.getElementById('kpiFlightRisk').textContent = fmt(k.flightRiskCritical);
+  const flightRiskDesc = document.getElementById('kpiFlightRiskDesc');
+  if (flightRiskDesc) flightRiskDesc.textContent = fillTemplate(t('kpi_flight_risk_desc'), { medium: fmt(k.flightRiskMedium) });
+}
+
+/* Registry of all live Chart.js instances so they can be destroyed & rebuilt on language switch */
+const charts = {};
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); charts[key] = null; }
+}
+/* Perf fix (UI/UX audit): language switch used to destroy() + recreate all
+   10-12 Chart.js instances on every click — expensive and causes a visible
+   flash. Only the TEXT (labels / dataset labels) needs to change; the
+   underlying data arrays are untouched by a language switch. So instead we
+   relabel every live chart in place and call update('none') (no animation)
+   — same visual result, no teardown/rebuild, no flash. Tooltip callbacks
+   already call t() at render time so they don't need touching here. */
+function relabelCharts() {
+  if (charts.benchmark) {
+    const ds = charts.benchmark.data.datasets;
+    ds[0].label = t('ds_p25'); ds[1].label = t('ds_p75'); ds[2].label = t('ds_midpoint');
+    ds[3].label = t('ds_p50'); ds[4].label = t('ds_compA'); ds[5].label = t('ds_compB'); ds[6].label = t('ds_compC');
+    charts.benchmark.update('none');
+  }
+  if (charts.equity) {
+    charts.equity.data.datasets[0].label = t('ds_male');
+    charts.equity.data.datasets[1].label = t('ds_female');
+    charts.equity.update('none');
+  }
+  if (charts.payStatus) {
+    charts.payStatus.data.labels = [t('status_red'), t('status_inrange'), t('status_green')];
+    charts.payStatus.update('none');
+  }
+  if (charts.performance) {
+    charts.performance.data.labels = ['A', 'B', 'C', 'D'].map(r => t('ds_rating_prefix') + ' ' + r);
+    charts.performance.update('none');
+  }
+  if (charts.dept) {
+    charts.dept.data.datasets[0].label = t('ds_avg_base_salary');
+    charts.dept.update('none');
+  }
+  if (charts.riskTier) {
+    charts.riskTier.data.labels = [t('risk_critical'), t('risk_medium'), t('risk_low')];
+    charts.riskTier.update('none');
+  }
+  if (charts.jeRadar) {
+    charts.jeRadar.data.labels = FACTOR_DEFS.map(f => t(f.i18nKey + '_short'));
+    charts.jeRadar.update('none');
+  }
+  if (charts.bands) {
+    const ds = charts.bands.data.datasets;
+    ds[0].label = t('ds_minimum_base'); ds[1].label = t('ds_minmax_range'); ds[2].label = t('col_midpoint');
+    charts.bands.update('none');
+  }
+  if (charts.simBudget) {
+    charts.simBudget.data.datasets[0].label = t('sim_before');
+    charts.simBudget.data.datasets[1].label = t('sim_after');
+    charts.simBudget.update('none');
+  }
+  if (charts.meritByPerf) {
+    charts.meritByPerf.data.labels = ['A', 'B', 'C', 'D'].map(p => t('ds_rating_prefix') + ' ' + p);
+    charts.meritByPerf.update('none');
+  }
+  /* headcount & compaDist charts use untranslated labels (level codes / fixed
+     compa-ratio bucket edges) so nothing to relabel there. */
+}
+
+/* Compa-Ratio Distribution — the histogram a single KPI average hides.
+   Fixed bucket edges keep the shape comparable release over release. */
+const COMPA_DIST_BUCKETS = [
+  { key: '<0.80',      test: c => c < 0.80 },
+  { key: '0.80–0.90',  test: c => c >= 0.80 && c < 0.90 },
+  { key: '0.90–1.00',  test: c => c >= 0.90 && c < 1.00 },
+  { key: '1.00–1.10',  test: c => c >= 1.00 && c < 1.10 },
+  { key: '1.10–1.20',  test: c => c >= 1.10 && c < 1.20 },
+  { key: '≥1.20',      test: c => c >= 1.20 },
+];
+function buildCompaDistChart() {
+  const ctx = document.getElementById('chartCompaDist');
+  // Server-side aggregate (hr_comp.get_dashboard_aggregates) so this histogram
+  // renders correctly for the Manager role too, without exposing individual compa-ratios.
+  const cd = AGGREGATES ? AGGREGATES.compaDist : { lt80: 0, b80_90: 0, b90_100: 0, b100_110: 0, b110_120: 0, ge120: 0 };
+  const counts = [cd.lt80, cd.b80_90, cd.b90_100, cd.b100_110, cd.b110_120, cd.ge120];
+  const total = counts.reduce((a, b) => a + b, 0) || 1;
+  charts.compaDist = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: COMPA_DIST_BUCKETS.map(b => b.key),
+      datasets: [{ data: counts, backgroundColor: COMPA_DIST_BUCKETS.map((_, i) => i <= 1 ? '#fbbf24' : i >= 4 ? '#fb7185' : '#34d399'), borderRadius: 6, barPercentage: .65 }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f1f5f9' } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y} ${t('tooltip_employees')} (${(c.parsed.y/total*100).toFixed(1)}%)` } } }
+    }
+  });
+}
+
+function buildRiskTierChart() {
+  const ctx = document.getElementById('chartRiskTier');
+  const tiers = ['Critical', 'Medium', 'Low'];
+  const counts = tiers.map(tier => EMPLOYEES.filter(e => e.riskTier === tier).length);
+  charts.riskTier = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [t('risk_critical'), t('risk_medium'), t('risk_low')],
+      datasets: [{ data: counts, backgroundColor: ['#fb7185', '#fbbf24', '#94a3b8'], borderRadius: 6, barPercentage: .55 }]
+    },
+    options: {
+      indexAxis: 'y', maintainAspectRatio: false,
+      scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.x} ${t('tooltip_employees')}` } } }
+    }
+  });
+}
+
+function buildBenchmarkChart() {
+  const ctx = document.getElementById('chartBenchmark');
+  const labels = BASE_LEVELS.map(l => l.level);
+  charts.benchmark = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: t('ds_p25'), data: BASE_LEVELS.map(l => l.p25), backgroundColor: '#cbd5e1', borderRadius: 4, order: 3 },
+        { type: 'bar', label: t('ds_p75'), data: BASE_LEVELS.map(l => l.p75 - l.p25), backgroundColor: '#e2e8f0', borderRadius: 4, order: 3, base: undefined },
+        { type: 'line', label: t('ds_midpoint'), data: BASE_LEVELS.map(l => l.midpoint), borderColor: '#16294d', backgroundColor: '#16294d', tension: .3, borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#16294d', order: 1 },
+        { type: 'line', label: t('ds_p50'), data: BASE_LEVELS.map(l => l.p50), borderColor: '#2dd4bf', backgroundColor: '#2dd4bf', tension: .3, borderWidth: 2, pointRadius: 3, order: 1, borderDash: [4,3] },
+        { type: 'line', label: t('ds_compA'), data: BASE_LEVELS.map(l => l.compA), borderColor: '#fb7185', backgroundColor: '#fb7185', tension: .3, borderWidth: 2, pointRadius: 2, order: 2 },
+        { type: 'line', label: t('ds_compB'), data: BASE_LEVELS.map(l => l.compB), borderColor: '#fbbf24', backgroundColor: '#fbbf24', tension: .3, borderWidth: 2, pointRadius: 2, order: 2 },
+        { type: 'line', label: t('ds_compC'), data: BASE_LEVELS.map(l => l.compC), borderColor: '#818cf8', backgroundColor: '#818cf8', tension: .3, borderWidth: 2, pointRadius: 2, order: 2 },
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, ticks: { callback: v => moneyShort(v) }, grid: { color: '#f1f5f9' } }
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { filter: (item) => item.text !== t('ds_p75') } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${money(c.parsed.y)}` } }
+      }
+    }
+  });
+}
+
+function buildEquityChart() {
+  const ctx = document.getElementById('chartEquity');
+  // Server-side per-level/per-gender averages (hr_comp.get_dashboard_aggregates) —
+  // works for the Manager role too, since these are aggregates, not individual base pay.
+  const equity = AGGREGATES ? AGGREGATES.equity : [];
+  const levels = BASE_LEVELS.map(l => l.level);
+  const male = levels.map(lv => Number((equity.find(x => x.level === lv) || {}).male_avg) || 0);
+  const female = levels.map(lv => Number((equity.find(x => x.level === lv) || {}).female_avg) || 0);
+  charts.equity = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: levels,
+      datasets: [
+        { label: t('ds_male'), data: male, backgroundColor: '#16294d', borderRadius: 5, barPercentage: .7 },
+        { label: t('ds_female'), data: female, backgroundColor: '#2dd4bf', borderRadius: 5, barPercentage: .7 },
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { x: { grid: { display: false } }, y: { ticks: { callback: v => moneyShort(v) }, grid: { color: '#f1f5f9' } } },
+      plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${money(c.parsed.y)}` } } }
+    }
+  });
+}
+
+function buildHeadcountChart() {
+  const ctx = document.getElementById('chartHeadcount');
+  charts.headcount = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: BASE_LEVELS.map(l => l.level),
+      datasets: [{ data: BASE_LEVELS.map(l => l.headcount), backgroundColor: BASE_LEVELS.map(l => LEVEL_COLORS[l.level]), borderWidth: 3, borderColor: '#fff' }]
+    },
+    options: {
+      maintainAspectRatio: false, cutout: '62%',
+      plugins: { legend: { position: 'right', labels: { padding: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} ${t('tooltip_employees')}` } } }
+    }
+  });
+}
+
+function buildPayStatusChart() {
+  const ctx = document.getElementById('chartPayStatus');
+  const counts = { Red: 0, InRange: 0, Green: 0 };
+  EMPLOYEES.forEach(e => counts[e.payStatus]++);
+  charts.payStatus = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [t('status_red'), t('status_inrange'), t('status_green')],
+      datasets: [{ data: [counts.Red, counts.InRange, counts.Green], backgroundColor: ['#fb7185', '#34d399', '#fbbf24'], borderWidth: 3, borderColor: '#fff' }]
+    },
+    options: {
+      maintainAspectRatio: false, cutout: '62%',
+      plugins: { legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} (${(c.parsed/EMPLOYEES.length*100).toFixed(1)}%)` } } }
+    }
+  });
+}
+
+function buildPerformanceChart() {
+  const ctx = document.getElementById('chartPerformance');
+  const order = ['A', 'B', 'C', 'D'];
+  const counts = order.map(r => EMPLOYEES.filter(e => e.perf === r).length);
+  charts.performance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: order.map(r => t('ds_rating_prefix') + ' ' + r),
+      datasets: [{ data: counts, backgroundColor: ['#34d399', '#2dd4bf', '#fbbf24', '#fb7185'], borderRadius: 8, barPercentage: .55 }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { x: { grid: { display: false } }, y: { grid: { color: '#f1f5f9' }, beginAtZero: true } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.parsed.y} ${t('tooltip_employees')}` } } }
+    }
+  });
+}
+
+function buildDeptChart() {
+  const ctx = document.getElementById('chartDept');
+  // Server-side per-department average base salary (aggregate, safe for Manager role).
+  const deptAvg = AGGREGATES ? AGGREGATES.deptAvg : [];
+  const data = DEPTS.map(d => {
+    const row = deptAvg.find(x => x.dept === d);
+    return { dept: d, avg: row ? Number(row.avg) : 0, n: row ? Number(row.n) : 0 };
+  }).sort((a, b) => b.avg - a.avg);
+  charts.dept = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.dept),
+      datasets: [{ label: t('ds_avg_base_salary'), data: data.map(d => d.avg), backgroundColor: '#1e3660', borderRadius: 6, barPercentage: .7 }]
+    },
+    options: {
+      indexAxis: 'y', maintainAspectRatio: false,
+      scales: { x: { ticks: { callback: v => moneyShort(v) }, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${money(c.parsed.x)}  ·  n=${data[c.dataIndex].n}` } } }
+    }
+  });
+}
+
+/* ============================================================
+   TAB 2 — JOB EVALUATION CALCULATOR
+   ============================================================ */
+const jeScores = Object.fromEntries(FACTOR_DEFS.map(f => [f.key, 10]));
+
+function levelForScore(score) {
+  return window.JE_SCORE_GRADE_MODEL.levelForScore(score);
+}
+function levelTitle(lv) { return t('level_title_' + lv); }
+
+function renderJEFactors() {
+  const wrap = document.getElementById('jeFactorsGrid');
+  const anchors = jeAnchorsForLang();
+  const bandLabels = jeBandLabelsForLang();
+  wrap.innerHTML = FACTOR_DEFS.map(f => `
+    <div class="sm:col-span-1">
+      <div class="flex items-center justify-between mb-1.5">
+        <label class="text-xs font-semibold text-slate-600 flex items-center gap-1.5"><i data-lucide="${f.icon}" class="w-3.5 h-3.5 text-navy-700"></i>${t(f.i18nKey)}</label>
+        <span class="text-xs font-bold text-navy-900 bg-slate-100 rounded-md px-2 py-0.5 w-10 text-center" id="jeVal-${f.key}">${jeScores[f.key]}</span>
+      </div>
+      <input type="range" min="10" max="100" step="1" value="${jeScores[f.key]}" data-key="${f.key}" class="range-slider je-slider w-full">
+      <div class="mt-1.5 text-[11px] leading-snug text-slate-500 bg-slate-50 rounded-lg px-2.5 py-1.5" id="jeDesc-${f.key}"></div>
+      <button type="button" class="mt-1 text-[10.5px] text-navy-700 hover:text-navy-900 underline decoration-dotted" data-anchor-toggle="${f.key}">
+        <span>${t('je_view_bands')}</span> ▾
+      </button>
+      <table class="mt-1.5 w-full text-[10.5px] border-collapse hidden" id="jeAnchorTable-${f.key}">
+        ${bandLabels.map((lbl, i) => `
+          <tr class="align-top">
+            <td class="w-24 font-semibold text-navy-800 bg-navy-50 rounded-l-md px-2 py-1 whitespace-nowrap">${lbl}</td>
+            <td class="text-slate-600 px-2 py-1 border-b border-slate-100">${anchors[f.key][i]}</td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>
+  `).join('');
+  lucide.createIcons();
+  FACTOR_DEFS.forEach(f => updateFactorDesc(f.key));
+  wrap.querySelectorAll('input[type=range]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      jeScores[e.target.dataset.key] = +e.target.value;
+      document.getElementById('jeVal-' + e.target.dataset.key).textContent = e.target.value;
+      updateFactorDesc(e.target.dataset.key);
+      updateJETotals();
+    });
+  });
+  wrap.querySelectorAll('[data-anchor-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tbl = document.getElementById('jeAnchorTable-' + btn.dataset.anchorToggle);
+      tbl.classList.toggle('hidden');
+    });
+  });
+}
+
+function updateFactorDesc(key) {
+  const el = document.getElementById('jeDesc-' + key);
+  if (!el) return;
+  const bi = jeBandIndex(jeScores[key]);
+  el.textContent = jeAnchorsForLang()[key][bi];
+}
+
+function updateJETotals() {
+  const total = Object.values(jeScores).reduce((a, b) => a + b, 0);
+  const lv = levelForScore(total);
+  document.getElementById('jeTotalScore').textContent = fmt(total);
+  document.getElementById('jeRecLevel').textContent = lv;
+  document.getElementById('jeRecLevel').style.color = LEVEL_COLORS[lv];
+  document.getElementById('jeRecTitle').textContent = levelTitle(lv);
+  document.getElementById('jeScoreBar').style.width = Math.min(100, total / 1200 * 100) + '%';
+
+  if (charts.jeRadar) {
+    charts.jeRadar.data.datasets[0].data = FACTOR_DEFS.map(f => jeScores[f.key]);
+    charts.jeRadar.update();
+  }
+  renderScoreBands(lv);
+}
+
+function renderScoreBands(activeLevel) {
+  const wrap = document.getElementById('jeLevelBands');
+  wrap.innerHTML = SCORE_BANDS.map(b => `
+    <div class="flex items-center justify-between rounded-lg px-2.5 py-1.5 ${b.level === activeLevel ? 'bg-navy-900 text-white' : 'bg-slate-50 text-slate-600'}">
+      <span class="font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:${LEVEL_COLORS[b.level]}"></span>${b.level}</span>
+      <span>${b.min}&ndash;${b.max === 1200 ? '1200+' : b.max} ${t('pts_suffix')}</span>
+    </div>
+  `).join('');
+}
+
+function buildJERadar() {
+  const ctx = document.getElementById('chartJERadar');
+  charts.jeRadar = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: FACTOR_DEFS.map(f => t(f.i18nKey + '_short')),
+      datasets: [{ data: FACTOR_DEFS.map(f => jeScores[f.key]), backgroundColor: 'rgba(45,212,191,0.25)', borderColor: '#0d1a33', pointBackgroundColor: '#0d1a33', borderWidth: 2 }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { r: { min: 0, max: 100, ticks: { display: false, stepSize: 25 }, grid: { color: '#e2e8f0' }, pointLabels: { font: { size: 9 } } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+/* Print / Export PDF — cheap dependency-free option (audit-recommended):
+   the browser's native print dialog lets the user pick "Save as PDF".
+   @media print in index.html handles hiding chrome / showing only the
+   active tab full-width. */
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+document.getElementById('jeResetBtn').addEventListener('click', () => {
+  FACTOR_DEFS.forEach(f => { jeScores[f.key] = 0; });
+  renderJEFactors();
+  updateJETotals();
+});
+
+/* JE reference table */
+let jeSort = { key: null, dir: 1 };
+function renderJETable() {
+  const q = document.getElementById('jeSearch').value.trim().toLowerCase();
+  const dept = document.getElementById('jeDeptFilter').value;
+  const level = document.getElementById('jeLevelFilter').value;
+  let rows = JE_RECORDS.filter(r =>
+    (!q || r.title.toLowerCase().includes(q) || r.jobId.toLowerCase().includes(q)) &&
+    (!dept || r.dept === dept) &&
+    (!level || r.level === level)
+  );
+  rows.sort((a, b) => b.total - a.total);
+  const tbody = document.getElementById('jeTableBody');
+  tbody.innerHTML = rows.map(r => `
+    <tr class="border-b border-slate-50 hover:bg-slate-50/70 fade-row">
+      <td class="px-3 py-2 font-mono text-[11px] text-slate-500">${r.jobId}</td>
+      <td class="px-3 py-2 font-medium text-slate-700">${r.title}</td>
+      <td class="px-3 py-2 text-slate-500">${r.dept}</td>
+      <td class="px-3 py-2"><span class="badge" style="background:${LEVEL_COLORS[r.level]}22;color:${LEVEL_COLORS[r.level]}">${r.level}</span></td>
+      <td class="px-3 py-2 text-right font-semibold text-navy-900">${r.total}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="5" class="text-center py-8 text-slate-400">${t('no_roles_match')}</td></tr>`;
+}
+function populateJEFilters() {
+  const deptSel = document.getElementById('jeDeptFilter');
+  const lvlSel = document.getElementById('jeLevelFilter');
+  const prevDept = deptSel.value, prevLevel = lvlSel.value;
+  deptSel.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
+  lvlSel.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
+  DEPTS.forEach(d => deptSel.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+  BASE_LEVELS.forEach(l => lvlSel.insertAdjacentHTML('beforeend', `<option value="${l.level}">${l.level}</option>`));
+  deptSel.value = prevDept; lvlSel.value = prevLevel;
+  deptSel.addEventListener('change', renderJETable);
+  lvlSel.addEventListener('change', renderJETable);
+  document.getElementById('jeSearch').addEventListener('input', debounce(renderJETable, 250));
+}
+
+/* ============================================================
+   TAB 3 — SALARY STRUCTURE & WHAT-IF
+   ============================================================ */
+let LEVELS = [];
+
+function recalcLevel(l) {
+  l.min = l.midpoint / (1 + l.spread / 2);
+  l.max = l.min * (1 + l.spread);
+}
+
+/* Pay Compression detector — flags adjacent job levels whose Min–Max
+   bands overlap enough that a strong performer in the lower level can
+   already out-earn the floor of the level above them. Runs live against
+   the current (what-if adjusted) LEVELS, and also checks whether any
+   real employee has already crossed into the next level's band. */
+function detectPayCompression(levels) {
+  const alerts = [];
+  for (let i = 0; i < levels.length - 1; i++) {
+    const lower = levels[i], upper = levels[i + 1];
+    const overlapStart = Math.max(lower.min, upper.min);
+    const overlapEnd = Math.min(lower.max, upper.max);
+    const overlapPct = overlapEnd > overlapStart ? (overlapEnd - overlapStart) / (upper.max - upper.min) : 0;
+    const affected = EMPLOYEES.filter(e => e.level === lower.level && e.base >= upper.min);
+    if (overlapPct > 0.15 || affected.length > 0) {
+      alerts.push({
+        lower: lower.level, upper: upper.level,
+        overlapPct: Math.round(overlapPct * 100),
+        affectedCount: affected.length,
+        severity: (overlapPct > 0.35 || affected.length > 3) ? 'high' : 'medium'
+      });
+    }
+  }
+  return alerts;
+}
+
+function renderCompressionAlerts() {
+  const wrap = document.getElementById('compressionAlerts');
+  if (!wrap) return;
+  // Needs individual base pay per employee — Admin-only (redacted for Manager server-side).
+  if (viewRole !== 'admin') { wrap.innerHTML = `<p class="text-xs text-slate-400 italic">${t('admin_only_feature')}</p>`; return; }
+  const alerts = detectPayCompression(LEVELS);
+  if (!alerts.length) {
+    wrap.innerHTML = `<div class="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+      <i data-lucide="circle-check" class="w-3.5 h-3.5"></i> ${t('compression_none')}
+    </div>`;
+  } else {
+    wrap.innerHTML = alerts.map(a => `
+      <div class="flex items-start gap-2.5 text-xs rounded-lg px-3 py-2.5 border ${a.severity === 'high' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-700'}">
+        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 mt-0.5 shrink-0"></i>
+        <span>${fillTemplate(t('compression_alert'), { lower: a.lower, upper: a.upper, pct: a.overlapPct, count: a.affectedCount })}</span>
+      </div>
+    `).join('');
+  }
+  lucide.createIcons();
+}
+
+function renderStructureTable() {
+  const tbody = document.getElementById('structTableBody');
+  tbody.innerHTML = LEVELS.map((l, i) => `
+    <tr class="hover:bg-slate-50/70">
+      <td class="px-3 py-3">
+        <span class="badge" style="background:${LEVEL_COLORS[l.level]}22;color:${LEVEL_COLORS[l.level]}">${l.level}</span>
+        <div class="text-[11px] text-slate-400 mt-1">${t('level_title_' + l.level)}</div>
+      </td>
+      <td class="px-3 py-3">
+        <div class="flex items-center gap-2">
+          <input type="range" min="10" max="100" step="1" value="${Math.round(l.spread*100)}" data-idx="${i}" data-field="spread" class="range-slider w-24">
+          <span class="text-xs font-semibold text-navy-900 w-10" id="spreadVal-${i}">${Math.round(l.spread*100)}%</span>
+        </div>
+      </td>
+      <td class="px-3 py-3">
+        <div class="flex items-center gap-2">
+          <input type="range" min="${Math.round(l.midpoint*0.5)}" max="${Math.round(l.midpoint*1.5)}" step="100" value="${Math.round(l.midpoint)}" data-idx="${i}" data-field="midpoint" class="range-slider w-28">
+          <span class="text-xs font-semibold text-navy-900 w-20" id="midVal-${i}">${money(l.midpoint)}</span>
+        </div>
+      </td>
+      <td class="px-3 py-3 text-right font-mono text-slate-600" id="minVal-${i}">${money(l.min)}</td>
+      <td class="px-3 py-3 text-right font-mono text-slate-600" id="maxVal-${i}">${money(l.max)}</td>
+      <td class="px-3 py-3 text-right text-slate-400">${money(l.p25)}</td>
+      <td class="px-3 py-3 text-right text-slate-400">${money(l.p50)}</td>
+      <td class="px-3 py-3 text-right text-slate-400">${money(l.p75)}</td>
+    </tr>
+  `).join('');
+  lucide.createIcons();
+  tbody.querySelectorAll('input[type=range]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const idx = +e.target.dataset.idx, field = e.target.dataset.field;
+      const l = LEVELS[idx];
+      if (field === 'spread') { l.spread = (+e.target.value) / 100; document.getElementById('spreadVal-' + idx).textContent = e.target.value + '%'; }
+      if (field === 'midpoint') { l.midpoint = +e.target.value; document.getElementById('midVal-' + idx).textContent = money(l.midpoint); }
+      recalcLevel(l);
+      document.getElementById('minVal-' + idx).textContent = money(l.min);
+      document.getElementById('maxVal-' + idx).textContent = money(l.max);
+      updateBandsChart();
+      renderProgression();
+      renderCompressionAlerts();
+    });
+  });
+}
+
+function buildBandsChart() {
+  const ctx = document.getElementById('chartBands');
+  charts.bands = new Chart(ctx, {
+    data: {
+      labels: LEVELS.map(l => l.level),
+      datasets: [
+        { type: 'bar', label: t('ds_minimum_base'), data: LEVELS.map(l => l.min), backgroundColor: 'rgba(0,0,0,0)' },
+        { type: 'bar', label: t('ds_minmax_range'), data: LEVELS.map(l => l.max - l.min), backgroundColor: LEVELS.map(l => LEVEL_COLORS[l.level] + '55'), borderColor: LEVELS.map(l => LEVEL_COLORS[l.level]), borderWidth: 1.5, borderRadius: 6 },
+        { type: 'line', label: t('col_midpoint'), data: LEVELS.map(l => l.midpoint), borderColor: '#0d1a33', backgroundColor: '#0d1a33', pointRadius: 5, pointStyle: 'rectRot', showLine: false }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, ticks: { callback: v => moneyShort(v) }, grid: { color: '#f1f5f9' } } },
+      plugins: {
+        legend: { labels: { filter: item => item.datasetIndex !== 0 } },
+        tooltip: {
+          callbacks: {
+            label: c => {
+              if (c.datasetIndex === 2) return `${t('col_midpoint')}: ${money(LEVELS[c.dataIndex].midpoint)}`;
+              if (c.datasetIndex === 1) return [`${t('col_minimum')}: ${money(LEVELS[c.dataIndex].min)}`, `${t('col_maximum')}: ${money(LEVELS[c.dataIndex].max)}`];
+              return '';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+function updateBandsChart() {
+  charts.bands.data.datasets[0].data = LEVELS.map(l => l.min);
+  charts.bands.data.datasets[1].data = LEVELS.map(l => l.max - l.min);
+  charts.bands.data.datasets[2].data = LEVELS.map(l => l.midpoint);
+  charts.bands.update();
+}
+
+function renderProgression() {
+  const wrap = document.getElementById('progressionBar');
+  wrap.innerHTML = LEVELS.map((l, i) => {
+    const prev = i > 0 ? LEVELS[i - 1] : null;
+    const pct = prev ? (((l.midpoint - prev.midpoint) / prev.midpoint) * 100).toFixed(1) : null;
+    return `
+    <div class="rounded-xl p-3 border border-slate-100" style="background:${LEVEL_COLORS[l.level]}0e">
+      <p class="font-display font-bold" style="color:${LEVEL_COLORS[l.level]}">${l.level}</p>
+      <p class="text-slate-600 text-[11px] mt-1">${money(l.midpoint)}</p>
+      <p class="text-[10px] mt-1 ${pct === null ? 'text-slate-300' : 'text-emerald-600 font-semibold'}">${pct === null ? '—' : '+' + pct + '%'}</p>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('structResetBtn').addEventListener('click', () => {
+  LEVELS = JSON.parse(JSON.stringify(BASE_LEVELS));
+  LEVELS.forEach(recalcLevel);
+  renderStructureTable();
+  updateBandsChart();
+  renderProgression();
+  renderCompressionAlerts();
+});
+
+/* ============================================================
+   TAB 4 — EMPLOYEE DIRECTORY
+   ============================================================ */
+let empState = { page: 1, pageSize: 25, sortKey: null, sortDir: 1 };
+
+function payStatusBadge(status) {
+  const map = {
+    Red: [t('status_red'), 'bg-rose-100 text-rose-700'],
+    InRange: [t('status_inrange'), 'bg-emerald-100 text-emerald-700'],
+    Green: [t('status_green'), 'bg-amber-100 text-amber-700'],
+  };
+  const [label, cls] = map[status];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function riskBadge(tier, score) {
+  const map = {
+    Critical: ['risk_critical', 'bg-rose-50 text-rose-600 border border-rose-200', 'triangle-alert'],
+    Medium:   ['risk_medium',   'bg-amber-50 text-amber-700 border border-amber-200', 'circle-alert'],
+    Low:      ['risk_low',      'bg-slate-100 text-slate-500', null],
+  };
+  const [key, cls, icon] = map[tier] || map.Low;
+  const titleAttr = viewRole === 'admin' ? ` title="${t('flight_risk_score')}: ${score}/100"` : '';
+  return `<span class="badge ${cls}"${titleAttr}>${icon ? `<i data-lucide="${icon}" class="w-3 h-3"></i>` : ''}${t(key)} <span class="admin-col opacity-60">${score}</span></span>`;
+}
+
+function getFilteredEmployees() {
+  const q = document.getElementById('empSearch').value.trim().toLowerCase();
+  const dept = document.getElementById('empDeptFilter').value;
+  const level = document.getElementById('empLevelFilter').value;
+  const status = document.getElementById('empStatusFilter').value;
+  const risk = document.getElementById('empRiskFilter').value;
+  let rows = EMPLOYEES.filter(e =>
+    (!q || e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.title.toLowerCase().includes(q)) &&
+    (!dept || e.dept === dept) &&
+    (!level || e.level === level) &&
+    (!status || e.payStatus === status) &&
+    (!risk || e.riskTier === risk)
+  );
+  if (empState.sortKey) {
+    const k = empState.sortKey, d = empState.sortDir;
+    const accessor = {
+      id: e => e.id, name: e => e.name, dept: e => e.dept, title: e => e.title,
+      level: e => e.level, gender: e => e.gender, base: e => e.base, compa: e => e.compa, perf: e => e.perf,
+      penetration: e => e.penetration, risk: e => e.riskScore
+    }[k];
+    rows = rows.slice().sort((a, b) => {
+      const av = accessor(a), bv = accessor(b);
+      if (typeof av === 'number') return (av - bv) * d;
+      return String(av).localeCompare(String(bv)) * d;
+    });
+  }
+  return rows;
+}
+
+function renderEmployeeTable() {
+  const rows = getFilteredEmployees();
+  const total = rows.length;
+  const pageSize = empState.pageSize;
+  const maxPage = Math.max(1, Math.ceil(total / pageSize));
+  if (empState.page > maxPage) empState.page = maxPage;
+  const start = (empState.page - 1) * pageSize;
+  const pageRows = rows.slice(start, start + pageSize);
+
+  const tbody = document.getElementById('empTableBody');
+  tbody.innerHTML = pageRows.map(e => `
+    <tr class="border-b border-slate-50 hover:bg-slate-50/70 fade-row">
+      <td class="px-3 py-2.5 font-mono text-[11px] text-slate-500">${e.id}</td>
+      <td class="px-3 py-2.5 font-medium text-slate-700">${e.name}</td>
+      <td class="px-3 py-2.5 text-slate-500">${e.dept}</td>
+      <td class="px-3 py-2.5 text-slate-500">${e.title}</td>
+      <td class="px-3 py-2.5"><span class="badge" style="background:${LEVEL_COLORS[e.level]}22;color:${LEVEL_COLORS[e.level]}">${e.level}</span></td>
+      <td class="px-3 py-2.5 text-slate-500">${e.gender}</td>
+      <td class="admin-col px-3 py-2.5 text-right font-mono text-slate-700">${money(e.base)}</td>
+      <td class="admin-col px-3 py-2.5 text-right font-semibold ${e.compa > 1.15 ? 'text-rose-600' : e.compa < 0.85 ? 'text-amber-600' : 'text-emerald-600'}">${e.compa.toFixed(2)}</td>
+      <td class="admin-col px-3 py-2.5">
+        <div class="flex items-center gap-1.5 justify-end">
+          <span class="text-slate-500 font-mono w-9 text-right">${Math.round(e.penetration * 100)}%</span>
+          <div class="w-14 h-1.5 rounded-full bg-slate-100 overflow-hidden shrink-0">
+            <div class="h-full rounded-full" style="width:${Math.round(e.penetration*100)}%;background:${LEVEL_COLORS[e.level]}"></div>
+          </div>
+        </div>
+      </td>
+      <td class="px-3 py-2.5 text-center"><span class="badge bg-slate-100 text-slate-600">${e.perf}</span></td>
+      <td class="px-3 py-2.5">${payStatusBadge(e.payStatus)}</td>
+      <td class="px-3 py-2.5">${riskBadge(e.riskTier, e.riskScore)}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="12" class="text-center py-10 text-slate-400">${t('no_employees_match')}</td></tr>`;
+  lucide.createIcons();
+
+  document.getElementById('empResultCount').textContent = `${fmt(total)} ${total !== 1 ? t('employees_suffix_pl') : t('employees_suffix')}${total !== EMPLOYEES.length ? ` (${t('of_total')} ${fmt(EMPLOYEES.length)})` : ''}`;
+  renderPagination(maxPage);
+  renderActiveFilters();
+}
+
+function renderPagination(maxPage) {
+  const wrap = document.getElementById('empPagination');
+  const p = empState.page;
+  let pages = [];
+  const add = n => pages.push(n);
+  add(1);
+  for (let i = p - 1; i <= p + 1; i++) if (i > 1 && i < maxPage) add(i);
+  if (maxPage > 1) add(maxPage);
+  pages = [...new Set(pages)].sort((a, b) => a - b);
+  let html = `<button data-pg="${p - 1}" ${p === 1 ? 'disabled' : ''} class="pg-btn w-7 h-7 rounded-md flex items-center justify-center ${p === 1 ? 'text-slate-300' : 'text-slate-600 hover:bg-slate-100'}"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>`;
+  let last = 0;
+  pages.forEach(n => {
+    if (n - last > 1) html += `<span class="px-1 text-slate-300">…</span>`;
+    html += `<button data-pg="${n}" class="pg-btn w-7 h-7 rounded-md text-xs font-medium ${n === p ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-100'}">${n}</button>`;
+    last = n;
+  });
+  html += `<button data-pg="${p + 1}" ${p === maxPage ? 'disabled' : ''} class="pg-btn w-7 h-7 rounded-md flex items-center justify-center ${p === maxPage ? 'text-slate-300' : 'text-slate-600 hover:bg-slate-100'}"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>`;
+  wrap.innerHTML = html;
+  lucide.createIcons();
+  wrap.querySelectorAll('.pg-btn').forEach(b => {
+    b.addEventListener('click', () => { const pg = +b.dataset.pg; if (pg >= 1 && pg <= maxPage) { empState.page = pg; renderEmployeeTable(); } });
+  });
+}
+
+function renderActiveFilters() {
+  const wrap = document.getElementById('empActiveFilters');
+  const chips = [];
+  const dept = document.getElementById('empDeptFilter').value;
+  const level = document.getElementById('empLevelFilter').value;
+  const status = document.getElementById('empStatusFilter').value;
+  const risk = document.getElementById('empRiskFilter').value;
+  if (dept) chips.push(['dept', dept]);
+  if (level) chips.push(['level', level]);
+  if (status) chips.push(['status', { Red: t('status_red'), InRange: t('status_inrange'), Green: t('status_green') }[status]]);
+  if (risk) chips.push(['risk', { Critical: t('risk_critical'), Medium: t('risk_medium'), Low: t('risk_low') }[risk]]);
+  wrap.innerHTML = chips.map(([type, label]) => `
+    <span class="chip active inline-flex items-center gap-1 text-[11px] font-medium bg-navy-900 text-white px-2.5 py-1 rounded-full">
+      ${label} <button data-clear="${type}" class="hover:text-rose-300"><i data-lucide="x" class="w-3 h-3"></i></button>
+    </span>
+  `).join('');
+  lucide.createIcons();
+  wrap.querySelectorAll('[data-clear]').forEach(b => b.addEventListener('click', () => {
+    const map = { dept: 'empDeptFilter', level: 'empLevelFilter', status: 'empStatusFilter', risk: 'empRiskFilter' };
+    document.getElementById(map[b.dataset.clear]).value = '';
+    empState.page = 1;
+    renderEmployeeTable();
+  }));
+}
+
+function populateEmployeeFilters() {
+  const deptSel = document.getElementById('empDeptFilter');
+  DEPTS.forEach(d => deptSel.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+  const lvlSel = document.getElementById('empLevelFilter');
+  BASE_LEVELS.forEach(l => lvlSel.insertAdjacentHTML('beforeend', `<option value="${l.level}">${l.level}</option>`));
+  [deptSel, lvlSel, document.getElementById('empStatusFilter'), document.getElementById('empRiskFilter')].forEach(sel => {
+    sel.addEventListener('change', () => { empState.page = 1; renderEmployeeTable(); });
+  });
+  document.getElementById('empSearch').addEventListener('input', debounce(() => { empState.page = 1; renderEmployeeTable(); }, 250));
+  document.getElementById('empPageSize').addEventListener('change', e => { empState.pageSize = +e.target.value; empState.page = 1; renderEmployeeTable(); });
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (empState.sortKey === key) empState.sortDir *= -1; else { empState.sortKey = key; empState.sortDir = 1; }
+      renderEmployeeTable();
+    });
+  });
+  document.getElementById('empExportBtn').addEventListener('click', exportEmployees);
+}
+
+function exportEmployees() {
+  if (viewRole !== 'admin') return; // Manager view: export intentionally disabled (see VIEW ROLE note above)
+  const rows = getFilteredEmployees().map(e => ({
+    [t('col_emp_id')]: e.id, [t('col_name')]: e.name, [t('col_department')]: e.dept, [t('col_job_title')]: e.title, [t('col_level')]: e.level,
+    [t('col_gender')]: e.gender, 'Age': e.age, 'Tenure (est. yrs)': e.tenure, [t('col_base_salary')]: e.base, 'Allowances': e.allow, [t('col_perf')]: e.perf,
+    'Bonus Months': e.bonusMonths, 'Annual Total Cash': e.annualTotalCash, [t('col_compa')]: +e.compa.toFixed(4),
+    [t('col_range_penetration')]: +(e.penetration * 100).toFixed(1),
+    [t('col_pay_status')]: { Red: t('status_red'), InRange: t('status_inrange'), Green: t('status_green') }[e.payStatus],
+    [t('col_flight_risk')]: { Critical: t('risk_critical'), Medium: t('risk_medium'), Low: t('risk_low') }[e.riskTier],
+    [t('flight_risk_score')]: e.riskScore
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = Object.keys(rows[0] || {}).map(() => ({ wch: 16 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+  const modelRows = window.JE_SCORE_GRADE_MODEL.bands.map(b => ({
+    Version: window.JE_SCORE_GRADE_MODEL.version,
+    Level: b.level,
+    'Minimum Score': b.min,
+    'Maximum Score': b.max,
+    'Title (EN)': b.titles.en,
+    'Title (TH)': b.titles.th,
+    'Title (ZH)': b.titles.zh,
+    'Model Basis': window.JE_SCORE_GRADE_MODEL.basis,
+    'Benchmark Roles': window.JE_SCORE_GRADE_MODEL.benchmarkRoleCount,
+    'Direct Benchmark Fit': window.JE_SCORE_GRADE_MODEL.benchmarkFit.exactMatches,
+    'Boundary Review Roles': window.JE_SCORE_GRADE_MODEL.benchmarkFit.adjacentBoundaryReviewRoles,
+  }));
+  const modelWs = XLSX.utils.json_to_sheet(modelRows);
+  modelWs['!cols'] = Object.keys(modelRows[0] || {}).map(() => ({ wch: 22 }));
+  XLSX.utils.book_append_sheet(wb, modelWs, 'Score Grade Model');
+  const stamp = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `Employee_Directory_Export_${stamp}.xlsx`);
+}
+
+/* ============================================================
+   TAB 5 — COMPENSATION SIMULATOR
+   ============================================================ */
+
+/* ---------- 5A. Salary Increase Budget Simulator ---------- */
+function simulateBudget(budgetPct, strategy) {
+  const pool = EMPLOYEES.reduce((s, e) => s + e.base, 0) * (budgetPct / 100) * 12; // annualized ฿ pool
+  const weights = EMPLOYEES.map(e => {
+    if (strategy === 'flat') return 1;
+    const perfWeight = { A: 4, B: 2.5, C: 1, D: 0.2 }[e.perf] || 0.2;
+    const gapWeight = Math.max(0.2, 1 - e.compa); // bigger gap below midpoint -> bigger weight
+    return perfWeight * (1 + gapWeight);
+  });
+  const totalWeight = weights.reduce((a, b) => a + b, 0) || 1;
+  return EMPLOYEES.map((e, i) => {
+    const level = BASE_LEVELS.find(l => l.level === e.level);
+    const raiseAnnual = pool * (weights[i] / totalWeight);
+    const raiseMonthly = raiseAnnual / 12;
+    const newBase = e.base + raiseMonthly;
+    const newCompa = level ? newBase / level.midpoint : e.compa;
+    return { id: e.id, name: e.name, level: e.level, oldBase: e.base, newBase,
+             raisePct: e.base > 0 ? (raiseMonthly / e.base) * 100 : 0, oldCompa: e.compa, newCompa };
+  });
+}
+
+function renderBudgetSimulator() {
+  const budgetPct = +document.getElementById('simBudgetSlider').value;
+  const strategy = document.getElementById('simStrategy').value;
+  document.getElementById('simBudgetVal').textContent = budgetPct.toFixed(2) + '%';
+
+  const result = simulateBudget(budgetPct, strategy);
+  const totalCost = result.reduce((s, r) => s + (r.newBase - r.oldBase) * 12, 0);
+  const oldAvg = result.reduce((s, r) => s + r.oldCompa, 0) / result.length;
+  const newAvg = result.reduce((s, r) => s + r.newCompa, 0) / result.length;
+
+  document.getElementById('simTotalCost').textContent = money(totalCost);
+  document.getElementById('simCompaBefore').textContent = oldAvg.toFixed(2);
+  document.getElementById('simCompaAfter').textContent = newAvg.toFixed(2);
+
+  const beforeCounts = COMPA_DIST_BUCKETS.map(b => result.filter(r => b.test(r.oldCompa)).length);
+  const afterCounts = COMPA_DIST_BUCKETS.map(b => result.filter(r => b.test(r.newCompa)).length);
+  if (charts.simBudget) {
+    charts.simBudget.data.datasets[0].data = beforeCounts;
+    charts.simBudget.data.datasets[1].data = afterCounts;
+    charts.simBudget.update();
+  } else {
+    charts.simBudget = new Chart(document.getElementById('chartSimBudget'), {
+      type: 'bar',
+      data: {
+        labels: COMPA_DIST_BUCKETS.map(b => b.key),
+        datasets: [
+          { label: t('sim_before'), data: beforeCounts, backgroundColor: '#cbd5e1', borderRadius: 5, barPercentage: .6 },
+          { label: t('sim_after'), data: afterCounts, backgroundColor: '#2dd4bf', borderRadius: 5, barPercentage: .6 },
+        ]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f1f5f9' } } },
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  const top = result.slice().sort((a, b) => (b.newBase - b.oldBase) - (a.newBase - a.oldBase)).slice(0, 15);
+  document.getElementById('simBudgetTable').innerHTML = top.map(r => `
+    <tr class="border-b border-slate-50 hover:bg-slate-50/70">
+      <td class="px-3 py-2 font-mono text-[11px] text-slate-500">${r.id}</td>
+      <td class="px-3 py-2 font-medium text-slate-700">${r.name}</td>
+      <td class="px-3 py-2"><span class="badge" style="background:${LEVEL_COLORS[r.level]}22;color:${LEVEL_COLORS[r.level]}">${r.level}</span></td>
+      <td class="px-3 py-2 text-right font-semibold text-emerald-600">+${r.raisePct.toFixed(2)}%</td>
+      <td class="px-3 py-2 text-right font-mono text-slate-700">${r.newCompa.toFixed(2)}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="5" class="text-center py-6 text-slate-400">${t('no_employees_match')}</td></tr>`;
+}
+
+/* ---------- 5B. Market Adjustment Cost Calculator ---------- */
+let simMarketTarget = 'min';
+function marketAdjustmentCost(targetPosition) {
+  const greenEmployees = EMPLOYEES.filter(e => e.payStatus === 'Green');
+  let totalMonthlyCost = 0;
+  const detail = greenEmployees.map(e => {
+    const level = BASE_LEVELS.find(l => l.level === e.level);
+    const target = level ? (targetPosition === 'midpoint' ? level.midpoint : level.min) : e.base;
+    const delta = Math.max(0, target - e.base);
+    totalMonthlyCost += delta;
+    return { id: e.id, name: e.name, dept: e.dept, level: e.level, currentBase: e.base, targetBase: target, monthlyDelta: delta };
+  });
+  return { affectedCount: greenEmployees.length, totalMonthlyCost, totalAnnualCost: totalMonthlyCost * 12, detail };
+}
+
+function renderMarketCalculator() {
+  const result = marketAdjustmentCost(simMarketTarget);
+  document.getElementById('simMarketCount').textContent = fmt(result.affectedCount);
+  document.getElementById('simMarketMonthly').textContent = money(result.totalMonthlyCost);
+  document.getElementById('simMarketAnnual').textContent = money(result.totalAnnualCost);
+
+  document.querySelectorAll('.sim-target-btn').forEach(b => b.classList.toggle('active', b.dataset.target === simMarketTarget));
+
+  const rows = result.detail.slice().sort((a, b) => b.monthlyDelta - a.monthlyDelta);
+  document.getElementById('simMarketTable').innerHTML = rows.map(r => `
+    <tr class="border-b border-slate-50 hover:bg-slate-50/70">
+      <td class="px-3 py-2 font-mono text-[11px] text-slate-500">${r.id}</td>
+      <td class="px-3 py-2 font-medium text-slate-700">${r.name}</td>
+      <td class="px-3 py-2 text-slate-500">${r.dept}</td>
+      <td class="px-3 py-2"><span class="badge" style="background:${LEVEL_COLORS[r.level]}22;color:${LEVEL_COLORS[r.level]}">${r.level}</span></td>
+      <td class="px-3 py-2 text-right font-mono text-slate-600">${money(r.currentBase)}</td>
+      <td class="px-3 py-2 text-right font-mono text-slate-700">${money(r.targetBase)}</td>
+      <td class="px-3 py-2 text-right font-semibold text-amber-600">+${money(r.monthlyDelta)}</td>
+    </tr>
+  `).join('') || `<tr><td colspan="7" class="text-center py-6 text-slate-400">${t('no_employees_match')}</td></tr>`;
+}
+
+/* ---------- 5C. Merit Increase Matrix ---------- */
+const MERIT_MATRIX = {
+  A: { low: 8.0, mid: 6.0, high: 3.5 },
+  B: { low: 6.0, mid: 4.0, high: 2.0 },
+  C: { low: 3.0, mid: 2.0, high: 0.5 },
+  D: { low: 0,   mid: 0,   high: 0   },
+};
+function compaBand(compa) { return compa < 0.90 ? 'low' : compa < 1.10 ? 'mid' : 'high'; }
+function recommendedMerit(e) { return MERIT_MATRIX[e.perf][compaBand(e.compa)]; }
+
+function renderMeritMatrix() {
+  const perfRows = ['A', 'B', 'C', 'D'];
+  const bands = ['low', 'mid', 'high'];
+  const table = document.getElementById('meritMatrixTable');
+  table.innerHTML = `
+    <tr>
+      <th class="text-left text-[11px] font-semibold text-slate-500 px-2">${t('sim_merit_perf')}</th>
+      ${bands.map(b => `<th class="text-[11px] font-semibold text-slate-500 px-2">${t('sim_band_' + b)}</th>`).join('')}
+    </tr>
+    ${perfRows.map(p => `
+      <tr>
+        <td class="text-xs font-bold px-2" style="color:${{A:'#34d399',B:'#2dd4bf',C:'#fbbf24',D:'#fb7185'}[p]}">${t('ds_rating_prefix')} ${p}</td>
+        ${bands.map(b => `<td><input type="number" step="0.5" min="0" max="30" class="merit-cell" data-perf="${p}" data-band="${b}" value="${MERIT_MATRIX[p][b]}">%</td>`).join('')}
+      </tr>
+    `).join('')}
+  `;
+  table.querySelectorAll('input.merit-cell').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const { perf, band } = e.target.dataset;
+      MERIT_MATRIX[perf][band] = Math.max(0, +e.target.value || 0);
+      updateMeritTotals();
+    });
+  });
+  updateMeritTotals();
+}
+
+function updateMeritTotals() {
+  let totalImpact = 0, totalPct = 0;
+  const byPerf = { A: 0, B: 0, C: 0, D: 0 };
+  const byPerfCount = { A: 0, B: 0, C: 0, D: 0 };
+  EMPLOYEES.forEach(e => {
+    const pct = recommendedMerit(e);
+    const annualImpact = e.base * (pct / 100) * 12;
+    totalImpact += annualImpact;
+    totalPct += pct;
+    byPerf[e.perf] += pct;
+    byPerfCount[e.perf]++;
+  });
+  document.getElementById('simMeritImpact').textContent = money(totalImpact);
+  document.getElementById('simMeritAvg').textContent = (totalPct / EMPLOYEES.length).toFixed(2) + '%';
+
+  const avgByPerf = ['A', 'B', 'C', 'D'].map(p => byPerfCount[p] ? byPerf[p] / byPerfCount[p] : 0);
+  if (charts.meritByPerf) {
+    charts.meritByPerf.data.datasets[0].data = avgByPerf;
+    charts.meritByPerf.update();
+  } else {
+    charts.meritByPerf = new Chart(document.getElementById('chartMeritByPerf'), {
+      type: 'bar',
+      data: {
+        labels: ['A', 'B', 'C', 'D'].map(p => t('ds_rating_prefix') + ' ' + p),
+        datasets: [{ data: avgByPerf, backgroundColor: ['#34d399', '#2dd4bf', '#fbbf24', '#fb7185'], borderRadius: 6, barPercentage: .55 }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } } },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${t('sim_merit_avg')}: ${c.parsed.y.toFixed(2)}%` } } }
+      }
+    });
+  }
+}
+
+function renderSimulatorTab() {
+  // The Simulator models individual base/compa-ratio adjustments — it needs
+  // full per-employee compensation data, which is redacted server-side for
+  // the Manager role. Restrict this tab to Admin (also hidden from nav via .admin-col).
+  if (viewRole !== 'admin') return;
+  renderBudgetSimulator();
+  renderMarketCalculator();
+  renderMeritMatrix();
+}
+
+document.getElementById('simBudgetSlider').addEventListener('input', renderBudgetSimulator);
+document.getElementById('simStrategy').addEventListener('change', renderBudgetSimulator);
+document.querySelectorAll('.sim-target-btn').forEach(btn => {
+  btn.addEventListener('click', () => { simMarketTarget = btn.dataset.target; renderMarketCalculator(); });
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init() {
+  renderLangSwitch();
+  // Default view mirrors the signed-in account's real, server-enforced role.
+  // Admins may still preview the Manager view via the toggle; Managers can never reach Admin view.
+  const realRole = myProfile ? myProfile.role : 'manager';
+  viewRole = realRole === 'admin' ? 'admin' : 'manager';
+  document.body.classList.toggle('role-manager', viewRole === 'manager');
+  document.body.classList.toggle('role-admin', viewRole === 'admin');
+  renderRoleSwitch();
+  applyStaticTranslations();
+
+  renderKPIs();
+  buildBenchmarkChart();
+  buildEquityChart();
+  buildHeadcountChart();
+  buildPayStatusChart();
+  buildPerformanceChart();
+  buildCompaDistChart();
+  buildRiskTierChart();
+  buildDeptChart();
+  renderCompressionAlerts();
+
+  renderJEFactors();
+  buildJERadar();
+  updateJETotals();
+  populateJEFilters();
+  renderJETable();
+
+  renderStructureTable();
+  buildBandsChart();
+  renderProgression();
+
+  populateEmployeeFilters();
+  renderEmployeeTable();
+
+  renderSimulatorTab();
+
+  activateTab(requestedInitialTab());
+  lucide.createIcons();
+}
+
+/* ============================================================
+   AUTH — Supabase email/password, real server-side role redaction
+   ============================================================ */
+function showLogin(message, isError) {
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('appShell').classList.add('hidden');
+  const errEl = document.getElementById('authError');
+  if (message) { errEl.textContent = message; errEl.classList.toggle('hidden', false); errEl.classList.toggle('bg-rose-50', !!isError); }
+  else { errEl.classList.add('hidden'); }
+}
+
+function showApp() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+}
+
+function renderAuthMode() {
+  const title = document.getElementById('authTitle');
+  const sub = document.getElementById('authSubtitle');
+  const label = document.getElementById('authSubmitLabel');
+  title.textContent = 'Sign in';
+  sub.textContent = 'Access is restricted to authorized HR & management accounts.';
+  label.textContent = 'Sign in';
+}
+renderAuthMode();
+
+document.getElementById('authForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true;
+  showLogin('');
+  try {
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    await bootstrapApp();
+  } catch (err) {
+    showLogin(err.message || 'Sign-in failed.', true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  await supa.auth.signOut();
+  window.location.reload();
+});
+
+async function bootstrapApp() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (!session) { showLogin(''); return; }
+
+  // Who am I? (RLS: "read own profile" — a user can only ever see their own row)
+  const { data: profileRows, error: profileErr } = await supa.from('hr_profiles').select('role, email, full_name').eq('id', session.user.id);
+  if (profileErr || !profileRows || !profileRows.length) {
+    showLogin('This account is not provisioned for the HR system yet. Ask an Admin to grant access.', true);
+    await supa.auth.signOut();
+    return;
+  }
+  myProfile = profileRows[0];
+
+  try {
+    const [empRes, levelsRes, jeRes, aggRes] = await Promise.all([
+      supa.rpc('hr_get_employees'),
+      supa.from('hr_levels').select('*').order('level'),
+      supa.from('hr_je_records').select('*').order('job_id'),
+      supa.rpc('hr_get_dashboard_aggregates'),
+    ]);
+    if (empRes.error) throw empRes.error;
+    if (levelsRes.error) throw levelsRes.error;
+    if (jeRes.error) throw jeRes.error;
+    if (aggRes.error) throw aggRes.error;
+
+    EMPLOYEES = empRes.data.map(mapEmployeeRow);
+    BASE_LEVELS = levelsRes.data.map(mapLevelRow);
+    BASE_LEVELS.forEach(recalcLevel);
+    JE_RECORDS = jeRes.data.map(mapJeRow);
+    AGGREGATES = aggRes.data;
+    DEPTS = [...new Set(EMPLOYEES.map(e => e.dept))].sort();
+    LEVELS = JSON.parse(JSON.stringify(BASE_LEVELS));
+    LEVELS.forEach(recalcLevel);
+
+    const badge = document.getElementById('userBadge');
+    if (badge) { badge.textContent = `${myProfile.email} · ${myProfile.role === 'admin' ? 'Admin' : 'Manager'}`; badge.title = myProfile.email; }
+
+    showApp();
+    init();
+  } catch (err) {
+    showLogin('Could not load data: ' + (err.message || err), true);
+  }
+}
+
+supa.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') { showLogin(''); }
+});
+
+bootstrapApp();
+</script>
+</body>
+</html>
