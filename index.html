@@ -252,6 +252,21 @@
     background:var(--gold); border-radius:8px; padding:10px; margin-bottom:14px;
   }
   .level-sub{text-align:center; font-size:12px; color:var(--grey); margin-top:-10px; margin-bottom:14px;}
+  .salary-check-card{
+    border:1px solid var(--border); border-radius:8px; padding:12px; margin:12px 0 14px; background:#F8FAFC;
+  }
+  .salary-check-card.ok{border-color:#BBF7D0; background:#F0FDF4;}
+  .salary-check-card.warn{border-color:#FDE68A; background:#FFFBEB;}
+  .salary-check-card.error{border-color:#FECACA; background:#FEF2F2;}
+  .salary-check-head{display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:6px;}
+  .salary-check-head span{font-size:12px; color:var(--grey); font-weight:800;}
+  .salary-check-head strong{font-size:13px; color:var(--navy);}
+  .salary-check-message{font-size:12.5px; line-height:1.45; color:#334155; font-weight:700;}
+  .salary-check-card.ok .salary-check-message{color:#166534;}
+  .salary-check-card.warn .salary-check-message{color:#92400E;}
+  .salary-check-card.error .salary-check-message{color:#991B1B;}
+  .salary-range-line{display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; font-size:11.5px; color:var(--grey);}
+  .salary-range-line span{border-top:1px solid rgba(148,163,184,.35); padding-top:6px;}
 
   .bar-row{display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:11.5px;}
   .bar-row .name{width:88px; color:var(--grey); flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -607,6 +622,7 @@
       <div><label id="lEvaluator">ผู้ประเมิน (Evaluator)</label><input id="evaluator" type="text"></div>
       <div><label id="lDate">วันที่ประเมิน</label><input id="evalDate" type="date"></div>
       <div><label id="lEvalStatus">สถานะการประเมิน</label><select id="evalStatus" disabled></select></div>
+      <div><label id="lCurrentSalary">เงินเดือนปัจจุบัน</label><input id="currentSalary" type="number" min="0" step="1000"></div>
       <div class="span-2"><label id="lJobEvidence">หลักฐานจาก Job Description</label><textarea id="jobEvidence"></textarea></div>
     </div>
   </div>
@@ -743,6 +759,17 @@
         <div class="total-label" id="lTotal">คะแนนรวม (Total Score / 1,200)</div>
         <div class="level-pill" id="levelPill">L1</div>
         <div class="level-sub" id="levelSub">พนักงานปฏิบัติการ / เจ้าหน้าที่ระดับต้น</div>
+        <div class="salary-check-card" id="salaryRangeCheckCard">
+          <div class="salary-check-head">
+            <span id="salaryCheckTitle">Salary Range Check</span>
+            <strong id="salaryCheckLevel">-</strong>
+          </div>
+          <div class="salary-check-message" id="salaryCheckMessage">กรอกเงินเดือนปัจจุบันเพื่อเทียบกับช่วงเงินเดือนของ Level ที่ประเมิน</div>
+          <div class="salary-range-line">
+            <span id="salaryCheckRange">Range: -</span>
+            <span id="salaryCheckCompa">Compa-Ratio: -</span>
+          </div>
+        </div>
 
         <div id="barChart"></div>
 
@@ -961,6 +988,8 @@ const UI = {
     evaluator: 'ผู้ประเมิน (Evaluator)', evaluatorPh: 'ชื่อกรรมการผู้ให้คะแนน',
     date: 'วันที่ประเมิน',
     evalStatus: 'สถานะปัจจุบัน',
+    currentSalary: 'เงินเดือนปัจจุบัน / เดือน',
+    currentSalaryPh: 'เช่น 85000',
     workflow: 'Approval Workflow & Audit Trail',
     auditTrail: 'Audit Trail',
     notificationLog: 'Email Notification Log',
@@ -1079,6 +1108,15 @@ const UI = {
     jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
     summary: 'สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
+    salaryCheckTitle: 'ตรวจสอบ Salary Range',
+    salaryCheckNoSalary: 'กรอกเงินเดือนปัจจุบันเพื่อเทียบกับช่วงเงินเดือนของ Level ที่ประเมิน',
+    salaryCheckNoRange: 'ยังไม่พบ salary range สำหรับ {level} กรุณาตรวจตาราง hr_levels หรือเปิด Salary Structure',
+    salaryCheckInRange: 'เงินเดือนอยู่ในช่วงของ {level}',
+    salaryCheckBelowRange: 'แจ้งเตือน: เงินเดือนต่ำกว่าขั้นต่ำของ {level} อยู่ {gap}',
+    salaryCheckAboveRange: 'แจ้งเตือน: เงินเดือนสูงกว่าขั้นสูงสุดของ {level} อยู่ {gap}',
+    salaryCheckRange: 'Range',
+    salaryCheckCompa: 'Compa-Ratio',
+    salaryCheckTarget: 'เทียบกับ',
     levelCol: 'Level', rangeCol: 'ช่วงคะแนน', titleCol: 'ตำแหน่งทั่วไป',
     btnPrintForm: 'พิมพ์แบบฟอร์ม',
     btnPrint: 'พิมพ์ / PDF', btnSave: 'บันทึกผล (JSON)', btnLoad: 'โหลดผลเดิม', btnReset: 'เริ่มใหม่',
@@ -1194,6 +1232,8 @@ const UI = {
     evaluator: 'Evaluator', evaluatorPh: 'Name of the scoring committee member',
     date: 'Evaluation Date',
     evalStatus: 'Current Status',
+    currentSalary: 'Current Monthly Salary',
+    currentSalaryPh: 'e.g. 85000',
     workflow: 'Approval Workflow & Audit Trail',
     auditTrail: 'Audit Trail',
     notificationLog: 'Email Notification Log',
@@ -1312,6 +1352,15 @@ const UI = {
     jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
     summary: 'Evaluation Summary',
     total: 'Total Score (out of 1,200)',
+    salaryCheckTitle: 'Salary Range Check',
+    salaryCheckNoSalary: 'Enter current monthly salary to compare against the evaluated level range.',
+    salaryCheckNoRange: 'No salary range found for {level}. Check hr_levels or open Salary Structure.',
+    salaryCheckInRange: 'Salary is within the {level} range.',
+    salaryCheckBelowRange: 'Alert: salary is {gap} below the {level} minimum.',
+    salaryCheckAboveRange: 'Alert: salary is {gap} above the {level} maximum.',
+    salaryCheckRange: 'Range',
+    salaryCheckCompa: 'Compa-Ratio',
+    salaryCheckTarget: 'Compared with',
     levelCol: 'Level', rangeCol: 'Score Range', titleCol: 'Typical Title',
     btnPrintForm: 'Print Form',
     btnPrint: 'Print / PDF', btnSave: 'Save Result (JSON)', btnLoad: 'Load Result', btnReset: 'Reset',
@@ -1427,6 +1476,8 @@ const UI = {
     evaluator: '评估人 (Evaluator)', evaluatorPh: '评分委员会成员姓名',
     date: '评估日期',
     evalStatus: '当前状态',
+    currentSalary: '当前月薪',
+    currentSalaryPh: '例如 85000',
     workflow: '审批流程与审计记录',
     auditTrail: '审计记录',
     notificationLog: '邮件通知记录',
@@ -1545,6 +1596,15 @@ const UI = {
     jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
     summary: '评估结果汇总',
     total: '总分（满分 1,200）',
+    salaryCheckTitle: '薪资区间检查',
+    salaryCheckNoSalary: '请输入当前月薪，以便与评估职级的薪资区间比较。',
+    salaryCheckNoRange: '未找到 {level} 的薪资区间。请检查 hr_levels 或打开薪资结构。',
+    salaryCheckInRange: '薪资位于 {level} 区间内。',
+    salaryCheckBelowRange: '提醒：薪资低于 {level} 最低值 {gap}。',
+    salaryCheckAboveRange: '提醒：薪资高于 {level} 最高值 {gap}。',
+    salaryCheckRange: '区间',
+    salaryCheckCompa: '薪酬比率',
+    salaryCheckTarget: '对比职级',
     levelCol: '职级', rangeCol: '分数区间', titleCol: '一般职位名称',
     btnPrintForm: '打印表单',
     btnPrint: '打印 / PDF', btnSave: '保存结果 (JSON)', btnLoad: '加载已存结果', btnReset: '重新开始',
@@ -2198,6 +2258,8 @@ let currentPersistentAuditRecordId = null;
 let handledRecordLinkId = '';
 let adminUserRows = [];
 let notificationLogRows = [];
+let salaryRangeRows = [];
+let salaryColumnsAvailable = false;
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -2230,7 +2292,7 @@ function setCurrentStatus(status){
 
 function applyEditLock(){
   const locked = !EDITABLE_STATUSES.includes(workflowState.currentStatus);
-  ['jobTitle', 'dept', 'evaluator', 'evalDate', 'jobEvidence'].forEach(id => {
+  ['jobTitle', 'dept', 'evaluator', 'evalDate', 'currentSalary', 'jobEvidence'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = locked;
   });
@@ -2701,6 +2763,8 @@ async function refreshPersistentHistorySession(){
   }
   jeDbSession = data.session;
   await refreshCurrentUserRoles(data.session);
+  await detectSalaryColumns();
+  await loadSalaryRanges();
   renderJeRoleBadge(data.session);
   renderAuthState(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || data.session.user.id), 'ok');
@@ -2724,6 +2788,9 @@ async function signInPersistentHistory(){
   }
   clearAuthPasswords();
   jeDbSession = data.session;
+  await refreshCurrentUserRoles(data.session);
+  await detectSalaryColumns();
+  await loadSalaryRanges();
   renderJeRoleBadge(data.session);
   renderAuthState(data.session);
   renderPersistentHistoryStatus(UI[currentLang].historyConnected.replaceAll('{email}', data.session.user.email || email), 'ok');
@@ -3173,7 +3240,7 @@ async function loadNotificationLogs(recordId = workflowState.id){
 
 function dbRowFromSnapshot(snapshot){
   const metadata = snapshot.approval_metadata || {};
-  return {
+  const row = {
     id: snapshot.id,
     evaluation_id: snapshot.evaluation_id,
     version_number: snapshot.version_number,
@@ -3199,6 +3266,11 @@ function dbRowFromSnapshot(snapshot){
     decision_date: snapshot.decision_date,
     decision_comments: document.getElementById('transitionComment').value || '',
   };
+  if (salaryColumnsAvailable) {
+    row.current_salary = snapshot.current_salary;
+    row.salary_range_check = snapshot.salary_range_check || null;
+  }
+  return row;
 }
 
 async function saveEvaluationToDatabase(options = {}){
@@ -3449,6 +3521,7 @@ function applyEvaluationData(data){
   workflowState.auditTrail = Array.isArray(data.audit_trail) ? data.audit_trail : (Array.isArray(data.job_evaluation_audit_logs) ? data.job_evaluation_audit_logs : []);
   document.getElementById('evalStatus').value = workflowState.currentStatus;
   document.getElementById('jobEvidence').value = data.jd_reference_text || data.jobDescriptionEvidence || data.jobEvidence || '';
+  document.getElementById('currentSalary').value = data.current_salary || data.currentSalary || data.salary_range_check?.current_salary || '';
   document.getElementById('approvedBy').value = data.approved_by || (data.approval_metadata && data.approval_metadata.approved_by) || '';
   document.getElementById('decisionDate').value = data.decision_date || (data.approval_metadata && data.approval_metadata.decision_date) || '';
   document.getElementById('committeeReviewers').value = data.approval_metadata && Array.isArray(data.approval_metadata.committee_reviewers) ? data.approval_metadata.committee_reviewers.join(', ') : '';
@@ -3622,6 +3695,109 @@ function renderLevelTable(activeCode){
     LEVELS.map(l => `<tr class="${l[0]===activeCode ? 'active':''}"><td>${l[0]}</td><td>${l[1].toLocaleString()}–${l[2].toLocaleString()}</td><td>${l[3][currentLang]}</td></tr>`).join('');
 }
 
+function asNumber(value, fallback = 0){
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function firstNumber(source, keys, fallback = 0){
+  const row = source || {};
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && row[key] !== '') return asNumber(row[key], fallback);
+  }
+  return fallback;
+}
+
+function moneyText(value){
+  return '฿' + Math.round(asNumber(value)).toLocaleString('en-US');
+}
+
+function normalizeSalaryRange(row){
+  const level = row?.level;
+  const midpoint = firstNumber(row, ['midpoint', 'midpoint_monthly', 'mid']);
+  const spread = firstNumber(row, ['spread', 'range_spread']);
+  let min = firstNumber(row, ['min', 'minimum', 'min_salary', 'minimum_salary', 'salary_min']);
+  let max = firstNumber(row, ['max', 'maximum', 'max_salary', 'maximum_salary', 'salary_max']);
+  if ((!min || !max) && midpoint && spread) {
+    min = midpoint / (1 + spread / 2);
+    max = min * (1 + spread);
+  }
+  if (!level || !midpoint || !min || !max) return null;
+  return { level, midpoint, min, max, spread };
+}
+
+function salaryRangeForLevel(level){
+  return salaryRangeRows.find(row => row.level === level) || null;
+}
+
+function salaryValue(){
+  const value = document.getElementById('currentSalary')?.value;
+  return value === '' || value === null || value === undefined ? null : asNumber(value, null);
+}
+
+function salaryRangeCheckFor(level){
+  const salary = salaryValue();
+  const range = salaryRangeForLevel(level);
+  if (!level) return { kind: 'warn', level: '-', range, salary, message: UI[currentLang].incompleteSub };
+  if (salary === null || salary <= 0) return { kind: 'warn', level, range, salary, message: UI[currentLang].salaryCheckNoSalary };
+  if (!range) return { kind: 'warn', level, range, salary, message: UI[currentLang].salaryCheckNoRange.replaceAll('{level}', level) };
+  const compa = range.midpoint ? salary / range.midpoint : 0;
+  if (salary < range.min) {
+    return { kind: 'error', level, range, salary, compa, message: UI[currentLang].salaryCheckBelowRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(range.min - salary)) };
+  }
+  if (salary > range.max) {
+    return { kind: 'warn', level, range, salary, compa, message: UI[currentLang].salaryCheckAboveRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(salary - range.max)) };
+  }
+  return { kind: 'ok', level, range, salary, compa, message: UI[currentLang].salaryCheckInRange.replaceAll('{level}', level) };
+}
+
+function renderSalaryRangeCheck(level){
+  const check = salaryRangeCheckFor(level);
+  const card = document.getElementById('salaryRangeCheckCard');
+  if (!card) return check;
+  card.className = `salary-check-card ${check.kind}`;
+  document.getElementById('salaryCheckTitle').textContent = UI[currentLang].salaryCheckTitle;
+  document.getElementById('salaryCheckLevel').textContent = `${UI[currentLang].salaryCheckTarget}: ${check.level}`;
+  document.getElementById('salaryCheckMessage').textContent = check.message;
+  document.getElementById('salaryCheckRange').textContent = check.range
+    ? `${UI[currentLang].salaryCheckRange}: ${moneyText(check.range.min)} - ${moneyText(check.range.max)}`
+    : `${UI[currentLang].salaryCheckRange}: -`;
+  document.getElementById('salaryCheckCompa').textContent = check.range && check.salary
+    ? `${UI[currentLang].salaryCheckCompa}: ${(check.compa || 0).toFixed(2)}`
+    : `${UI[currentLang].salaryCheckCompa}: -`;
+  return check;
+}
+
+async function loadSalaryRanges(){
+  const client = getJeDbClient();
+  const session = jeDbSession || (await getCurrentDbSessionSilently());
+  if (!client || !session) {
+    salaryRangeRows = [];
+    renderSummary();
+    return [];
+  }
+  const { data, error } = await client.from('hr_levels').select('*').order('level');
+  if (error) {
+    salaryRangeRows = [];
+    renderSummary();
+    return [];
+  }
+  salaryRangeRows = (data || []).map(normalizeSalaryRange).filter(Boolean);
+  renderSummary();
+  return salaryRangeRows;
+}
+
+async function detectSalaryColumns(){
+  const client = getJeDbClient();
+  if (!client || !jeDbSession) return false;
+  const { error } = await client
+    .from('job_evaluations')
+    .select('id,current_salary,salary_range_check')
+    .limit(1);
+  salaryColumnsAvailable = !error;
+  return salaryColumnsAvailable;
+}
+
 function compactPrintText(value, limit){
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   if (!text) return UI[currentLang].printRationaleEmpty;
@@ -3639,6 +3815,7 @@ function renderOnePagePrintSheet(){
   const statusText = WORKFLOW_STATUS_LABELS[workflowState.currentStatus]?.[currentLang] || workflowState.currentStatus;
   const evalDate = document.getElementById('evalDate').value || new Date().toISOString().slice(0, 10);
   const recordUrl = getRecordUrl();
+  const salaryCheck = salaryRangeCheckFor(finalLevelText !== '-' ? finalLevelText : recommendedLevelText);
 
   document.getElementById('printSheetTitle').textContent = ui.onePageTitle;
   document.getElementById('printSheetSubtitle').textContent = ui.onePageSubtitle;
@@ -3675,6 +3852,8 @@ function renderOnePagePrintSheet(){
     [ui.evaluator, document.getElementById('evaluator').value],
     [ui.onePageRecommended, recommendedLevelText],
     [ui.onePageFinal, finalLevelText],
+    [ui.currentSalary, salaryCheck.salary ? moneyText(salaryCheck.salary) : '-'],
+    [ui.salaryCheckTitle, salaryCheck.message],
     [ui.onePageJdEvidence, compactPrintText(document.getElementById('jobEvidence').value, 220)],
   ];
   document.getElementById('printSheetJobRows').innerHTML = jobRows.map(([label, value]) => `
@@ -3708,6 +3887,8 @@ function renderSummary(){
   document.getElementById('levelPill').textContent = isComplete ? lvl[0] : UI[currentLang].incompleteLevel;
   document.getElementById('levelSub').textContent = isComplete ? lvl[3][currentLang] : UI[currentLang].incompleteSub;
   renderLevelTable(isComplete ? lvl[0] : null);
+  const selectedFinalLevel = document.getElementById('finalApprovedLevel')?.value || workflowState.finalApprovedLevel || '';
+  renderSalaryRangeCheck(selectedFinalLevel || (isComplete ? lvl[0] : ''));
   const fit = window.JE_SCORE_GRADE_MODEL.benchmarkFit;
   const review = result.boundaryReview;
   let note = UI[currentLang].modelNote
@@ -3819,6 +4000,8 @@ function applyStaticText(){
   document.getElementById('evaluator').placeholder = ui.evaluatorPh;
   document.getElementById('lDate').textContent = ui.date;
   document.getElementById('lEvalStatus').textContent = ui.evalStatus;
+  document.getElementById('lCurrentSalary').textContent = ui.currentSalary;
+  document.getElementById('currentSalary').placeholder = ui.currentSalaryPh;
   statusSelect.innerHTML = WORKFLOW_STATUS_ORDER.map(status => `<option value="${status}" ${status === currentStatus ? 'selected' : ''}>${WORKFLOW_STATUS_LABELS[status][currentLang]}</option>`).join('');
   document.getElementById('lJobEvidence').textContent = ui.jobEvidence;
   document.getElementById('jobEvidence').placeholder = ui.jobEvidencePh;
@@ -3916,6 +4099,8 @@ document.getElementById('sideNav').querySelectorAll('.nav-btn').forEach(btn => {
 });
 
 document.getElementById('jobTitle').addEventListener('input', handleJobTitleInput);
+document.getElementById('currentSalary').addEventListener('input', renderSummary);
+document.getElementById('finalApprovedLevel').addEventListener('change', renderSummary);
 
 document.getElementById('refSearch').addEventListener('input', renderRefTable);
 document.getElementById('refDeptFilter').addEventListener('change', renderRefTable);
@@ -3923,7 +4108,7 @@ document.getElementById('refLevelFilter').addEventListener('change', renderRefTa
 ['historySearch','historyStatusFilter','historyLevelFilter','historyLatestOnly'].forEach(id => {
   document.getElementById(id).addEventListener(id === 'historySearch' ? 'input' : 'change', renderPersistentHistory);
 });
-['jobTitle','dept','evaluator','evalDate','jobEvidence','workflowActor','finalApprovedLevel','approvedBy','decisionDate','committeeReviewers'].forEach(id => {
+['jobTitle','dept','evaluator','evalDate','currentSalary','jobEvidence','workflowActor','finalApprovedLevel','approvedBy','decisionDate','committeeReviewers'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', renderOnePagePrintSheet);
   document.getElementById(id)?.addEventListener('change', renderOnePagePrintSheet);
 });
@@ -3950,6 +4135,8 @@ function printEvaluationForm(){
 function buildEvaluationSnapshot(){
   const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
   const now = new Date().toISOString();
+  const selectedFinalLevel = document.getElementById('finalApprovedLevel')?.value || workflowState.finalApprovedLevel || '';
+  const salaryCheck = salaryRangeCheckFor(selectedFinalLevel || result.level);
   workflowState.updatedAt = now;
   return {
     id: workflowState.id,
@@ -3960,6 +4147,15 @@ function buildEvaluationSnapshot(){
     job_title: document.getElementById('jobTitle').value,
     department: document.getElementById('dept').value,
     jd_reference_text: document.getElementById('jobEvidence').value,
+    current_salary: salaryValue(),
+    salary_range_check: {
+      current_salary: salaryCheck.salary,
+      compared_level: salaryCheck.level,
+      status: salaryCheck.kind,
+      message: salaryCheck.message,
+      range: salaryCheck.range,
+      compa_ratio: salaryCheck.compa || null,
+    },
     factor_scores: { ...state },
     factor_rationales: { ...rationales },
     total_score: result.weightedTotal,
@@ -3985,6 +4181,7 @@ function buildEvaluationSnapshot(){
     dept: document.getElementById('dept').value,
     evaluator: document.getElementById('evaluator').value,
     evalDate: document.getElementById('evalDate').value,
+    currentSalary: salaryValue(),
     evaluationStatus: workflowState.currentStatus,
     jobDescriptionEvidence: document.getElementById('jobEvidence').value,
     lang: currentLang,
@@ -4048,6 +4245,7 @@ function resetAll(){
   document.getElementById('dept').value = '';
   document.getElementById('evaluator').value = '';
   document.getElementById('evalDate').value = '';
+  document.getElementById('currentSalary').value = '';
   document.getElementById('jobEvidence').value = '';
   workflowState.id = uuid();
   workflowState.evaluationId = generateEvaluationId();

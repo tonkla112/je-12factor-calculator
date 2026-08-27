@@ -191,6 +191,8 @@ create table if not exists public.job_evaluations (
   job_title text not null,
   department text not null,
   jd_reference_text text,
+  current_salary numeric,
+  salary_range_check jsonb,
   factor_scores jsonb not null default '{}'::jsonb,
   factor_rationales jsonb not null default '{}'::jsonb,
   total_score integer not null check (total_score between 120 and 1200),
@@ -219,6 +221,16 @@ create index if not exists job_evaluations_latest_idx
   on public.job_evaluations (is_latest_version) where is_latest_version;
 create index if not exists job_evaluations_status_idx
   on public.job_evaluations (current_status);
+
+alter table public.job_evaluations
+  add column if not exists current_salary numeric;
+
+alter table public.job_evaluations
+  add column if not exists salary_range_check jsonb;
+
+create index if not exists job_evaluations_salary_check_status_idx
+  on public.job_evaluations ((salary_range_check ->> 'status'))
+  where salary_range_check is not null;
 
 create table if not exists public.job_evaluation_audit_logs (
   id uuid primary key default gen_random_uuid(),
