@@ -611,6 +611,7 @@
       <div><h2 id="sectionJobTitle">Job Setup</h2><p id="sectionJobDesc">Capture the job context and JD evidence before scoring.</p></div>
       <div class="section-actions">
         <span class="section-chip" id="sectionJobChip">Start here</span>
+        <button class="btn-secondary section-print-btn" id="btnLoadExample" onclick="loadExampleEvaluation()">โหลดตัวอย่าง</button>
         <button class="btn-secondary section-print-btn" id="btnPrintFormTop" onclick="printEvaluationForm()">พิมพ์แบบฟอร์ม</button>
       </div>
     </div>
@@ -1108,6 +1109,8 @@ const UI = {
     jobEvidence: 'หลักฐานจาก Job Description', jobEvidencePh: 'วางข้อความ/หัวข้อจาก JD ที่ใช้เป็นหลักฐาน เช่น scope, authority, KPI, reporting line',
     summary: 'สรุปผลการประเมิน',
     total: 'คะแนนรวม (Total Score / 1,200)',
+    btnLoadExample: 'โหลดตัวอย่าง',
+    exampleLoaded: 'โหลดตัวอย่าง Production Manager แล้ว: JE Level L5 และเงินเดือน 68,000 จะแจ้งเตือนว่าสูงกว่า range ของ L5',
     salaryCheckTitle: 'ตรวจสอบ Salary Range',
     salaryCheckNoSalary: 'กรอกเงินเดือนปัจจุบันเพื่อเทียบกับช่วงเงินเดือนของ Level ที่ประเมิน',
     salaryCheckNoRange: 'ยังไม่พบ salary range สำหรับ {level} กรุณาตรวจตาราง hr_levels หรือเปิด Salary Structure',
@@ -1352,6 +1355,8 @@ const UI = {
     jobEvidence: 'Job Description Evidence', jobEvidencePh: 'Paste JD text/sections used as evidence, e.g. scope, authority, KPI, reporting line',
     summary: 'Evaluation Summary',
     total: 'Total Score (out of 1,200)',
+    btnLoadExample: 'Load Example',
+    exampleLoaded: 'Loaded the Production Manager example: JE Level L5 with salary 68,000 should trigger an above-range alert.',
     salaryCheckTitle: 'Salary Range Check',
     salaryCheckNoSalary: 'Enter current monthly salary to compare against the evaluated level range.',
     salaryCheckNoRange: 'No salary range found for {level}. Check hr_levels or open Salary Structure.',
@@ -1596,6 +1601,8 @@ const UI = {
     jobEvidence: '职位说明证据', jobEvidencePh: '粘贴用于评分的JD文本/章节，例如职责范围、权限、KPI、汇报关系',
     summary: '评估结果汇总',
     total: '总分（满分 1,200）',
+    btnLoadExample: '加载示例',
+    exampleLoaded: '已加载 Production Manager 示例：JE 等级 L5，薪资 68,000 将触发高于区间提醒。',
     salaryCheckTitle: '薪资区间检查',
     salaryCheckNoSalary: '请输入当前月薪，以便与评估职级的薪资区间比较。',
     salaryCheckNoRange: '未找到 {level} 的薪资区间。请检查 hr_levels 或打开薪资结构。',
@@ -2260,6 +2267,42 @@ let adminUserRows = [];
 let notificationLogRows = [];
 let salaryRangeRows = [];
 let salaryColumnsAvailable = false;
+
+const EXAMPLE_EVALUATION = {
+  jobTitle: 'Production Manager',
+  department: 'Production',
+  evaluator: 'HR Analyst Demo',
+  currentSalary: 68000,
+  jobEvidence: 'รับผิดชอบบริหารทีม Production หลายไลน์ วางแผนกำลังการผลิต ควบคุม KPI ด้าน output, yield, safety และ cost ประสานงานกับ QA, Maintenance, Planning และ Warehouse รวมถึงตัดสินใจแก้ปัญหาการผลิตรายวันและรายสัปดาห์',
+  scores: {
+    edu: 60,
+    exp: 70,
+    ana: 60,
+    prob: 60,
+    dec: 70,
+    imp: 70,
+    ic: 60,
+    ec: 50,
+    lead: 70,
+    phys: 40,
+    env: 40,
+    inno: 60,
+  },
+  rationales: {
+    edu: 'ต้องใช้ความรู้ระดับปริญญาตรีหรือเทียบเท่าในสายวิศวกรรม/การผลิต และเข้าใจระบบคุณภาพ ความปลอดภัย และการวางแผนการผลิต',
+    exp: 'ต้องมีประสบการณ์บริหารงานผลิตหลายปี เข้าใจปัญหาหน้างาน การควบคุมกำลังคน และการปรับปรุงประสิทธิภาพการผลิต',
+    ana: 'วิเคราะห์ข้อมูล output, yield, downtime, defect และต้นทุน เพื่อหาสาเหตุและกำหนดมาตรการปรับปรุง',
+    prob: 'แก้ปัญหาการผลิตที่มีหลายสาเหตุร่วมกัน เช่น เครื่องจักร คน วัตถุดิบ คุณภาพ และแผนส่งมอบ',
+    dec: 'ตัดสินใจจัดลำดับการผลิต ปรับกำลังคน และอนุมัติแนวทางแก้ปัญหาในขอบเขตแผนก',
+    imp: 'ผลการตัดสินใจกระทบกำลังการผลิต ต้นทุน คุณภาพ ความปลอดภัย และการส่งมอบให้ลูกค้า',
+    ic: 'ประสานงานกับ Supervisor, QA, Maintenance, Planning, Warehouse และ HR เพื่อให้การผลิตเดินต่อเนื่อง',
+    ec: 'มีการสื่อสารกับ supplier หรือ auditor เป็นบางกรณี แต่ไม่ใช่บทบาทหลักด้าน external relationship',
+    lead: 'บริหารหัวหน้างานและพนักงานผลิตหลายทีม กำหนดเป้าหมาย ติดตามผลงาน และโค้ชทีมให้ทำงานตามมาตรฐาน',
+    phys: 'มีการเดินตรวจหน้างานและอยู่ในพื้นที่ผลิตเป็นระยะ แต่ไม่ใช่งานใช้แรงกายต่อเนื่องทั้งวัน',
+    env: 'ทำงานเกี่ยวข้องกับพื้นที่ผลิต มีเสียง เครื่องจักร และข้อกำหนดความปลอดภัย แต่มีมาตรการควบคุมตามมาตรฐาน',
+    inno: 'ผลักดัน continuous improvement ลดของเสีย ลด downtime และปรับ workflow เพื่อเพิ่ม productivity',
+  },
+};
 
 const factorsCol = document.getElementById('factorsCol');
 
@@ -3664,6 +3707,53 @@ function openCompensationDashboard(tab = 'dashboard'){
   window.location.href = url.toString();
 }
 
+async function loadExampleEvaluation(){
+  workflowState.id = uuid();
+  workflowState.evaluationId = generateEvaluationId();
+  workflowState.versionNumber = 1;
+  workflowState.isLatestVersion = true;
+  workflowState.currentStatus = 'Draft';
+  workflowState.createdAt = new Date().toISOString();
+  workflowState.updatedAt = workflowState.createdAt;
+  workflowState.submittedBy = null;
+  workflowState.submittedAt = null;
+  workflowState.committeeReviewedAt = null;
+  workflowState.approvedBy = null;
+  workflowState.decisionDate = null;
+  workflowState.finalApprovedLevel = '';
+  workflowState.supersededVersionSnapshot = null;
+  workflowState.auditTrail = [];
+  notificationLogRows = [];
+
+  document.getElementById('jobTitle').value = EXAMPLE_EVALUATION.jobTitle;
+  document.getElementById('dept').value = EXAMPLE_EVALUATION.department;
+  document.getElementById('evaluator').value = EXAMPLE_EVALUATION.evaluator;
+  document.getElementById('evalDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('currentSalary').value = EXAMPLE_EVALUATION.currentSalary;
+  document.getElementById('jobEvidence').value = EXAMPLE_EVALUATION.jobEvidence;
+
+  FACTORS.forEach(f => {
+    state[f.key] = EXAMPLE_EVALUATION.scores[f.key] || 10;
+    rationales[f.key] = EXAMPLE_EVALUATION.rationales[f.key] || '';
+    const slider = document.getElementById(`slider-${f.key}`);
+    if (slider) slider.value = state[f.key];
+    const rationale = document.getElementById(`rationale-${f.key}`);
+    if (rationale) rationale.value = rationales[f.key];
+    renderFactor(f.key);
+    renderRationaleState(f.key);
+  });
+
+  if (!salaryRangeRows.length) await loadSalaryRanges();
+  renderWorkflowFields();
+  renderNotificationLogs();
+  renderNotificationStatus(UI[currentLang].notificationEmpty, 'warn');
+  renderSummary();
+  renderOnePagePrintSheet();
+  renderPersistentHistoryStatus(UI[currentLang].exampleLoaded, 'ok');
+  switchSection('evaluation');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function toggleAnchor(key){
   const tbl = document.getElementById(`anchor-${key}`);
   tbl.classList.toggle('open');
@@ -4054,6 +4144,7 @@ function applyStaticText(){
   document.getElementById('btnAdminClear').textContent = ui.adminClear;
   document.getElementById('mSummary').textContent = ui.summary;
   document.getElementById('lTotal').textContent = ui.total;
+  document.getElementById('btnLoadExample').textContent = ui.btnLoadExample;
   document.getElementById('btnPrintFormTop').textContent = ui.btnPrintForm;
   document.getElementById('btnPrint').textContent = ui.btnPrint;
   document.getElementById('btnSave').textContent = ui.btnSave;
