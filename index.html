@@ -255,6 +255,9 @@
   .salary-check-card{
     border:1px solid var(--border); border-radius:8px; padding:12px; margin:12px 0 14px; background:#F8FAFC;
   }
+  .salary-check-card.prominent{
+    margin-top:16px; border-width:2px; box-shadow:0 12px 28px rgba(15,23,42,.06);
+  }
   .salary-check-card.ok{border-color:#BBF7D0; background:#F0FDF4;}
   .salary-check-card.warn{border-color:#FDE68A; background:#FFFBEB;}
   .salary-check-card.error{border-color:#FECACA; background:#FEF2F2;}
@@ -625,6 +628,17 @@
       <div><label id="lEvalStatus">สถานะการประเมิน</label><select id="evalStatus" disabled></select></div>
       <div><label id="lCurrentSalary">เงินเดือนปัจจุบัน</label><input id="currentSalary" type="number" min="0" step="1000"></div>
       <div class="span-2"><label id="lJobEvidence">หลักฐานจาก Job Description</label><textarea id="jobEvidence"></textarea></div>
+    </div>
+    <div class="salary-check-card prominent" id="salaryRangeCheckCardJob">
+      <div class="salary-check-head">
+        <span id="salaryCheckTitleJob">ตรวจสอบ Salary Range</span>
+        <strong id="salaryCheckLevelJob">เทียบกับ: -</strong>
+      </div>
+      <div class="salary-check-message" id="salaryCheckMessageJob">กรอกเงินเดือนปัจจุบันเพื่อเทียบกับช่วงเงินเดือนของ Level ที่ประเมิน</div>
+      <div class="salary-range-line">
+        <span id="salaryCheckRangeJob">Range: -</span>
+        <span id="salaryCheckCompaJob">Compa-Ratio: -</span>
+      </div>
     </div>
   </div>
   </section>
@@ -2265,8 +2279,19 @@ let currentPersistentAuditRecordId = null;
 let handledRecordLinkId = '';
 let adminUserRows = [];
 let notificationLogRows = [];
-let salaryRangeRows = [];
 let salaryColumnsAvailable = false;
+
+const DEFAULT_SALARY_RANGES = [
+  { level: 'L1', midpoint: 15000, min: 12000, max: 18000, spread: 0.50, source: 'default' },
+  { level: 'L2', midpoint: 21000, min: 16800, max: 25200, spread: 0.50, source: 'default' },
+  { level: 'L3', midpoint: 29000, min: 23200, max: 34800, spread: 0.50, source: 'default' },
+  { level: 'L4', midpoint: 39000, min: 31200, max: 46800, spread: 0.50, source: 'default' },
+  { level: 'L5', midpoint: 50420, min: 40336, max: 60504, spread: 0.50, source: 'default' },
+  { level: 'L6', midpoint: 67000, min: 53600, max: 80400, spread: 0.50, source: 'default' },
+  { level: 'L7', midpoint: 91000, min: 72800, max: 109200, spread: 0.50, source: 'default' },
+  { level: 'L8', midpoint: 125000, min: 100000, max: 150000, spread: 0.50, source: 'default' },
+];
+let salaryRangeRows = [...DEFAULT_SALARY_RANGES];
 
 const EXAMPLE_EVALUATION = {
   jobTitle: 'Production Manager',
@@ -3843,18 +3868,30 @@ function salaryRangeCheckFor(level){
 
 function renderSalaryRangeCheck(level){
   const check = salaryRangeCheckFor(level);
-  const card = document.getElementById('salaryRangeCheckCard');
-  if (!card) return check;
-  card.className = `salary-check-card ${check.kind}`;
-  document.getElementById('salaryCheckTitle').textContent = UI[currentLang].salaryCheckTitle;
-  document.getElementById('salaryCheckLevel').textContent = `${UI[currentLang].salaryCheckTarget}: ${check.level}`;
-  document.getElementById('salaryCheckMessage').textContent = check.message;
-  document.getElementById('salaryCheckRange').textContent = check.range
-    ? `${UI[currentLang].salaryCheckRange}: ${moneyText(check.range.min)} - ${moneyText(check.range.max)}`
-    : `${UI[currentLang].salaryCheckRange}: -`;
-  document.getElementById('salaryCheckCompa').textContent = check.range && check.salary
-    ? `${UI[currentLang].salaryCheckCompa}: ${(check.compa || 0).toFixed(2)}`
-    : `${UI[currentLang].salaryCheckCompa}: -`;
+  ['', 'Job'].forEach(suffix => {
+    const card = document.getElementById(`salaryRangeCheckCard${suffix}`);
+    if (!card) return;
+    const isProminent = card.classList.contains('prominent');
+    card.className = `salary-check-card${isProminent ? ' prominent' : ''} ${check.kind}`;
+    const title = document.getElementById(`salaryCheckTitle${suffix}`);
+    const target = document.getElementById(`salaryCheckLevel${suffix}`);
+    const message = document.getElementById(`salaryCheckMessage${suffix}`);
+    const range = document.getElementById(`salaryCheckRange${suffix}`);
+    const compa = document.getElementById(`salaryCheckCompa${suffix}`);
+    if (title) title.textContent = UI[currentLang].salaryCheckTitle;
+    if (target) target.textContent = `${UI[currentLang].salaryCheckTarget}: ${check.level}`;
+    if (message) message.textContent = check.message;
+    if (range) {
+      range.textContent = check.range
+        ? `${UI[currentLang].salaryCheckRange}: ${moneyText(check.range.min)} - ${moneyText(check.range.max)}`
+        : `${UI[currentLang].salaryCheckRange}: -`;
+    }
+    if (compa) {
+      compa.textContent = check.range && check.salary
+        ? `${UI[currentLang].salaryCheckCompa}: ${(check.compa || 0).toFixed(2)}`
+        : `${UI[currentLang].salaryCheckCompa}: -`;
+    }
+  });
   return check;
 }
 
@@ -3862,17 +3899,18 @@ async function loadSalaryRanges(){
   const client = getJeDbClient();
   const session = jeDbSession || (await getCurrentDbSessionSilently());
   if (!client || !session) {
-    salaryRangeRows = [];
+    salaryRangeRows = [...DEFAULT_SALARY_RANGES];
     renderSummary();
     return [];
   }
   const { data, error } = await client.from('hr_levels').select('*').order('level');
   if (error) {
-    salaryRangeRows = [];
+    salaryRangeRows = [...DEFAULT_SALARY_RANGES];
     renderSummary();
     return [];
   }
-  salaryRangeRows = (data || []).map(normalizeSalaryRange).filter(Boolean);
+  const loadedRanges = (data || []).map(normalizeSalaryRange).filter(Boolean);
+  salaryRangeRows = loadedRanges.length ? loadedRanges : [...DEFAULT_SALARY_RANGES];
   renderSummary();
   return salaryRangeRows;
 }
