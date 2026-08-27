@@ -232,6 +232,38 @@ create index if not exists job_evaluations_salary_check_status_idx
   on public.job_evaluations ((salary_range_check ->> 'status'))
   where salary_range_check is not null;
 
+create or replace view public.je_compensation_alert_register
+with (security_invoker = true)
+as
+select
+  je.id,
+  je.evaluation_id,
+  je.version_number,
+  je.is_latest_version,
+  je.job_title,
+  je.department,
+  je.current_status,
+  coalesce(je.final_approved_level, je.recommended_level) as je_level,
+  je.total_score,
+  je.current_salary,
+  je.salary_range_check,
+  je.salary_range_check ->> 'status' as alert_status,
+  (je.salary_range_check ->> 'message') as alert_message,
+  je.updated_at,
+  je.created_by,
+  case
+    when je.current_status in ('Draft', 'Rejected') then 'HR Analyst'
+    when je.current_status = 'Submitted' then 'JE Committee'
+    when je.current_status = 'Committee Reviewed' then 'HR Head'
+    when je.current_status = 'Approved' then 'Completed'
+    when je.current_status = 'Recalibrated' then 'Archived'
+    else 'HR Analyst'
+  end as pending_with
+from public.job_evaluations je
+where je.salary_range_check is not null
+  and je.current_salary is not null
+  and je.salary_range_check ->> 'status' in ('warn', 'error');
+
 create table if not exists public.job_evaluation_audit_logs (
   id uuid primary key default gen_random_uuid(),
   evaluation_record_id uuid not null references public.job_evaluations(id) on delete cascade,
@@ -347,6 +379,8 @@ begin
       new.decision_comments,
       jsonb_build_object(
         'final_approved_level', new.final_approved_level,
+        'current_salary', new.current_salary,
+        'salary_range_check', new.salary_range_check,
         'committee_reviewers', new.committee_reviewers,
         'submitted_at', new.submitted_at,
         'committee_reviewed_at', new.committee_reviewed_at,
@@ -507,3 +541,4 @@ grant select, insert on public.je_notification_logs to authenticated;
 grant execute on function public.get_je_notification_recipients(text[]) to authenticated;
 grant select, insert, update on public.job_evaluations to authenticated;
 grant select, insert on public.job_evaluation_audit_logs to authenticated;
+grant select on public.je_compensation_alert_register to authenticated;

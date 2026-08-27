@@ -343,7 +343,26 @@
   .register-sub{color:var(--grey); font-size:11px; margin-top:2px;}
   .register-status{font-weight:800; color:#334155;}
   .register-link-btn{background:#EAF0FB; color:var(--navy);}
-  @media (max-width: 760px){.workflow-actions{grid-template-columns:1fr;}}
+  .alert-toolbar{display:grid; grid-template-columns:1fr 180px 150px auto; gap:10px; align-items:center; margin-top:12px;}
+  .alert-toolbar input, .alert-toolbar select{
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit;
+  }
+  .alert-check{display:flex; align-items:center; gap:6px; color:var(--grey); font-size:12px; font-weight:700; white-space:nowrap;}
+  .alert-summary{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:14px;}
+  .alert-card{border:1px solid var(--border); border-radius:8px; padding:12px; background:#F8FAFC;}
+  .alert-card strong{display:block; color:var(--navy); font-size:22px; line-height:1;}
+  .alert-card span{display:block; color:var(--grey); font-size:11.5px; margin-top:5px;}
+  .alert-severity{display:inline-flex; align-items:center; border-radius:999px; padding:4px 9px; font-size:11px; font-weight:900;}
+  .alert-severity.above{background:#FFFBEB; color:#92400E; border:1px solid #FDE68A;}
+  .alert-severity.below{background:#FEF2F2; color:#991B1B; border:1px solid #FECACA;}
+  .alert-severity.ok{background:#F0FDF4; color:#166534; border:1px solid #BBF7D0;}
+  .alert-gap{font-weight:900; color:var(--navy);}
+  .alert-action{max-width:250px; color:#334155; font-size:11.5px; line-height:1.4;}
+  @media (max-width: 760px){
+    .workflow-actions{grid-template-columns:1fr;}
+    .alert-toolbar{grid-template-columns:1fr;}
+    .alert-summary{grid-template-columns:1fr 1fr;}
+  }
   .audit-log{
     max-height:180px; overflow:auto; border:1px solid var(--border); border-radius:10px;
     background:#F8FAFC; padding:8px 10px; font-size:11.5px; line-height:1.45;
@@ -558,7 +577,8 @@
       <button class="nav-btn active" data-section="home"><span id="navHome">หน้าแรก</span><span class="nav-index">01</span></button>
       <button class="nav-btn" data-section="evaluation"><span id="navEvaluation">Evaluation Form</span><span class="nav-index">02</span></button>
       <button class="nav-btn" data-section="history"><span id="navHistory">History</span><span class="nav-index">03</span></button>
-      <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">04</span></button>
+      <button class="nav-btn" data-section="alerts"><span id="navAlerts">Comp Alerts</span><span class="nav-index">04</span></button>
+      <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">05</span></button>
     </nav>
 
     <main class="workspace-main">
@@ -598,6 +618,12 @@
           <h3 id="moduleRegisterTitle">Evaluation Register</h3>
           <p id="moduleRegisterText">ติดตามรายการประเมินทั้งหมด สถานะ Pending With ลิงก์ Record/QR และ audit trail</p>
           <span class="module-action" id="moduleRegisterAction">เปิด Register</span>
+        </button>
+        <button class="module-card" type="button" onclick="openSuiteModule('alerts')">
+          <span class="module-icon">!</span>
+          <h3 id="moduleAlertsTitle">Compensation Alert Register</h3>
+          <p id="moduleAlertsText">ติดตามตำแหน่งที่เงินเดือนต่ำกว่า/สูงกว่า Salary Range ตาม JE Level พร้อม action ที่ควรดำเนินการ</p>
+          <span class="module-action" id="moduleAlertsAction">เปิด Alert Register</span>
         </button>
         <button class="module-card" type="button" onclick="openSuiteModule('admin')">
           <span class="module-icon">AD</span>
@@ -720,6 +746,29 @@
     <div class="history-stats" id="historyStats"></div>
     <div class="history-list" id="persistentHistoryList"></div>
     <div class="audit-log" id="persistentAuditLog"></div>
+  </div>
+  </section>
+
+  <section class="app-section" data-section-panel="alerts">
+    <div class="section-intro">
+      <div><h2 id="sectionAlertsTitle">Compensation Alert Register</h2><p id="sectionAlertsDesc">Track out-of-range salary cases by JE Level and recommended HR action.</p></div>
+      <span class="section-chip" id="sectionAlertsChip">Pay Governance</span>
+    </div>
+  <div class="meta-card">
+    <h2 id="mCompAlerts">Compensation Alert Register</h2>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnAlertsRefresh" onclick="loadCompensationAlerts()">Refresh Alerts</button>
+      <button class="btn-secondary" id="btnAlertsOpenDashboard" onclick="openCompensationDashboard('dashboard')">Open Compensation Dashboard</button>
+    </div>
+    <div class="history-status warn" id="alertStatus"></div>
+    <div class="alert-toolbar">
+      <input id="alertSearch" type="search" placeholder="Search job, department, evaluation ID">
+      <select id="alertTypeFilter"></select>
+      <select id="alertLevelFilter"></select>
+      <label class="alert-check"><input id="alertIncludeCurrent" type="checkbox" checked> <span id="alertIncludeCurrentLabel">Include current form</span></label>
+    </div>
+    <div class="alert-summary" id="alertSummary"></div>
+    <div class="history-list" id="compensationAlertList"></div>
   </div>
   </section>
 
@@ -954,6 +1003,7 @@ const UI = {
     navScore: 'ให้คะแนน',
     navWorkflow: 'Workflow',
     navHistory: 'Register',
+    navAlerts: 'Comp Alerts',
     navAdmin: 'ผู้ใช้',
     navReference: 'Benchmark',
     navSignatures: 'ลงนาม',
@@ -969,6 +1019,9 @@ const UI = {
     sectionHistoryTitle: 'Evaluation Register',
     sectionHistoryDesc: 'ทะเบียนติดตาม evaluation, pending with, record link และ audit trail จากฐานข้อมูล',
     sectionHistoryChip: 'Database',
+    sectionAlertsTitle: 'Compensation Alert Register',
+    sectionAlertsDesc: 'ติดตามตำแหน่งที่เงินเดือนต่ำกว่า/สูงกว่า Salary Range ตาม JE Level และ action ที่ควรดำเนินการ',
+    sectionAlertsChip: 'Pay Governance',
     sectionAdminTitle: 'จัดการผู้ใช้',
     sectionAdminDesc: 'HR Head เพิ่มผู้ใช้ กำหนด role เปิด/ปิดสิทธิ์ และตรวจ audit การเปลี่ยนสิทธิ์',
     sectionAdminChip: 'HR Head',
@@ -994,6 +1047,9 @@ const UI = {
     moduleRegisterTitle: 'Evaluation Register',
     moduleRegisterText: 'ติดตามรายการประเมินทั้งหมด สถานะ Pending With ลิงก์ Record/QR และ audit trail',
     moduleRegisterAction: 'เปิด Register',
+    moduleAlertsTitle: 'Compensation Alert Register',
+    moduleAlertsText: 'ติดตามตำแหน่งที่เงินเดือนต่ำกว่า/สูงกว่า Salary Range ตาม JE Level พร้อม action ที่ควรดำเนินการ',
+    moduleAlertsAction: 'เปิด Alert Register',
     moduleAdminTitle: 'Admin / User Management',
     moduleAdminText: 'เพิ่มผู้ใช้ กำหนด role และเปิด/ปิดสิทธิ์การใช้งานสำหรับ HR Analyst, Committee และ HR Head',
     moduleAdminAction: 'เปิด Admin',
@@ -1094,6 +1150,39 @@ const UI = {
     historySaveNeedsDraft: 'ต้องบันทึก record ครั้งแรกเป็น Draft ก่อน แล้วจึงเปลี่ยนสถานะตาม workflow เพื่อให้ audit trail ถูกต้อง',
     historyLoaded: 'เปิด record จากฐานข้อมูลแล้ว: {evaluationId} v{version}',
     historyAuditEmpty: 'ยังไม่มี audit log ในฐานข้อมูลสำหรับ record นี้',
+    compAlerts: 'Compensation Alert Register',
+    alertsRefresh: 'รีเฟรช Alerts',
+    alertsOpenDashboard: 'เปิด Compensation Dashboard',
+    alertsSearchPh: 'ค้นหา Job, Department, Evaluation ID',
+    alertsAllTypes: 'ทุกประเภท Alert',
+    alertsAboveMax: 'สูงกว่า Max',
+    alertsBelowMin: 'ต่ำกว่า Min',
+    alertsInRange: 'อยู่ใน Range',
+    alertsAllLevels: 'ทุก Level',
+    alertsIncludeCurrent: 'รวมฟอร์มปัจจุบัน',
+    alertsEmpty: 'ยังไม่มีรายการเงินเดือนหลุดกรอบ Salary Range',
+    alertsLoaded: 'โหลด Compensation Alerts แล้ว: {count} รายการ',
+    alertsCurrentForm: 'ฟอร์มปัจจุบัน',
+    alertsTotal: 'Alerts ทั้งหมด',
+    alertsAbove: 'สูงกว่า Max',
+    alertsBelow: 'ต่ำกว่า Min',
+    alertsGap: 'ส่วนต่างรวม',
+    alertsColRecord: 'Record',
+    alertsColJob: 'Job / Department',
+    alertsColLevel: 'JE Level',
+    alertsColSalary: 'เงินเดือน',
+    alertsColRange: 'Salary Range',
+    alertsColCompa: 'Compa',
+    alertsColGap: 'ส่วนต่าง',
+    alertsColAction: 'Recommended Action',
+    alertsColPending: 'Pending With',
+    alertsColActions: 'Actions',
+    alertsOpenRecord: 'เปิด Record',
+    alertsOpenForm: 'เปิดฟอร์ม',
+    alertsCopyLink: 'Copy Link',
+    alertActionAbove: 'Red-circle / freeze increase และทบทวนว่า JE Level หรือ salary range เหมาะสมหรือไม่',
+    alertActionBelow: 'วางแผนปรับถึง Minimum หรือขอ budget correction ตาม policy',
+    alertActionOk: 'ไม่ต้อง action ด้าน range ตอนนี้',
     historyConfirmRedirectHelp: 'ลิงก์ยืนยันจะกลับมาที่ระบบนี้: {url}',
     historyResetSent: 'ส่งลิงก์ตั้งรหัสใหม่แล้ว กรุณาเปิดอีเมลล่าสุด',
     historyRecoveryReady: 'โหมดตั้งรหัสใหม่พร้อมแล้ว ใส่รหัสใหม่ในช่อง Password แล้วกด ตั้งรหัสใหม่',
@@ -1200,6 +1289,7 @@ const UI = {
     navScore: 'Scoring',
     navWorkflow: 'Workflow',
     navHistory: 'Register',
+    navAlerts: 'Comp Alerts',
     navAdmin: 'Users',
     navReference: 'Benchmarks',
     navSignatures: 'Signatures',
@@ -1215,6 +1305,9 @@ const UI = {
     sectionHistoryTitle: 'Evaluation Register',
     sectionHistoryDesc: 'Track evaluations, pending owner, record links, and database audit trails.',
     sectionHistoryChip: 'Database',
+    sectionAlertsTitle: 'Compensation Alert Register',
+    sectionAlertsDesc: 'Track below-range and above-range salary cases by JE Level with recommended HR action.',
+    sectionAlertsChip: 'Pay Governance',
     sectionAdminTitle: 'User Management',
     sectionAdminDesc: 'HR Head can add users, assign roles, deactivate access, and review role audit history.',
     sectionAdminChip: 'HR Head',
@@ -1240,6 +1333,9 @@ const UI = {
     moduleRegisterTitle: 'Evaluation Register',
     moduleRegisterText: 'Track evaluation records, status, pending owner, record links, QR, and audit trail.',
     moduleRegisterAction: 'Open register',
+    moduleAlertsTitle: 'Compensation Alert Register',
+    moduleAlertsText: 'Track salaries below or above the JE Level range and the HR action needed.',
+    moduleAlertsAction: 'Open alert register',
     moduleAdminTitle: 'Admin / User Management',
     moduleAdminText: 'Add users, assign roles, and activate or deactivate access for HR Analyst, Committee, and HR Head.',
     moduleAdminAction: 'Open admin',
@@ -1340,6 +1436,39 @@ const UI = {
     historySaveNeedsDraft: 'Save the first database record as Draft, then move through the workflow so the audit trail stays valid.',
     historyLoaded: 'Loaded database record: {evaluationId} v{version}',
     historyAuditEmpty: 'No database audit log exists for this record yet.',
+    compAlerts: 'Compensation Alert Register',
+    alertsRefresh: 'Refresh Alerts',
+    alertsOpenDashboard: 'Open Compensation Dashboard',
+    alertsSearchPh: 'Search job, department, evaluation ID',
+    alertsAllTypes: 'All alert types',
+    alertsAboveMax: 'Above Max',
+    alertsBelowMin: 'Below Min',
+    alertsInRange: 'In Range',
+    alertsAllLevels: 'All Levels',
+    alertsIncludeCurrent: 'Include current form',
+    alertsEmpty: 'No salary range alerts found.',
+    alertsLoaded: 'Loaded compensation alerts: {count} records',
+    alertsCurrentForm: 'Current form',
+    alertsTotal: 'Total Alerts',
+    alertsAbove: 'Above Max',
+    alertsBelow: 'Below Min',
+    alertsGap: 'Total Gap',
+    alertsColRecord: 'Record',
+    alertsColJob: 'Job / Department',
+    alertsColLevel: 'JE Level',
+    alertsColSalary: 'Salary',
+    alertsColRange: 'Salary Range',
+    alertsColCompa: 'Compa',
+    alertsColGap: 'Gap',
+    alertsColAction: 'Recommended Action',
+    alertsColPending: 'Pending With',
+    alertsColActions: 'Actions',
+    alertsOpenRecord: 'Open Record',
+    alertsOpenForm: 'Open Form',
+    alertsCopyLink: 'Copy Link',
+    alertActionAbove: 'Red-circle / freeze increase and review whether the JE Level or salary range is appropriate.',
+    alertActionBelow: 'Plan an adjustment to Minimum or request budget correction under policy.',
+    alertActionOk: 'No range action is needed now.',
     historyConfirmRedirectHelp: 'Confirmation will return to this system: {url}',
     historyResetSent: 'Password reset link sent. Please open the newest email.',
     historyRecoveryReady: 'Password recovery is ready. Enter a new password, then click Set New Password.',
@@ -1446,6 +1575,7 @@ const UI = {
     navScore: '评分',
     navWorkflow: '流程',
     navHistory: '登记表',
+    navAlerts: '薪酬提醒',
     navAdmin: '用户',
     navReference: '标杆',
     navSignatures: '签署',
@@ -1461,6 +1591,9 @@ const UI = {
     sectionHistoryTitle: '评估登记表',
     sectionHistoryDesc: '跟踪评估、待处理人、记录链接和数据库审计轨迹。',
     sectionHistoryChip: '数据库',
+    sectionAlertsTitle: '薪酬提醒登记表',
+    sectionAlertsDesc: '按 JE 职级跟踪低于/高于薪资区间的案例及建议 HR 操作。',
+    sectionAlertsChip: '薪酬治理',
     sectionAdminTitle: '用户管理',
     sectionAdminDesc: 'HR Head 可新增用户、分配角色、停用权限并查看角色审计历史。',
     sectionAdminChip: 'HR Head',
@@ -1486,6 +1619,9 @@ const UI = {
     moduleRegisterTitle: '评估登记表',
     moduleRegisterText: '跟踪评估记录、状态、待处理人、记录链接、二维码和审计轨迹。',
     moduleRegisterAction: '打开登记表',
+    moduleAlertsTitle: '薪酬提醒登记表',
+    moduleAlertsText: '跟踪薪资低于或高于 JE 职级区间的职位及后续 HR 操作。',
+    moduleAlertsAction: '打开提醒登记表',
     moduleAdminTitle: '用户管理',
     moduleAdminText: '新增用户、分配角色，并启用或停用HR Analyst、Committee和HR Head权限。',
     moduleAdminAction: '打开用户管理',
@@ -1586,6 +1722,39 @@ const UI = {
     historySaveNeedsDraft: '第一次保存数据库记录必须是 Draft，然后按流程变更状态以保持审计记录正确。',
     historyLoaded: '已打开数据库记录：{evaluationId} v{version}',
     historyAuditEmpty: '该记录暂无数据库审计日志。',
+    compAlerts: '薪酬提醒登记表',
+    alertsRefresh: '刷新提醒',
+    alertsOpenDashboard: '打开薪酬仪表板',
+    alertsSearchPh: '搜索职位、部门、评估编号',
+    alertsAllTypes: '所有提醒类型',
+    alertsAboveMax: '高于最高值',
+    alertsBelowMin: '低于最低值',
+    alertsInRange: '区间内',
+    alertsAllLevels: '所有职级',
+    alertsIncludeCurrent: '包含当前表单',
+    alertsEmpty: '暂无薪资区间提醒。',
+    alertsLoaded: '已加载薪酬提醒：{count} 条',
+    alertsCurrentForm: '当前表单',
+    alertsTotal: '提醒总数',
+    alertsAbove: '高于最高值',
+    alertsBelow: '低于最低值',
+    alertsGap: '差额合计',
+    alertsColRecord: '记录',
+    alertsColJob: '职位 / 部门',
+    alertsColLevel: 'JE职级',
+    alertsColSalary: '薪资',
+    alertsColRange: '薪资区间',
+    alertsColCompa: '薪酬比',
+    alertsColGap: '差额',
+    alertsColAction: '建议操作',
+    alertsColPending: '待处理人',
+    alertsColActions: '操作',
+    alertsOpenRecord: '打开记录',
+    alertsOpenForm: '打开表单',
+    alertsCopyLink: '复制链接',
+    alertActionAbove: '红圈/冻结调薪，并复核 JE 职级或薪资区间是否合适。',
+    alertActionBelow: '计划调整至最低值，或按政策申请预算修正。',
+    alertActionOk: '当前无需薪资区间操作。',
     historyConfirmRedirectHelp: '确认后将返回此系统：{url}',
     historyResetSent: '重置密码链接已发送。请打开最新邮件。',
     historyRecoveryReady: '密码恢复已准备好。请输入新密码，然后点击设置新密码。',
@@ -2965,6 +3134,9 @@ async function signOutPersistentHistory(){
   notificationLogRows = [];
   document.getElementById('persistentHistoryList').innerHTML = '';
   document.getElementById('persistentAuditLog').textContent = '';
+  document.getElementById('compensationAlertList').innerHTML = '';
+  document.getElementById('alertSummary').innerHTML = '';
+  renderCompensationAlertStatus(UI[currentLang].historyDisconnected, 'warn');
   document.getElementById('adminUserList').innerHTML = '';
   document.getElementById('adminAuditLog').textContent = '';
   document.getElementById('notificationLog').textContent = UI[currentLang].notificationEmpty;
@@ -3429,6 +3601,203 @@ function renderPersistentHistory(){
   const rows = getFilteredHistoryRows();
   renderHistoryStats(rows);
   renderPersistentHistoryList(rows);
+  renderCompensationAlerts();
+}
+
+function alertLevelForRow(row){
+  return row.final_approved_level || row.recommended_level || row.level || '';
+}
+
+function normalizedRowSalaryCheck(row){
+  const level = alertLevelForRow(row);
+  const savedCheck = row.salary_range_check || {};
+  const salary = firstNumber(savedCheck, ['current_salary', 'salary'], firstNumber(row, ['current_salary', 'currentSalary'], null));
+  const savedRange = savedCheck.range ? normalizeSalaryRange({ level, ...savedCheck.range }) : null;
+  const range = savedRange || salaryRangeForLevel(level);
+  if (!salary || !range) {
+    return { kind: 'warn', alertType: 'unknown', level, range, salary, compa: null, gap: 0, message: UI[currentLang].salaryCheckNoRange.replaceAll('{level}', level || '-') };
+  }
+  const compa = range.midpoint ? salary / range.midpoint : 0;
+  if (salary < range.min) {
+    const gap = range.min - salary;
+    return { kind: 'error', alertType: 'below', level, range, salary, compa, gap, message: UI[currentLang].salaryCheckBelowRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(gap)) };
+  }
+  if (salary > range.max) {
+    const gap = salary - range.max;
+    return { kind: 'warn', alertType: 'above', level, range, salary, compa, gap, message: UI[currentLang].salaryCheckAboveRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(gap)) };
+  }
+  return { kind: 'ok', alertType: 'ok', level, range, salary, compa, gap: 0, message: UI[currentLang].salaryCheckInRange.replaceAll('{level}', level) };
+}
+
+function currentFormAlertRow(){
+  const jobTitle = document.getElementById('jobTitle')?.value || '';
+  const salary = salaryValue();
+  if (!jobTitle && !salary) return null;
+  const result = window.JE_SCORE_GRADE_MODEL.calculate(state);
+  const row = {
+    id: 'current-form',
+    evaluation_id: UI[currentLang].alertsCurrentForm,
+    version_number: workflowState.versionNumber,
+    is_latest_version: true,
+    job_title: jobTitle || '-',
+    department: document.getElementById('dept')?.value || '-',
+    total_score: result.weightedTotal,
+    recommended_level: result.level,
+    final_approved_level: workflowState.finalApprovedLevel || '',
+    current_status: workflowState.currentStatus,
+    updated_at: workflowState.updatedAt,
+    created_by: document.getElementById('evaluator')?.value || '',
+    current_salary: salary,
+    is_current_form: true,
+  };
+  row.salary_range_check = normalizedRowSalaryCheck(row);
+  return row.salary_range_check.alertType === 'ok' || row.salary_range_check.alertType === 'unknown' ? null : row;
+}
+
+function compensationAlertRows(){
+  const includeCurrent = document.getElementById('alertIncludeCurrent')?.checked ?? true;
+  const rows = persistentHistoryRows
+    .map(row => ({ ...row, salary_range_check: normalizedRowSalaryCheck(row) }))
+    .filter(row => ['above', 'below'].includes(row.salary_range_check.alertType));
+  const current = includeCurrent ? currentFormAlertRow() : null;
+  return current ? [current, ...rows.filter(row => row.id !== workflowState.id)] : rows;
+}
+
+function filteredCompensationAlertRows(){
+  const search = (document.getElementById('alertSearch')?.value || '').trim().toLowerCase();
+  const type = document.getElementById('alertTypeFilter')?.value || '';
+  const level = document.getElementById('alertLevelFilter')?.value || '';
+  return compensationAlertRows().filter(row => {
+    const check = row.salary_range_check || {};
+    const haystack = [row.evaluation_id, row.job_title, row.department, row.created_by, row.current_status, pendingWithForRow(row)]
+      .map(v => String(v || '').toLowerCase())
+      .join(' ');
+    return (!search || haystack.includes(search))
+      && (!type || check.alertType === type)
+      && (!level || check.level === level);
+  });
+}
+
+function alertTypeLabel(type){
+  if (type === 'above') return UI[currentLang].alertsAboveMax;
+  if (type === 'below') return UI[currentLang].alertsBelowMin;
+  return UI[currentLang].alertsInRange;
+}
+
+function alertActionText(type){
+  if (type === 'above') return UI[currentLang].alertActionAbove;
+  if (type === 'below') return UI[currentLang].alertActionBelow;
+  return UI[currentLang].alertActionOk;
+}
+
+function renderCompensationAlertStats(rows){
+  const box = document.getElementById('alertSummary');
+  if (!box) return;
+  const above = rows.filter(row => row.salary_range_check?.alertType === 'above').length;
+  const below = rows.filter(row => row.salary_range_check?.alertType === 'below').length;
+  const gap = rows.reduce((sum, row) => sum + asNumber(row.salary_range_check?.gap, 0), 0);
+  box.innerHTML = [
+    [UI[currentLang].alertsTotal, rows.length],
+    [UI[currentLang].alertsAbove, above],
+    [UI[currentLang].alertsBelow, below],
+    [UI[currentLang].alertsGap, gap ? moneyText(gap) : '-'],
+  ].map(([label, value]) => `<div class="alert-card"><strong>${escapeHtml(String(value))}</strong><span>${escapeHtml(label)}</span></div>`).join('');
+}
+
+function renderCompensationAlertStatus(message, kind = 'warn'){
+  const el = document.getElementById('alertStatus');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `history-status ${kind}`;
+}
+
+function renderCompensationAlertList(rows){
+  const list = document.getElementById('compensationAlertList');
+  if (!list) return;
+  if (!rows.length) {
+    list.innerHTML = `<div class="history-row">${UI[currentLang].alertsEmpty}</div>`;
+    return;
+  }
+  const ui = UI[currentLang];
+  list.innerHTML = `
+    <div class="register-wrap">
+      <table class="register-table">
+        <thead>
+          <tr>
+            <th>${ui.alertsColRecord}</th>
+            <th>${ui.alertsColJob}</th>
+            <th>${ui.alertsColLevel}</th>
+            <th>${ui.alertsColSalary}</th>
+            <th>${ui.alertsColRange}</th>
+            <th>${ui.alertsColCompa}</th>
+            <th>${ui.alertsColGap}</th>
+            <th>${ui.alertsColAction}</th>
+            <th>${ui.alertsColPending}</th>
+            <th>${ui.alertsColActions}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(row => {
+            const check = row.salary_range_check || {};
+            const rangeText = check.range ? `${moneyText(check.range.min)} - ${moneyText(check.range.max)}` : '-';
+            const updated = row.updated_at ? new Date(row.updated_at).toLocaleString() : '-';
+            return `
+              <tr>
+                <td>
+                  <div class="register-id">${escapeHtml(row.evaluation_id || '-')}</div>
+                  <div class="register-sub">v${escapeHtml(String(row.version_number || 1))} · ${escapeHtml(updated)}</div>
+                </td>
+                <td>
+                  <div class="history-title">${escapeHtml(row.job_title || '-')}</div>
+                  <div class="register-sub">${escapeHtml(row.department || '-')} · ${escapeHtml(row.current_status || '-')}</div>
+                </td>
+                <td><span class="alert-severity ${escapeHtml(check.alertType || 'ok')}">${escapeHtml(check.level || '-')} · ${escapeHtml(alertTypeLabel(check.alertType))}</span></td>
+                <td>${escapeHtml(check.salary ? moneyText(check.salary) : '-')}</td>
+                <td>${escapeHtml(rangeText)}</td>
+                <td>${check.compa ? escapeHtml(check.compa.toFixed(2)) : '-'}</td>
+                <td><span class="alert-gap">${escapeHtml(check.gap ? moneyText(check.gap) : '-')}</span></td>
+                <td><div class="alert-action">${escapeHtml(alertActionText(check.alertType))}</div></td>
+                <td><span class="pending-chip">${escapeHtml(pendingWithForRow(row))}</span></td>
+                <td>
+                  <div class="history-actions">
+                    <button class="btn-secondary" data-alert-open="${escapeHtml(row.id)}">${row.is_current_form ? ui.alertsOpenForm : ui.alertsOpenRecord}</button>
+                    ${row.is_current_form ? '' : `<button class="btn-secondary register-link-btn" data-alert-copy="${escapeHtml(row.id)}">${ui.alertsCopyLink}</button>`}
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  list.querySelectorAll('[data-alert-open]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.alertOpen === 'current-form') switchSection('evaluation');
+      else openPermanentRecord(btn.dataset.alertOpen);
+    });
+  });
+  list.querySelectorAll('[data-alert-copy]').forEach(btn => {
+    btn.addEventListener('click', () => copyRecordLink(btn.dataset.alertCopy));
+  });
+}
+
+function renderCompensationAlerts(){
+  const rows = filteredCompensationAlertRows();
+  renderCompensationAlertStats(rows);
+  renderCompensationAlertList(rows);
+  const status = document.getElementById('alertStatus');
+  if (status && !status.textContent) {
+    renderCompensationAlertStatus(UI[currentLang].alertsLoaded.replaceAll('{count}', String(rows.length)), rows.length ? 'ok' : 'warn');
+  }
+}
+
+async function loadCompensationAlerts(){
+  await loadPermanentHistory();
+  const rows = filteredCompensationAlertRows();
+  renderCompensationAlertStats(rows);
+  renderCompensationAlertList(rows);
+  renderCompensationAlertStatus(UI[currentLang].alertsLoaded.replaceAll('{count}', String(rows.length)), rows.length ? 'ok' : 'warn');
 }
 
 function renderPersistentHistoryList(rows){
@@ -3512,7 +3881,7 @@ async function loadPermanentHistory(){
   if (!session) return;
   const { data, error } = await client
     .from('job_evaluations')
-    .select('id,evaluation_id,version_number,is_latest_version,job_title,department,total_score,recommended_level,final_approved_level,current_status,updated_at,created_by,score_model_version')
+    .select('id,evaluation_id,version_number,is_latest_version,job_title,department,total_score,recommended_level,final_approved_level,current_status,updated_at,created_by,score_model_version,current_salary,salary_range_check')
     .order('updated_at', { ascending: false })
     .limit(200);
   if (error) {
@@ -3704,7 +4073,7 @@ function renderRationaleState(key){
 }
 
 function switchSection(section){
-  if (!['home', 'evaluation', 'history', 'admin'].includes(section)) section = 'home';
+  if (!['home', 'evaluation', 'history', 'alerts', 'admin'].includes(section)) section = 'home';
   activeSection = section;
   sessionStorage.setItem('jeActiveSection', section);
   const evaluationPanels = ['job', 'score', 'workflow', 'reference', 'signatures'];
@@ -4017,6 +4386,7 @@ function renderSummary(){
   renderLevelTable(isComplete ? lvl[0] : null);
   const selectedFinalLevel = document.getElementById('finalApprovedLevel')?.value || workflowState.finalApprovedLevel || '';
   renderSalaryRangeCheck(selectedFinalLevel || lvl[0]);
+  renderCompensationAlerts();
   const fit = window.JE_SCORE_GRADE_MODEL.benchmarkFit;
   const review = result.boundaryReview;
   let note = UI[currentLang].modelNote
@@ -4078,6 +4448,7 @@ function applyStaticText(){
   document.getElementById('navHome').textContent = ui.navHome;
   document.getElementById('navEvaluation').textContent = ui.navEvaluation;
   document.getElementById('navHistory').textContent = ui.navHistory;
+  document.getElementById('navAlerts').textContent = ui.navAlerts;
   document.getElementById('navAdmin').textContent = ui.navAdmin;
   document.getElementById('moduleHomeTitle').textContent = ui.moduleHomeTitle;
   document.getElementById('moduleHomeDesc').textContent = ui.moduleHomeDesc;
@@ -4095,6 +4466,9 @@ function applyStaticText(){
   document.getElementById('moduleRegisterTitle').textContent = ui.moduleRegisterTitle;
   document.getElementById('moduleRegisterText').textContent = ui.moduleRegisterText;
   document.getElementById('moduleRegisterAction').textContent = ui.moduleRegisterAction;
+  document.getElementById('moduleAlertsTitle').textContent = ui.moduleAlertsTitle;
+  document.getElementById('moduleAlertsText').textContent = ui.moduleAlertsText;
+  document.getElementById('moduleAlertsAction').textContent = ui.moduleAlertsAction;
   document.getElementById('moduleAdminTitle').textContent = ui.moduleAdminTitle;
   document.getElementById('moduleAdminText').textContent = ui.moduleAdminText;
   document.getElementById('moduleAdminAction').textContent = ui.moduleAdminAction;
@@ -4110,6 +4484,9 @@ function applyStaticText(){
   document.getElementById('sectionHistoryTitle').textContent = ui.sectionHistoryTitle;
   document.getElementById('sectionHistoryDesc').textContent = ui.sectionHistoryDesc;
   document.getElementById('sectionHistoryChip').textContent = ui.sectionHistoryChip;
+  document.getElementById('sectionAlertsTitle').textContent = ui.sectionAlertsTitle;
+  document.getElementById('sectionAlertsDesc').textContent = ui.sectionAlertsDesc;
+  document.getElementById('sectionAlertsChip').textContent = ui.sectionAlertsChip;
   document.getElementById('sectionAdminTitle').textContent = ui.sectionAdminTitle;
   document.getElementById('sectionAdminDesc').textContent = ui.sectionAdminDesc;
   document.getElementById('sectionAdminChip').textContent = ui.sectionAdminChip;
@@ -4169,6 +4546,19 @@ function applyStaticText(){
   document.getElementById('historyStatusFilter').value = currentHistoryStatus;
   document.getElementById('historyLevelFilter').value = currentHistoryLevel;
   document.querySelector('.history-check').lastChild.textContent = ` ${ui.historyLatestOnly}`;
+  document.getElementById('mCompAlerts').textContent = ui.compAlerts;
+  document.getElementById('btnAlertsRefresh').textContent = ui.alertsRefresh;
+  document.getElementById('btnAlertsOpenDashboard').textContent = ui.alertsOpenDashboard;
+  document.getElementById('alertSearch').placeholder = ui.alertsSearchPh;
+  document.getElementById('alertTypeFilter').innerHTML = [
+    `<option value="">${ui.alertsAllTypes}</option>`,
+    `<option value="above">${ui.alertsAboveMax}</option>`,
+    `<option value="below">${ui.alertsBelowMin}</option>`,
+  ].join('');
+  document.getElementById('alertLevelFilter').innerHTML = [`<option value="">${ui.alertsAllLevels}</option>`]
+    .concat(LEVEL_CODES.map(level => `<option value="${level}">${level}</option>`))
+    .join('');
+  document.getElementById('alertIncludeCurrentLabel').textContent = ui.alertsIncludeCurrent;
   document.getElementById('mAdminUsers').textContent = ui.adminUsers;
   document.getElementById('adminHelp').textContent = ui.adminHelp;
   document.getElementById('lAdminEmail').textContent = ui.adminEmail;
@@ -4208,6 +4598,7 @@ function setLang(lang){
   renderWorkflowFields();
   renderJeRoleBadge(jeDbSession);
   renderPersistentHistory();
+  renderCompensationAlerts();
   renderAdminUserList();
   renderNotificationLogs();
   switchSection(activeSection);
@@ -4236,6 +4627,9 @@ document.getElementById('refDeptFilter').addEventListener('change', renderRefTab
 document.getElementById('refLevelFilter').addEventListener('change', renderRefTable);
 ['historySearch','historyStatusFilter','historyLevelFilter','historyLatestOnly'].forEach(id => {
   document.getElementById(id).addEventListener(id === 'historySearch' ? 'input' : 'change', renderPersistentHistory);
+});
+['alertSearch','alertTypeFilter','alertLevelFilter','alertIncludeCurrent'].forEach(id => {
+  document.getElementById(id).addEventListener(id === 'alertSearch' ? 'input' : 'change', renderCompensationAlerts);
 });
 ['jobTitle','dept','evaluator','evalDate','currentSalary','jobEvidence','workflowActor','finalApprovedLevel','approvedBy','decisionDate','committeeReviewers'].forEach(id => {
   document.getElementById(id)?.addEventListener('input', renderOnePagePrintSheet);
