@@ -765,6 +765,7 @@
     <h2 id="mCompAlerts">Compensation Alert Register</h2>
     <div class="btn-row">
       <button class="btn-primary" id="btnAlertsRefresh" onclick="loadCompensationAlerts()">Refresh Alerts</button>
+      <button class="btn-secondary" id="btnAlertsExport" onclick="exportCompensationAlertsCsv()">Export CSV</button>
       <button class="btn-secondary" id="btnAlertsOpenDashboard" onclick="openCompensationDashboard('dashboard')">Open Compensation Dashboard</button>
     </div>
     <div class="history-status warn" id="alertStatus"></div>
@@ -1160,6 +1161,7 @@ const UI = {
     historyAuditEmpty: 'ยังไม่มี audit log ในฐานข้อมูลสำหรับ record นี้',
     compAlerts: 'Compensation Alert Register',
     alertsRefresh: 'รีเฟรช Alerts',
+    alertsExport: 'Export CSV',
     alertsOpenDashboard: 'เปิด Compensation Dashboard',
     alertsSearchPh: 'ค้นหา Job, Department, Evaluation ID',
     alertsAllTypes: 'ทุกประเภท Alert',
@@ -1170,6 +1172,8 @@ const UI = {
     alertsIncludeCurrent: 'รวมฟอร์มปัจจุบัน',
     alertsEmpty: 'ยังไม่มีรายการเงินเดือนหลุดกรอบ Salary Range',
     alertsLoaded: 'โหลด Compensation Alerts แล้ว: {count} รายการ',
+    alertsExported: 'Export Compensation Alerts แล้ว: {count} รายการ',
+    alertsExportEmpty: 'ไม่มีรายการ Alert ให้ Export ตาม filter ปัจจุบัน',
     alertsCurrentForm: 'ฟอร์มปัจจุบัน',
     alertsTotal: 'Alerts ทั้งหมด',
     alertsAbove: 'สูงกว่า Max',
@@ -1449,6 +1453,7 @@ const UI = {
     historyAuditEmpty: 'No database audit log exists for this record yet.',
     compAlerts: 'Compensation Alert Register',
     alertsRefresh: 'Refresh Alerts',
+    alertsExport: 'Export CSV',
     alertsOpenDashboard: 'Open Compensation Dashboard',
     alertsSearchPh: 'Search job, department, evaluation ID',
     alertsAllTypes: 'All alert types',
@@ -1459,6 +1464,8 @@ const UI = {
     alertsIncludeCurrent: 'Include current form',
     alertsEmpty: 'No salary range alerts found.',
     alertsLoaded: 'Loaded compensation alerts: {count} records',
+    alertsExported: 'Exported compensation alerts: {count} records',
+    alertsExportEmpty: 'No alert records to export under the current filters.',
     alertsCurrentForm: 'Current form',
     alertsTotal: 'Total Alerts',
     alertsAbove: 'Above Max',
@@ -1738,6 +1745,7 @@ const UI = {
     historyAuditEmpty: '该记录暂无数据库审计日志。',
     compAlerts: '薪酬提醒登记表',
     alertsRefresh: '刷新提醒',
+    alertsExport: '导出 CSV',
     alertsOpenDashboard: '打开薪酬仪表板',
     alertsSearchPh: '搜索职位、部门、评估编号',
     alertsAllTypes: '所有提醒类型',
@@ -1748,6 +1756,8 @@ const UI = {
     alertsIncludeCurrent: '包含当前表单',
     alertsEmpty: '暂无薪资区间提醒。',
     alertsLoaded: '已加载薪酬提醒：{count} 条',
+    alertsExported: '已导出薪酬提醒：{count} 条',
+    alertsExportEmpty: '当前筛选条件下没有可导出的提醒记录。',
     alertsCurrentForm: '当前表单',
     alertsTotal: '提醒总数',
     alertsAbove: '高于最高值',
@@ -3709,6 +3719,76 @@ function alertActionText(type){
   return UI[currentLang].alertActionOk;
 }
 
+function csvCell(value){
+  const text = String(value ?? '').replace(/\r?\n/g, ' ').trim();
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function csvDateStamp(){
+  const now = new Date();
+  return now.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+function exportCompensationAlertsCsv(){
+  const rows = filteredCompensationAlertRows();
+  if (!rows.length) {
+    renderCompensationAlertStatus(UI[currentLang].alertsExportEmpty, 'warn');
+    return;
+  }
+  const headers = [
+    'Evaluation ID',
+    'Version',
+    'Job Title',
+    'Department',
+    'Status',
+    'Pending With',
+    'JE Level',
+    'Alert Type',
+    'Current Salary',
+    'Range Minimum',
+    'Range Midpoint',
+    'Range Maximum',
+    'Compa-Ratio',
+    'Gap',
+    'Recommended Action',
+    'Updated At',
+    'Created By',
+    'Record URL',
+  ];
+  const body = rows.map(row => {
+    const check = row.salary_range_check || {};
+    const range = check.range || {};
+    return [
+      row.evaluation_id || '',
+      row.version_number || 1,
+      row.job_title || '',
+      row.department || '',
+      row.current_status || '',
+      pendingWithForRow(row),
+      check.level || alertLevelForRow(row),
+      alertTypeLabel(check.alertType),
+      check.salary || '',
+      range.min || '',
+      range.midpoint || '',
+      range.max || '',
+      check.compa ? check.compa.toFixed(2) : '',
+      check.gap || '',
+      alertActionText(check.alertType),
+      row.updated_at || '',
+      row.created_by || '',
+      row.is_current_form ? '' : getRecordUrl(row.id),
+    ].map(csvCell).join(',');
+  });
+  const csv = '\ufeff' + [headers.map(csvCell).join(','), ...body].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `compensation_alert_register_${csvDateStamp()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  renderCompensationAlertStatus(UI[currentLang].alertsExported.replaceAll('{count}', String(rows.length)), 'ok');
+}
+
 function renderCompensationAlertStats(rows){
   const box = document.getElementById('alertSummary');
   if (!box) return;
@@ -4579,6 +4659,7 @@ function applyStaticText(){
   document.querySelector('.history-check').lastChild.textContent = ` ${ui.historyLatestOnly}`;
   document.getElementById('mCompAlerts').textContent = ui.compAlerts;
   document.getElementById('btnAlertsRefresh').textContent = ui.alertsRefresh;
+  document.getElementById('btnAlertsExport').textContent = ui.alertsExport;
   document.getElementById('btnAlertsOpenDashboard').textContent = ui.alertsOpenDashboard;
   document.getElementById('alertSearch').placeholder = ui.alertsSearchPh;
   document.getElementById('alertTypeFilter').innerHTML = [
