@@ -262,7 +262,9 @@ select
 from public.job_evaluations je
 where je.salary_range_check is not null
   and je.current_salary is not null
-  and je.salary_range_check ->> 'status' in ('warn', 'error');
+  and je.salary_range_check ->> 'status' in ('warn', 'error')
+  and coalesce((je.salary_range_check ->> 'range_is_verified')::boolean, false) = true
+  and coalesce(je.salary_range_check ->> 'range_source', je.salary_range_check ->> 'data_source') = 'supabase';
 
 create table if not exists public.job_evaluation_audit_logs (
   id uuid primary key default gen_random_uuid(),

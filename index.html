@@ -264,6 +264,12 @@
   .salary-check-head{display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:6px;}
   .salary-check-head span{font-size:12px; color:var(--grey); font-weight:800;}
   .salary-check-head strong{font-size:13px; color:var(--navy);}
+  .salary-source-badge{
+    display:inline-flex; align-items:center; border-radius:999px; border:1px solid var(--border);
+    background:#fff; color:#475569; padding:3px 8px; font-size:10.5px; font-weight:900; margin-bottom:7px;
+  }
+  .salary-source-badge.ok{border-color:#BBF7D0; background:#F0FDF4; color:#166534;}
+  .salary-source-badge.warn{border-color:#FDE68A; background:#FFFBEB; color:#92400E;}
   .salary-check-message{font-size:12.5px; line-height:1.45; color:#334155; font-weight:700;}
   .salary-check-card.ok .salary-check-message{color:#166534;}
   .salary-check-card.warn .salary-check-message{color:#92400E;}
@@ -660,6 +666,7 @@
         <span id="salaryCheckTitleJob">ตรวจสอบ Salary Range</span>
         <strong id="salaryCheckLevelJob">เทียบกับ: -</strong>
       </div>
+      <div class="salary-source-badge warn" id="salaryCheckSourceJob">Source: ยังไม่ได้โหลดจาก Supabase</div>
       <div class="salary-check-message" id="salaryCheckMessageJob">กรอกเงินเดือนปัจจุบันเพื่อเทียบกับช่วงเงินเดือนของ Level ที่ประเมิน</div>
       <div class="salary-range-line">
         <span id="salaryCheckRangeJob">Range: -</span>
@@ -828,6 +835,7 @@
             <span id="salaryCheckTitle">Salary Range Check</span>
             <strong id="salaryCheckLevel">-</strong>
           </div>
+          <div class="salary-source-badge warn" id="salaryCheckSource">Source: Not loaded</div>
           <div class="salary-check-message" id="salaryCheckMessage">กรอกเงินเดือนปัจจุบันเพื่อเทียบกับช่วงเงินเดือนของ Level ที่ประเมิน</div>
           <div class="salary-range-line">
             <span id="salaryCheckRange">Range: -</span>
@@ -1216,7 +1224,10 @@ const UI = {
     exampleLoaded: 'โหลดตัวอย่าง Production Manager แล้ว: JE Level L5 และเงินเดือน 68,000 จะแจ้งเตือนว่าสูงกว่า range ของ L5',
     salaryCheckTitle: 'ตรวจสอบ Salary Range',
     salaryCheckNoSalary: 'กรอกเงินเดือนปัจจุบันเพื่อเทียบกับช่วงเงินเดือนของ Level ที่ประเมิน',
-    salaryCheckNoRange: 'ยังไม่พบ salary range สำหรับ {level} กรุณาตรวจตาราง hr_levels หรือเปิด Salary Structure',
+    salaryCheckNoRange: 'ยังไม่พบ Salary Range จริงจาก Supabase สำหรับ {level} จึงยังไม่ใช้ตัวเลขใด ๆ ในการตัดสินใจ',
+    salaryCheckSourceSupabase: 'Source: ข้อมูลจริงจาก Supabase hr_levels',
+    salaryCheckSourceUnavailable: 'Source: ยังไม่ได้โหลดข้อมูลจริงจาก Supabase',
+    salaryCheckSaveBlocked: 'ยังไม่สามารถบันทึก/ส่งออกผลพร้อมเงินเดือนได้ เพราะ Salary Range ยังไม่ได้ยืนยันจาก Supabase',
     salaryCheckInRange: 'เงินเดือนอยู่ในช่วงของ {level}',
     salaryCheckBelowRange: 'แจ้งเตือน: เงินเดือนต่ำกว่าขั้นต่ำของ {level} อยู่ {gap}',
     salaryCheckAboveRange: 'แจ้งเตือน: เงินเดือนสูงกว่าขั้นสูงสุดของ {level} อยู่ {gap}',
@@ -1502,7 +1513,10 @@ const UI = {
     exampleLoaded: 'Loaded the Production Manager example: JE Level L5 with salary 68,000 should trigger an above-range alert.',
     salaryCheckTitle: 'Salary Range Check',
     salaryCheckNoSalary: 'Enter current monthly salary to compare against the evaluated level range.',
-    salaryCheckNoRange: 'No salary range found for {level}. Check hr_levels or open Salary Structure.',
+    salaryCheckNoRange: 'No verified Supabase salary range is available for {level}; no demo range is used for decisions.',
+    salaryCheckSourceSupabase: 'Source: Verified Supabase hr_levels',
+    salaryCheckSourceUnavailable: 'Source: Supabase range not loaded',
+    salaryCheckSaveBlocked: 'Cannot save/export this salary comparison because the salary range has not been verified from Supabase.',
     salaryCheckInRange: 'Salary is within the {level} range.',
     salaryCheckBelowRange: 'Alert: salary is {gap} below the {level} minimum.',
     salaryCheckAboveRange: 'Alert: salary is {gap} above the {level} maximum.',
@@ -1788,7 +1802,10 @@ const UI = {
     exampleLoaded: '已加载 Production Manager 示例：JE 等级 L5，薪资 68,000 将触发高于区间提醒。',
     salaryCheckTitle: '薪资区间检查',
     salaryCheckNoSalary: '请输入当前月薪，以便与评估职级的薪资区间比较。',
-    salaryCheckNoRange: '未找到 {level} 的薪资区间。请检查 hr_levels 或打开薪资结构。',
+    salaryCheckNoRange: '未找到 {level} 的 Supabase 真实薪资区间，因此不会使用示例区间做决策。',
+    salaryCheckSourceSupabase: '来源：Supabase hr_levels 真实数据',
+    salaryCheckSourceUnavailable: '来源：尚未加载 Supabase 真实区间',
+    salaryCheckSaveBlocked: '薪资区间尚未由 Supabase 验证，不能保存/导出该薪资对比结果。',
     salaryCheckInRange: '薪资位于 {level} 区间内。',
     salaryCheckBelowRange: '提醒：薪资低于 {level} 最低值 {gap}。',
     salaryCheckAboveRange: '提醒：薪资高于 {level} 最高值 {gap}。',
@@ -2416,7 +2433,7 @@ function bandIndex(v){
 
 let currentLang = 'th';
 let activeSection = sessionStorage.getItem('jeActiveSection') || 'home';
-if (!['home', 'evaluation', 'history', 'admin'].includes(activeSection)) activeSection = 'home';
+if (!['home', 'evaluation', 'history', 'alerts', 'admin'].includes(activeSection)) activeSection = 'home';
 const state = {};
 FACTORS.forEach(f => state[f.key] = 10);
 const rationales = {};
@@ -2449,18 +2466,9 @@ let handledRecordLinkId = '';
 let adminUserRows = [];
 let notificationLogRows = [];
 let salaryColumnsAvailable = false;
-
-const DEFAULT_SALARY_RANGES = [
-  { level: 'L1', midpoint: 15000, min: 12000, max: 18000, spread: 0.50, source: 'default' },
-  { level: 'L2', midpoint: 21000, min: 16800, max: 25200, spread: 0.50, source: 'default' },
-  { level: 'L3', midpoint: 29000, min: 23200, max: 34800, spread: 0.50, source: 'default' },
-  { level: 'L4', midpoint: 39000, min: 31200, max: 46800, spread: 0.50, source: 'default' },
-  { level: 'L5', midpoint: 50420, min: 40336, max: 60504, spread: 0.50, source: 'default' },
-  { level: 'L6', midpoint: 67000, min: 53600, max: 80400, spread: 0.50, source: 'default' },
-  { level: 'L7', midpoint: 91000, min: 72800, max: 109200, spread: 0.50, source: 'default' },
-  { level: 'L8', midpoint: 125000, min: 100000, max: 150000, spread: 0.50, source: 'default' },
-];
-let salaryRangeRows = [...DEFAULT_SALARY_RANGES];
+let salaryRangeRows = [];
+let salaryRangeSource = 'not_loaded';
+let salaryRangeLoadedAt = null;
 
 const EXAMPLE_EVALUATION = {
   jobTitle: 'Production Manager',
@@ -3513,6 +3521,10 @@ function dbRowFromSnapshot(snapshot){
   return row;
 }
 
+function hasUnverifiedSalaryRange(snapshot){
+  return Boolean(snapshot.current_salary) && snapshot.salary_range_check?.range_is_verified !== true;
+}
+
 async function saveEvaluationToDatabase(options = {}){
   const client = getJeDbClient();
   if (!client) {
@@ -3528,6 +3540,10 @@ async function saveEvaluationToDatabase(options = {}){
     return { ok: false, error: UI[currentLang].exportBlocked };
   }
   const snapshot = buildEvaluationSnapshot();
+  if (hasUnverifiedSalaryRange(snapshot)) {
+    if (!options.quiet) renderPersistentHistoryStatus(UI[currentLang].salaryCheckSaveBlocked, 'error');
+    return { ok: false, error: UI[currentLang].salaryCheckSaveBlocked };
+  }
   if (options.forceStatus) snapshot.current_status = options.forceStatus;
   const row = dbRowFromSnapshot(snapshot);
   const existing = await client
@@ -3612,7 +3628,10 @@ function normalizedRowSalaryCheck(row){
   const level = alertLevelForRow(row);
   const savedCheck = row.salary_range_check || {};
   const salary = firstNumber(savedCheck, ['current_salary', 'salary'], firstNumber(row, ['current_salary', 'currentSalary'], null));
-  const savedRange = savedCheck.range ? normalizeSalaryRange({ level, ...savedCheck.range }) : null;
+  const savedRangeIsVerified = savedCheck.data_source === 'supabase'
+    || savedCheck.range_source === 'supabase'
+    || savedCheck.range?.source === 'supabase';
+  const savedRange = savedRangeIsVerified && savedCheck.range ? normalizeSalaryRange({ level, ...savedCheck.range }) : null;
   const range = savedRange || salaryRangeForLevel(level);
   if (!salary || !range) {
     return { kind: 'warn', alertType: 'unknown', level, range, salary, compa: null, gap: 0, message: UI[currentLang].salaryCheckNoRange.replaceAll('{level}', level || '-') };
@@ -4207,7 +4226,7 @@ function normalizeSalaryRange(row){
     max = min * (1 + spread);
   }
   if (!level || !midpoint || !min || !max) return null;
-  return { level, midpoint, min, max, spread };
+  return { level, midpoint, min, max, spread, source: 'supabase' };
 }
 
 function salaryRangeForLevel(level){
@@ -4222,17 +4241,18 @@ function salaryValue(){
 function salaryRangeCheckFor(level){
   const salary = salaryValue();
   const range = salaryRangeForLevel(level);
-  if (!level) return { kind: 'warn', level: '-', range, salary, message: UI[currentLang].incompleteSub };
-  if (salary === null || salary <= 0) return { kind: 'warn', level, range, salary, message: UI[currentLang].salaryCheckNoSalary };
-  if (!range) return { kind: 'warn', level, range, salary, message: UI[currentLang].salaryCheckNoRange.replaceAll('{level}', level) };
+  const source = range ? 'supabase' : salaryRangeSource;
+  if (!level) return { kind: 'warn', level: '-', range, salary, source, message: UI[currentLang].incompleteSub };
+  if (salary === null || salary <= 0) return { kind: 'warn', level, range, salary, source, message: UI[currentLang].salaryCheckNoSalary };
+  if (!range) return { kind: 'warn', level, range, salary, source, message: UI[currentLang].salaryCheckNoRange.replaceAll('{level}', level) };
   const compa = range.midpoint ? salary / range.midpoint : 0;
   if (salary < range.min) {
-    return { kind: 'error', level, range, salary, compa, message: UI[currentLang].salaryCheckBelowRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(range.min - salary)) };
+    return { kind: 'error', level, range, salary, compa, source, message: UI[currentLang].salaryCheckBelowRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(range.min - salary)) };
   }
   if (salary > range.max) {
-    return { kind: 'warn', level, range, salary, compa, message: UI[currentLang].salaryCheckAboveRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(salary - range.max)) };
+    return { kind: 'warn', level, range, salary, compa, source, message: UI[currentLang].salaryCheckAboveRange.replaceAll('{level}', level).replaceAll('{gap}', moneyText(salary - range.max)) };
   }
-  return { kind: 'ok', level, range, salary, compa, message: UI[currentLang].salaryCheckInRange.replaceAll('{level}', level) };
+  return { kind: 'ok', level, range, salary, compa, source, message: UI[currentLang].salaryCheckInRange.replaceAll('{level}', level) };
 }
 
 function renderSalaryRangeCheck(level){
@@ -4247,8 +4267,13 @@ function renderSalaryRangeCheck(level){
     const message = document.getElementById(`salaryCheckMessage${suffix}`);
     const range = document.getElementById(`salaryCheckRange${suffix}`);
     const compa = document.getElementById(`salaryCheckCompa${suffix}`);
+    const source = document.getElementById(`salaryCheckSource${suffix}`);
     if (title) title.textContent = UI[currentLang].salaryCheckTitle;
     if (target) target.textContent = `${UI[currentLang].salaryCheckTarget}: ${check.level}`;
+    if (source) {
+      source.textContent = check.source === 'supabase' ? UI[currentLang].salaryCheckSourceSupabase : UI[currentLang].salaryCheckSourceUnavailable;
+      source.className = `salary-source-badge ${check.source === 'supabase' ? 'ok' : 'warn'}`;
+    }
     if (message) message.textContent = check.message;
     if (range) {
       range.textContent = check.range
@@ -4268,18 +4293,24 @@ async function loadSalaryRanges(){
   const client = getJeDbClient();
   const session = jeDbSession || (await getCurrentDbSessionSilently());
   if (!client || !session) {
-    salaryRangeRows = [...DEFAULT_SALARY_RANGES];
+    salaryRangeRows = [];
+    salaryRangeSource = 'not_loaded';
+    salaryRangeLoadedAt = null;
     renderSummary();
     return [];
   }
   const { data, error } = await client.from('hr_levels').select('*').order('level');
   if (error) {
-    salaryRangeRows = [...DEFAULT_SALARY_RANGES];
+    salaryRangeRows = [];
+    salaryRangeSource = 'error';
+    salaryRangeLoadedAt = null;
     renderSummary();
     return [];
   }
   const loadedRanges = (data || []).map(normalizeSalaryRange).filter(Boolean);
-  salaryRangeRows = loadedRanges.length ? loadedRanges : [...DEFAULT_SALARY_RANGES];
+  salaryRangeRows = loadedRanges;
+  salaryRangeSource = loadedRanges.length ? 'supabase' : 'empty';
+  salaryRangeLoadedAt = loadedRanges.length ? new Date().toISOString() : null;
   renderSummary();
   return salaryRangeRows;
 }
@@ -4677,6 +4708,10 @@ function buildEvaluationSnapshot(){
       status: salaryCheck.kind,
       message: salaryCheck.message,
       range: salaryCheck.range,
+      data_source: salaryCheck.source,
+      range_source: salaryCheck.source,
+      range_is_verified: salaryCheck.source === 'supabase',
+      range_loaded_at: salaryRangeLoadedAt,
       compa_ratio: salaryCheck.compa || null,
     },
     factor_scores: { ...state },
@@ -4739,6 +4774,11 @@ function exportJSON(){
     return;
   }
   const data = buildEvaluationSnapshot();
+  if (hasUnverifiedSalaryRange(data)) {
+    alert(UI[currentLang].salaryCheckSaveBlocked);
+    renderSummary();
+    return;
+  }
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
