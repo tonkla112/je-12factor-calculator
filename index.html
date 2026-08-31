@@ -338,7 +338,7 @@
   }
   .record-link-card .pending-chip{margin-bottom:8px;}
   .register-wrap{overflow:auto; margin-top:12px; border:1px solid var(--border); border-radius:10px; background:#fff;}
-  .register-table{width:100%; border-collapse:collapse; font-size:12px; min-width:920px;}
+  .register-table{width:100%; border-collapse:collapse; font-size:12px; min-width:1120px;}
   .register-table th{
     background:#F1F5F9; color:var(--navy); text-align:left; padding:9px 10px; border-bottom:1px solid var(--border);
     font-size:11px; text-transform:uppercase; letter-spacing:.02em;
@@ -349,12 +349,12 @@
   .register-sub{color:var(--grey); font-size:11px; margin-top:2px;}
   .register-status{font-weight:800; color:#334155;}
   .register-link-btn{background:#EAF0FB; color:var(--navy);}
-  .alert-toolbar{display:grid; grid-template-columns:1fr 180px 150px auto; gap:10px; align-items:center; margin-top:12px;}
+  .alert-toolbar{display:grid; grid-template-columns:1fr 180px 170px 150px auto; gap:10px; align-items:center; margin-top:12px;}
   .alert-toolbar input, .alert-toolbar select{
     width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit;
   }
   .alert-check{display:flex; align-items:center; gap:6px; color:var(--grey); font-size:12px; font-weight:700; white-space:nowrap;}
-  .alert-summary{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:14px;}
+  .alert-summary{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-top:14px;}
   .alert-card{border:1px solid var(--border); border-radius:8px; padding:12px; background:#F8FAFC;}
   .alert-card strong{display:block; color:var(--navy); font-size:22px; line-height:1;}
   .alert-card span{display:block; color:var(--grey); font-size:11.5px; margin-top:5px;}
@@ -364,6 +364,19 @@
   .alert-severity.ok{background:#F0FDF4; color:#166534; border:1px solid #BBF7D0;}
   .alert-gap{font-weight:900; color:var(--navy);}
   .alert-action{max-width:250px; color:#334155; font-size:11.5px; line-height:1.4;}
+  .alert-tracking-input{
+    width:132px; max-width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:7px;
+    font-family:inherit; font-size:11.5px; background:#fff;
+  }
+  .alert-tracking-input:disabled{background:#F8FAFC; color:#94A3B8;}
+  .alert-status-chip{
+    display:inline-flex; align-items:center; border-radius:999px; padding:4px 8px;
+    background:#EEF2FF; color:#3730A3; font-size:10.5px; font-weight:900; white-space:nowrap;
+  }
+  .alert-status-chip.closed{background:#F0FDF4; color:#166534; border:1px solid #BBF7D0;}
+  .alert-status-chip.exception{background:#FDF2F8; color:#9D174D; border:1px solid #FBCFE8;}
+  .alert-owner-cell{min-width:145px;}
+  .alert-due-cell{min-width:130px;}
   @media (max-width: 760px){
     .workflow-actions{grid-template-columns:1fr;}
     .alert-toolbar{grid-template-columns:1fr;}
@@ -772,6 +785,7 @@
     <div class="alert-toolbar">
       <input id="alertSearch" type="search" placeholder="Search job, department, evaluation ID">
       <select id="alertTypeFilter"></select>
+      <select id="alertWorkflowFilter"></select>
       <select id="alertLevelFilter"></select>
       <label class="alert-check"><input id="alertIncludeCurrent" type="checkbox" checked> <span id="alertIncludeCurrentLabel">Include current form</span></label>
     </div>
@@ -1169,13 +1183,18 @@ const UI = {
     alertsBelowMin: 'ต่ำกว่า Min',
     alertsInRange: 'อยู่ใน Range',
     alertsAllLevels: 'ทุก Level',
+    alertsAllWorkflowStatuses: 'ทุกสถานะ Alert',
     alertsIncludeCurrent: 'รวมฟอร์มปัจจุบัน',
     alertsEmpty: 'ยังไม่มีรายการเงินเดือนหลุดกรอบ Salary Range',
     alertsLoaded: 'โหลด Compensation Alerts แล้ว: {count} รายการ',
     alertsExported: 'Export Compensation Alerts แล้ว: {count} รายการ',
     alertsExportEmpty: 'ไม่มีรายการ Alert ให้ Export ตาม filter ปัจจุบัน',
+    alertsTrackingSaved: 'บันทึก Alert tracking แล้ว: {evaluationId}',
+    alertsTrackingSaveError: 'ไม่สามารถบันทึก Alert tracking ได้: {error}',
+    alertsSaveCurrentFirst: 'บันทึก Evaluation ก่อนจึงจะกำหนด owner/due date/status ได้',
     alertsCurrentForm: 'ฟอร์มปัจจุบัน',
     alertsTotal: 'Alerts ทั้งหมด',
+    alertsActive: 'ยังเปิดอยู่',
     alertsAbove: 'สูงกว่า Max',
     alertsBelow: 'ต่ำกว่า Min',
     alertsGap: 'ส่วนต่างรวม',
@@ -1186,12 +1205,21 @@ const UI = {
     alertsColRange: 'Salary Range',
     alertsColCompa: 'Compa',
     alertsColGap: 'ส่วนต่าง',
+    alertsColAlertStatus: 'Alert Status',
+    alertsColOwner: 'Owner',
+    alertsColDueDate: 'Due Date',
     alertsColAction: 'Recommended Action',
     alertsColPending: 'Pending With',
     alertsColActions: 'Actions',
+    alertsSaveTracking: 'Save Tracking',
     alertsOpenRecord: 'เปิด Record',
     alertsOpenForm: 'เปิดฟอร์ม',
     alertsCopyLink: 'Copy Link',
+    alertStatusOpen: 'Open',
+    alertStatusUnderReview: 'Under Review',
+    alertStatusActionProposed: 'Action Proposed',
+    alertStatusApprovedException: 'Approved Exception',
+    alertStatusClosed: 'Closed',
     alertActionAbove: 'Red-circle / freeze increase และทบทวนว่า JE Level หรือ salary range เหมาะสมหรือไม่',
     alertActionBelow: 'วางแผนปรับถึง Minimum หรือขอ budget correction ตาม policy',
     alertActionOk: 'ไม่ต้อง action ด้าน range ตอนนี้',
@@ -1461,13 +1489,18 @@ const UI = {
     alertsBelowMin: 'Below Min',
     alertsInRange: 'In Range',
     alertsAllLevels: 'All Levels',
+    alertsAllWorkflowStatuses: 'All alert statuses',
     alertsIncludeCurrent: 'Include current form',
     alertsEmpty: 'No salary range alerts found.',
     alertsLoaded: 'Loaded compensation alerts: {count} records',
     alertsExported: 'Exported compensation alerts: {count} records',
     alertsExportEmpty: 'No alert records to export under the current filters.',
+    alertsTrackingSaved: 'Saved alert tracking: {evaluationId}',
+    alertsTrackingSaveError: 'Could not save alert tracking: {error}',
+    alertsSaveCurrentFirst: 'Save the evaluation before assigning owner, due date, or alert status.',
     alertsCurrentForm: 'Current form',
     alertsTotal: 'Total Alerts',
+    alertsActive: 'Active',
     alertsAbove: 'Above Max',
     alertsBelow: 'Below Min',
     alertsGap: 'Total Gap',
@@ -1478,12 +1511,21 @@ const UI = {
     alertsColRange: 'Salary Range',
     alertsColCompa: 'Compa',
     alertsColGap: 'Gap',
+    alertsColAlertStatus: 'Alert Status',
+    alertsColOwner: 'Owner',
+    alertsColDueDate: 'Due Date',
     alertsColAction: 'Recommended Action',
     alertsColPending: 'Pending With',
     alertsColActions: 'Actions',
+    alertsSaveTracking: 'Save Tracking',
     alertsOpenRecord: 'Open Record',
     alertsOpenForm: 'Open Form',
     alertsCopyLink: 'Copy Link',
+    alertStatusOpen: 'Open',
+    alertStatusUnderReview: 'Under Review',
+    alertStatusActionProposed: 'Action Proposed',
+    alertStatusApprovedException: 'Approved Exception',
+    alertStatusClosed: 'Closed',
     alertActionAbove: 'Red-circle / freeze increase and review whether the JE Level or salary range is appropriate.',
     alertActionBelow: 'Plan an adjustment to Minimum or request budget correction under policy.',
     alertActionOk: 'No range action is needed now.',
@@ -1753,13 +1795,18 @@ const UI = {
     alertsBelowMin: '低于最低值',
     alertsInRange: '区间内',
     alertsAllLevels: '所有职级',
+    alertsAllWorkflowStatuses: '所有提醒状态',
     alertsIncludeCurrent: '包含当前表单',
     alertsEmpty: '暂无薪资区间提醒。',
     alertsLoaded: '已加载薪酬提醒：{count} 条',
     alertsExported: '已导出薪酬提醒：{count} 条',
     alertsExportEmpty: '当前筛选条件下没有可导出的提醒记录。',
+    alertsTrackingSaved: '已保存提醒跟踪：{evaluationId}',
+    alertsTrackingSaveError: '无法保存提醒跟踪：{error}',
+    alertsSaveCurrentFirst: '请先保存评估记录，再分配负责人、截止日期或提醒状态。',
     alertsCurrentForm: '当前表单',
     alertsTotal: '提醒总数',
+    alertsActive: '未关闭',
     alertsAbove: '高于最高值',
     alertsBelow: '低于最低值',
     alertsGap: '差额合计',
@@ -1770,12 +1817,21 @@ const UI = {
     alertsColRange: '薪资区间',
     alertsColCompa: '薪酬比',
     alertsColGap: '差额',
+    alertsColAlertStatus: '提醒状态',
+    alertsColOwner: '负责人',
+    alertsColDueDate: '截止日期',
     alertsColAction: '建议操作',
     alertsColPending: '待处理人',
     alertsColActions: '操作',
+    alertsSaveTracking: '保存跟踪',
     alertsOpenRecord: '打开记录',
     alertsOpenForm: '打开表单',
     alertsCopyLink: '复制链接',
+    alertStatusOpen: 'Open',
+    alertStatusUnderReview: 'Under Review',
+    alertStatusActionProposed: 'Action Proposed',
+    alertStatusApprovedException: 'Approved Exception',
+    alertStatusClosed: 'Closed',
     alertActionAbove: '红圈/冻结调薪，并复核 JE 职级或薪资区间是否合适。',
     alertActionBelow: '计划调整至最低值，或按政策申请预算修正。',
     alertActionOk: '当前无需薪资区间操作。',
@@ -1955,6 +2011,14 @@ const NOTIFICATION_RULES = {
     ccRoles: ['HR_Head'],
     action: 'Re-submitted review required',
   },
+};
+const ALERT_WORKFLOW_STATUS_ORDER = ['Open', 'Under Review', 'Action Proposed', 'Approved Exception', 'Closed'];
+const ALERT_WORKFLOW_STATUS_KEYS = {
+  Open: 'alertStatusOpen',
+  'Under Review': 'alertStatusUnderReview',
+  'Action Proposed': 'alertStatusActionProposed',
+  'Approved Exception': 'alertStatusApprovedException',
+  Closed: 'alertStatusClosed',
 };
 
 /* ============================================================
@@ -2475,6 +2539,7 @@ let currentPersistentAuditRecordId = null;
 let handledRecordLinkId = '';
 let adminUserRows = [];
 let notificationLogRows = [];
+let compensationAlertTrackingRows = [];
 let salaryColumnsAvailable = false;
 let salaryRangeRows = [];
 let salaryRangeSource = 'not_loaded';
@@ -3683,10 +3748,45 @@ function currentFormAlertRow(){
   return row.salary_range_check.alertType === 'ok' || row.salary_range_check.alertType === 'unknown' ? null : row;
 }
 
+function normalizedAlertWorkflowStatus(status){
+  return ALERT_WORKFLOW_STATUS_ORDER.includes(status) ? status : 'Open';
+}
+
+function alertWorkflowStatusLabel(status){
+  const key = ALERT_WORKFLOW_STATUS_KEYS[normalizedAlertWorkflowStatus(status)];
+  return UI[currentLang][key] || normalizedAlertWorkflowStatus(status);
+}
+
+function alertWorkflowStatusClass(status){
+  if (status === 'Closed') return 'closed';
+  if (status === 'Approved Exception') return 'exception';
+  return 'open';
+}
+
+function compensationAlertTrackingForRow(row){
+  if (!row?.id || row.is_current_form) return null;
+  return compensationAlertTrackingRows.find(item => item.evaluation_record_id === row.id) || null;
+}
+
+function alertWorkflowStatusForRow(row){
+  return normalizedAlertWorkflowStatus(row.alert_tracking?.alert_status || row.alert_workflow_status || row.alert_status_workflow || 'Open');
+}
+
+function buildAlertWorkflowOptions(currentStatus){
+  const normalized = normalizedAlertWorkflowStatus(currentStatus);
+  return ALERT_WORKFLOW_STATUS_ORDER
+    .map(status => `<option value="${escapeHtml(status)}" ${status === normalized ? 'selected' : ''}>${escapeHtml(alertWorkflowStatusLabel(status))}</option>`)
+    .join('');
+}
+
 function compensationAlertRows(){
   const includeCurrent = document.getElementById('alertIncludeCurrent')?.checked ?? true;
   const rows = persistentHistoryRows
-    .map(row => ({ ...row, salary_range_check: normalizedRowSalaryCheck(row) }))
+    .map(row => {
+      const alertRow = { ...row, salary_range_check: normalizedRowSalaryCheck(row) };
+      alertRow.alert_tracking = compensationAlertTrackingForRow(alertRow);
+      return alertRow;
+    })
     .filter(row => ['above', 'below'].includes(row.salary_range_check.alertType));
   const current = includeCurrent ? currentFormAlertRow() : null;
   return current ? [current, ...rows.filter(row => row.id !== workflowState.id)] : rows;
@@ -3695,14 +3795,18 @@ function compensationAlertRows(){
 function filteredCompensationAlertRows(){
   const search = (document.getElementById('alertSearch')?.value || '').trim().toLowerCase();
   const type = document.getElementById('alertTypeFilter')?.value || '';
+  const workflowStatus = document.getElementById('alertWorkflowFilter')?.value || '';
   const level = document.getElementById('alertLevelFilter')?.value || '';
   return compensationAlertRows().filter(row => {
     const check = row.salary_range_check || {};
-    const haystack = [row.evaluation_id, row.job_title, row.department, row.created_by, row.current_status, pendingWithForRow(row)]
+    const alertStatus = alertWorkflowStatusForRow(row);
+    const tracking = row.alert_tracking || {};
+    const haystack = [row.evaluation_id, row.job_title, row.department, row.created_by, row.current_status, pendingWithForRow(row), alertStatus, tracking.alert_owner, tracking.due_date]
       .map(v => String(v || '').toLowerCase())
       .join(' ');
     return (!search || haystack.includes(search))
       && (!type || check.alertType === type)
+      && (!workflowStatus || alertStatus === workflowStatus)
       && (!level || check.level === level);
   });
 }
@@ -3744,6 +3848,9 @@ function exportCompensationAlertsCsv(){
     'Pending With',
     'JE Level',
     'Alert Type',
+    'Alert Workflow Status',
+    'Alert Owner',
+    'Due Date',
     'Current Salary',
     'Range Minimum',
     'Range Midpoint',
@@ -3758,6 +3865,7 @@ function exportCompensationAlertsCsv(){
   const body = rows.map(row => {
     const check = row.salary_range_check || {};
     const range = check.range || {};
+    const tracking = row.alert_tracking || {};
     return [
       row.evaluation_id || '',
       row.version_number || 1,
@@ -3767,6 +3875,9 @@ function exportCompensationAlertsCsv(){
       pendingWithForRow(row),
       check.level || alertLevelForRow(row),
       alertTypeLabel(check.alertType),
+      alertWorkflowStatusLabel(alertWorkflowStatusForRow(row)),
+      tracking.alert_owner || '',
+      tracking.due_date || '',
       check.salary || '',
       range.min || '',
       range.midpoint || '',
@@ -3794,9 +3905,11 @@ function renderCompensationAlertStats(rows){
   if (!box) return;
   const above = rows.filter(row => row.salary_range_check?.alertType === 'above').length;
   const below = rows.filter(row => row.salary_range_check?.alertType === 'below').length;
+  const active = rows.filter(row => alertWorkflowStatusForRow(row) !== 'Closed').length;
   const gap = rows.reduce((sum, row) => sum + asNumber(row.salary_range_check?.gap, 0), 0);
   box.innerHTML = [
     [UI[currentLang].alertsTotal, rows.length],
+    [UI[currentLang].alertsActive, active],
     [UI[currentLang].alertsAbove, above],
     [UI[currentLang].alertsBelow, below],
     [UI[currentLang].alertsGap, gap ? moneyText(gap) : '-'],
@@ -3808,6 +3921,79 @@ function renderCompensationAlertStatus(message, kind = 'warn'){
   if (!el) return;
   el.textContent = message;
   el.className = `history-status ${kind}`;
+}
+
+async function loadCompensationAlertTracking(){
+  const client = getJeDbClient();
+  const ids = persistentHistoryRows.map(row => row.id).filter(Boolean);
+  if (!client || !ids.length) {
+    compensationAlertTrackingRows = [];
+    return;
+  }
+  const { data, error } = await client
+    .from('je_compensation_alerts')
+    .select('id,evaluation_record_id,evaluation_id,version_number,alert_status,alert_owner,due_date,updated_at,updated_by')
+    .in('evaluation_record_id', ids);
+  if (error) {
+    compensationAlertTrackingRows = [];
+    renderCompensationAlertStatus(UI[currentLang].alertsTrackingSaveError.replaceAll('{error}', error.message), 'warn');
+    return;
+  }
+  compensationAlertTrackingRows = data || [];
+}
+
+async function saveCompensationAlertTracking(recordId){
+  if (!recordId || recordId === 'current-form') {
+    renderCompensationAlertStatus(UI[currentLang].alertsSaveCurrentFirst, 'warn');
+    return;
+  }
+  const client = getJeDbClient();
+  if (!client) {
+    renderCompensationAlertStatus(UI[currentLang].historyDbUnavailable, 'error');
+    return;
+  }
+  const session = await refreshPersistentHistorySession();
+  if (!session) return;
+  const row = compensationAlertRows().find(item => item.id === recordId) || persistentHistoryRows.find(item => item.id === recordId);
+  if (!row) {
+    renderCompensationAlertStatus(UI[currentLang].historyLoadError, 'error');
+    return;
+  }
+  const status = normalizedAlertWorkflowStatus(document.querySelector(`[data-alert-status="${recordId}"]`)?.value);
+  const owner = (document.querySelector(`[data-alert-owner="${recordId}"]`)?.value || '').trim();
+  const dueDate = document.querySelector(`[data-alert-due="${recordId}"]`)?.value || null;
+  const check = row.salary_range_check || normalizedRowSalaryCheck(row);
+  const actor = currentActor() || session.user.email || session.user.id || 'Unspecified';
+  const payload = {
+    evaluation_record_id: recordId,
+    evaluation_id: row.evaluation_id,
+    version_number: row.version_number || 1,
+    alert_status: status,
+    alert_owner: owner || null,
+    due_date: dueDate || null,
+    updated_by: actor,
+    metadata: {
+      je_level: check.level || alertLevelForRow(row),
+      alert_type: check.alertType || null,
+      current_salary: check.salary || row.current_salary || null,
+      gap: check.gap || 0,
+      salary_range_check: check,
+    },
+  };
+  const { data, error } = await client
+    .from('je_compensation_alerts')
+    .upsert(payload, { onConflict: 'evaluation_record_id' })
+    .select('id,evaluation_record_id,evaluation_id,version_number,alert_status,alert_owner,due_date,updated_at,updated_by')
+    .single();
+  if (error) {
+    renderCompensationAlertStatus(UI[currentLang].alertsTrackingSaveError.replaceAll('{error}', error.message), 'error');
+    return;
+  }
+  compensationAlertTrackingRows = compensationAlertTrackingRows
+    .filter(item => item.evaluation_record_id !== recordId)
+    .concat(data ? [data] : []);
+  renderCompensationAlerts();
+  renderCompensationAlertStatus(UI[currentLang].alertsTrackingSaved.replaceAll('{evaluationId}', row.evaluation_id || recordId), 'ok');
 }
 
 function renderCompensationAlertList(rows){
@@ -3830,6 +4016,9 @@ function renderCompensationAlertList(rows){
             <th>${ui.alertsColRange}</th>
             <th>${ui.alertsColCompa}</th>
             <th>${ui.alertsColGap}</th>
+            <th>${ui.alertsColAlertStatus}</th>
+            <th>${ui.alertsColOwner}</th>
+            <th>${ui.alertsColDueDate}</th>
             <th>${ui.alertsColAction}</th>
             <th>${ui.alertsColPending}</th>
             <th>${ui.alertsColActions}</th>
@@ -3838,6 +4027,10 @@ function renderCompensationAlertList(rows){
         <tbody>
           ${rows.map(row => {
             const check = row.salary_range_check || {};
+            const tracking = row.alert_tracking || {};
+            const alertStatus = alertWorkflowStatusForRow(row);
+            const recordId = escapeHtml(row.id || '');
+            const disabled = row.is_current_form ? 'disabled' : '';
             const rangeText = check.range ? `${moneyText(check.range.min)} - ${moneyText(check.range.max)}` : '-';
             const updated = row.updated_at ? new Date(row.updated_at).toLocaleString() : '-';
             return `
@@ -3855,12 +4048,22 @@ function renderCompensationAlertList(rows){
                 <td>${escapeHtml(rangeText)}</td>
                 <td>${check.compa ? escapeHtml(check.compa.toFixed(2)) : '-'}</td>
                 <td><span class="alert-gap">${escapeHtml(check.gap ? moneyText(check.gap) : '-')}</span></td>
+                <td>
+                  <select class="alert-tracking-input" data-alert-status="${recordId}" ${disabled}>
+                    ${buildAlertWorkflowOptions(alertStatus)}
+                  </select>
+                  <div class="register-sub"><span class="alert-status-chip ${escapeHtml(alertWorkflowStatusClass(alertStatus))}">${escapeHtml(alertWorkflowStatusLabel(alertStatus))}</span></div>
+                </td>
+                <td class="alert-owner-cell"><input class="alert-tracking-input" data-alert-owner="${recordId}" value="${escapeHtml(tracking.alert_owner || '')}" placeholder="Owner" ${disabled}></td>
+                <td class="alert-due-cell"><input class="alert-tracking-input" data-alert-due="${recordId}" type="date" value="${escapeHtml(tracking.due_date || '')}" ${disabled}></td>
                 <td><div class="alert-action">${escapeHtml(alertActionText(check.alertType))}</div></td>
                 <td><span class="pending-chip">${escapeHtml(pendingWithForRow(row))}</span></td>
                 <td>
                   <div class="history-actions">
-                    <button class="btn-secondary" data-alert-open="${escapeHtml(row.id)}">${row.is_current_form ? ui.alertsOpenForm : ui.alertsOpenRecord}</button>
-                    ${row.is_current_form ? '' : `<button class="btn-secondary register-link-btn" data-alert-copy="${escapeHtml(row.id)}">${ui.alertsCopyLink}</button>`}
+                    <button class="btn-secondary" data-alert-open="${recordId}">${row.is_current_form ? ui.alertsOpenForm : ui.alertsOpenRecord}</button>
+                    ${row.is_current_form
+                      ? `<button class="btn-secondary" disabled title="${escapeHtml(ui.alertsSaveCurrentFirst)}">${ui.alertsSaveTracking}</button>`
+                      : `<button class="btn-primary" data-alert-save="${recordId}">${ui.alertsSaveTracking}</button><button class="btn-secondary register-link-btn" data-alert-copy="${recordId}">${ui.alertsCopyLink}</button>`}
                   </div>
                 </td>
               </tr>
@@ -3878,6 +4081,9 @@ function renderCompensationAlertList(rows){
   });
   list.querySelectorAll('[data-alert-copy]').forEach(btn => {
     btn.addEventListener('click', () => copyRecordLink(btn.dataset.alertCopy));
+  });
+  list.querySelectorAll('[data-alert-save]').forEach(btn => {
+    btn.addEventListener('click', () => saveCompensationAlertTracking(btn.dataset.alertSave));
   });
 }
 
@@ -3988,6 +4194,7 @@ async function loadPermanentHistory(){
     return;
   }
   persistentHistoryRows = data || [];
+  await loadCompensationAlertTracking();
   renderPersistentHistory();
   await maybeOpenRecordFromUrl();
 }
@@ -4535,6 +4742,9 @@ function applyStaticText(){
   const currentStatus = statusSelect.value || 'Draft';
   const currentHistoryStatus = document.getElementById('historyStatusFilter')?.value || '';
   const currentHistoryLevel = document.getElementById('historyLevelFilter')?.value || '';
+  const currentAlertType = document.getElementById('alertTypeFilter')?.value || '';
+  const currentAlertWorkflow = document.getElementById('alertWorkflowFilter')?.value || '';
+  const currentAlertLevel = document.getElementById('alertLevelFilter')?.value || '';
   document.getElementById('pageTitle').textContent = ui.pageTitle;
   document.title = ui.pageTitle;
   document.getElementById('hTitle').textContent = ui.hTitle;
@@ -4667,9 +4877,15 @@ function applyStaticText(){
     `<option value="above">${ui.alertsAboveMax}</option>`,
     `<option value="below">${ui.alertsBelowMin}</option>`,
   ].join('');
+  document.getElementById('alertWorkflowFilter').innerHTML = [`<option value="">${ui.alertsAllWorkflowStatuses}</option>`]
+    .concat(ALERT_WORKFLOW_STATUS_ORDER.map(status => `<option value="${status}">${alertWorkflowStatusLabel(status)}</option>`))
+    .join('');
   document.getElementById('alertLevelFilter').innerHTML = [`<option value="">${ui.alertsAllLevels}</option>`]
     .concat(LEVEL_CODES.map(level => `<option value="${level}">${level}</option>`))
     .join('');
+  document.getElementById('alertTypeFilter').value = currentAlertType;
+  document.getElementById('alertWorkflowFilter').value = currentAlertWorkflow;
+  document.getElementById('alertLevelFilter').value = currentAlertLevel;
   document.getElementById('alertIncludeCurrentLabel').textContent = ui.alertsIncludeCurrent;
   document.getElementById('mAdminUsers').textContent = ui.adminUsers;
   document.getElementById('adminHelp').textContent = ui.adminHelp;
@@ -4740,7 +4956,7 @@ document.getElementById('refLevelFilter').addEventListener('change', renderRefTa
 ['historySearch','historyStatusFilter','historyLevelFilter','historyLatestOnly'].forEach(id => {
   document.getElementById(id).addEventListener(id === 'historySearch' ? 'input' : 'change', renderPersistentHistory);
 });
-['alertSearch','alertTypeFilter','alertLevelFilter','alertIncludeCurrent'].forEach(id => {
+['alertSearch','alertTypeFilter','alertWorkflowFilter','alertLevelFilter','alertIncludeCurrent'].forEach(id => {
   document.getElementById(id).addEventListener(id === 'alertSearch' ? 'input' : 'change', renderCompensationAlerts);
 });
 ['jobTitle','dept','evaluator','evalDate','currentSalary','jobEvidence','workflowActor','finalApprovedLevel','approvedBy','decisionDate','committeeReviewers'].forEach(id => {

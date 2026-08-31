@@ -232,6 +232,115 @@ create index if not exists job_evaluations_salary_check_status_idx
   on public.job_evaluations ((salary_range_check ->> 'status'))
   where salary_range_check is not null;
 
+create table if not exists public.je_compensation_alerts (
+  id uuid primary key default gen_random_uuid(),
+  evaluation_record_id uuid not null unique references public.job_evaluations(id) on delete cascade,
+  evaluation_id text not null,
+  version_number integer not null default 1 check (version_number >= 1),
+  alert_status text not null default 'Open'
+    check (alert_status in ('Open', 'Under Review', 'Action Proposed', 'Approved Exception', 'Closed')),
+  alert_owner text,
+  due_date date,
+  created_by text not null default coalesce(auth.jwt() ->> 'email', auth.uid()::text),
+  created_at timestamptz not null default now(),
+  updated_by text,
+  updated_at timestamptz not null default now(),
+  comments text,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists je_compensation_alerts_status_idx
+  on public.je_compensation_alerts (alert_status, due_date);
+
+create index if not exists je_compensation_alerts_owner_idx
+  on public.je_compensation_alerts (alert_owner);
+
+create table if not exists public.je_compensation_alert_audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  alert_id uuid not null references public.je_compensation_alerts(id) on delete cascade,
+  evaluation_record_id uuid not null references public.job_evaluations(id) on delete cascade,
+  evaluation_id text not null,
+  version_number integer not null,
+  changed_at timestamptz not null default now(),
+  changed_by text not null default coalesce(auth.jwt() ->> 'email', auth.uid()::text),
+  from_status text,
+  to_status text,
+  from_owner text,
+  to_owner text,
+  from_due_date date,
+  to_due_date date,
+  comments text,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index if not exists je_compensation_alert_audit_logs_record_idx
+  on public.je_compensation_alert_audit_logs (evaluation_record_id, changed_at desc);
+
+create or replace function public.touch_je_compensation_alert_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  new.updated_by = coalesce(auth.jwt() ->> 'email', auth.uid()::text, new.updated_by);
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_touch_je_compensation_alerts on public.je_compensation_alerts;
+create trigger trg_touch_je_compensation_alerts
+before update on public.je_compensation_alerts
+for each row execute function public.touch_je_compensation_alert_updated_at();
+
+create or replace function public.log_je_compensation_alert_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.je_compensation_alert_audit_logs (
+      alert_id, evaluation_record_id, evaluation_id, version_number,
+      changed_by, from_status, to_status, to_owner, to_due_date, comments, metadata
+    ) values (
+      new.id, new.evaluation_record_id, new.evaluation_id, new.version_number,
+      coalesce(auth.jwt() ->> 'email', auth.uid()::text, new.created_by),
+      null, new.alert_status, new.alert_owner, new.due_date,
+      'Compensation alert tracking created', new.metadata
+    );
+    return new;
+  end if;
+
+  if old.alert_status is distinct from new.alert_status
+    or old.alert_owner is distinct from new.alert_owner
+    or old.due_date is distinct from new.due_date
+    or old.comments is distinct from new.comments then
+    insert into public.je_compensation_alert_audit_logs (
+      alert_id, evaluation_record_id, evaluation_id, version_number,
+      changed_by, from_status, to_status, from_owner, to_owner,
+      from_due_date, to_due_date, comments, metadata
+    ) values (
+      new.id, new.evaluation_record_id, new.evaluation_id, new.version_number,
+      coalesce(auth.jwt() ->> 'email', auth.uid()::text, new.updated_by),
+      old.alert_status, new.alert_status, old.alert_owner, new.alert_owner,
+      old.due_date, new.due_date, new.comments, new.metadata
+    );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_log_je_compensation_alert_insert on public.je_compensation_alerts;
+create trigger trg_log_je_compensation_alert_insert
+after insert on public.je_compensation_alerts
+for each row execute function public.log_je_compensation_alert_change();
+
+drop trigger if exists trg_log_je_compensation_alert_update on public.je_compensation_alerts;
+create trigger trg_log_je_compensation_alert_update
+after update on public.je_compensation_alerts
+for each row execute function public.log_je_compensation_alert_change();
+
 create or replace view public.je_compensation_alert_register
 with (security_invoker = true)
 as
@@ -249,6 +358,10 @@ select
   je.salary_range_check,
   je.salary_range_check ->> 'status' as alert_status,
   (je.salary_range_check ->> 'message') as alert_message,
+  coalesce(ca.alert_status, 'Open') as alert_workflow_status,
+  ca.alert_owner,
+  ca.due_date as alert_due_date,
+  ca.id as alert_tracking_id,
   je.updated_at,
   je.created_by,
   case
@@ -260,6 +373,8 @@ select
     else 'HR Analyst'
   end as pending_with
 from public.job_evaluations je
+left join public.je_compensation_alerts ca
+  on ca.evaluation_record_id = je.id
 where je.salary_range_check is not null
   and je.current_salary is not null
   and je.salary_range_check ->> 'status' in ('warn', 'error')
@@ -409,6 +524,8 @@ alter table public.job_evaluation_audit_logs enable row level security;
 alter table public.je_user_roles enable row level security;
 alter table public.je_user_role_audit_logs enable row level security;
 alter table public.je_notification_logs enable row level security;
+alter table public.je_compensation_alerts enable row level security;
+alter table public.je_compensation_alert_audit_logs enable row level security;
 
 drop policy if exists "JE users can read their own role and HR head can read all" on public.je_user_roles;
 create policy "JE users can read their own role and HR head can read all"
@@ -536,6 +653,61 @@ with check (
   or public.has_je_role('HR_Head')
 );
 
+drop policy if exists "JE users can read compensation alerts" on public.je_compensation_alerts;
+create policy "JE users can read compensation alerts"
+on public.je_compensation_alerts for select
+to authenticated
+using (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
+
+drop policy if exists "JE users can create compensation alert tracking" on public.je_compensation_alerts;
+create policy "JE users can create compensation alert tracking"
+on public.je_compensation_alerts for insert
+to authenticated
+with check (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
+
+drop policy if exists "JE users can update compensation alert tracking" on public.je_compensation_alerts;
+create policy "JE users can update compensation alert tracking"
+on public.je_compensation_alerts for update
+to authenticated
+using (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+)
+with check (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
+
+drop policy if exists "JE users can read compensation alert audit logs" on public.je_compensation_alert_audit_logs;
+create policy "JE users can read compensation alert audit logs"
+on public.je_compensation_alert_audit_logs for select
+to authenticated
+using (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
+
+drop policy if exists "System inserts compensation alert audit logs" on public.je_compensation_alert_audit_logs;
+create policy "System inserts compensation alert audit logs"
+on public.je_compensation_alert_audit_logs for insert
+to authenticated
+with check (
+  public.has_je_role('HR_Analyst')
+  or public.has_je_role('JE_Committee_Member')
+  or public.has_je_role('HR_Head')
+);
+
 grant usage on schema public to authenticated;
 grant select, insert, update on public.je_user_roles to authenticated;
 grant select on public.je_user_role_audit_logs to authenticated;
@@ -543,4 +715,6 @@ grant select, insert on public.je_notification_logs to authenticated;
 grant execute on function public.get_je_notification_recipients(text[]) to authenticated;
 grant select, insert, update on public.job_evaluations to authenticated;
 grant select, insert on public.job_evaluation_audit_logs to authenticated;
+grant select, insert, update on public.je_compensation_alerts to authenticated;
+grant select, insert on public.je_compensation_alert_audit_logs to authenticated;
 grant select on public.je_compensation_alert_register to authenticated;
