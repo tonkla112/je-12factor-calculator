@@ -176,6 +176,13 @@ tailwind.config = {
       </div>
     </div>
 
+    <div class="px-3 pt-4">
+      <button onclick="goToMainSuite()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">
+        <i data-lucide="arrow-left" class="w-[18px] h-[18px] text-accent-teal"></i>
+        <span data-i18n="back_to_main">Back to Main System</span>
+      </button>
+    </div>
+
     <nav class="flex-1 px-3 py-5 space-y-1.5">
       <button data-tab="dashboard" class="navlink active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 transition-all">
         <i data-lucide="layout-dashboard" class="navicon w-[18px] h-[18px]"></i> <span data-i18n="nav_dashboard">Executive Dashboard</span>
@@ -212,6 +219,10 @@ tailwind.config = {
       <span class="font-display font-bold text-sm">HR Comp System</span>
     </div>
     <div class="flex items-center gap-2">
+      <button onclick="goToMainSuite()" class="flex items-center gap-1 text-[11px] font-semibold bg-white/10 hover:bg-white/15 px-2.5 py-1.5 rounded-full">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+        <span data-i18n="back_to_main_short">Main</span>
+      </button>
       <div id="langSwitchMobile" class="flex items-center bg-white/10 rounded-full p-0.5 text-[11px] font-semibold"></div>
       <button id="mobileMenuBtn" class="p-2"><i data-lucide="menu" class="w-5 h-5"></i></button>
     </div>
@@ -242,6 +253,9 @@ tailwind.config = {
         <p id="pageSubtitle" class="text-sm text-slate-500 mt-0.5">Company-wide pay, equity &amp; job levelling overview</p>
       </div>
       <div class="flex items-center gap-3">
+        <button onclick="goToMainSuite()" class="flex items-center gap-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-navy-900 px-3.5 py-2 rounded-lg border border-slate-200 transition-colors shadow-sm">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> <span data-i18n="back_to_main">Back to Main System</span>
+        </button>
         <span class="hidden xl:flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
           <i data-lucide="calendar" class="w-3.5 h-3.5"></i> <span id="todayDate"></span>
         </span>
@@ -716,6 +730,8 @@ window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const I18N = {
 en: {
   sidebar_subtitle: '& Job Evaluation System',
+  back_to_main: 'Back to Main System',
+  back_to_main_short: 'Main',
   nav_dashboard: 'Executive Dashboard',
   nav_jobeval: 'Job Evaluation (JE)',
   nav_structure: 'Salary Structure',
@@ -851,6 +867,8 @@ en: {
 
 th: {
   sidebar_subtitle: 'และการประเมินค่างาน',
+  back_to_main: 'กลับหน้าหลัก',
+  back_to_main_short: 'หน้าหลัก',
   nav_dashboard: 'แดชบอร์ดผู้บริหาร',
   nav_jobeval: 'การประเมินค่างาน (JE)',
   nav_structure: 'โครงสร้างเงินเดือน',
@@ -986,6 +1004,8 @@ th: {
 
 zh: {
   sidebar_subtitle: '与职位评估系统',
+  back_to_main: '返回主系统',
+  back_to_main_short: '主页',
   nav_dashboard: '高管仪表板',
   nav_jobeval: '职位评估 (JE)',
   nav_structure: '薪资结构',
@@ -1461,6 +1481,11 @@ function requestedInitialTab() {
   const params = new URLSearchParams(window.location.search);
   const tab = params.get('tab') || window.location.hash.replace('#', '');
   return TITLE_KEYS[tab] ? tab : 'dashboard';
+}
+
+function goToMainSuite() {
+  const url = new URL('index.html', window.location.href);
+  window.location.href = url.toString();
 }
 
 function activateTab(tab) {
