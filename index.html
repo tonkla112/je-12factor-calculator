@@ -126,8 +126,7 @@
   .workspace-main.evaluation-mode [data-section-panel="job"]{order:1;}
   .workspace-main.evaluation-mode [data-section-panel="score"]{order:2;}
   .workspace-main.evaluation-mode [data-section-panel="signatures"]{order:3;}
-  .workspace-main.evaluation-mode [data-section-panel="workflow"]{order:4;}
-  .workspace-main.evaluation-mode [data-section-panel="reference"]{order:5;}
+  .workspace-main.evaluation-mode [data-section-panel="reference"]{order:4;}
   .app-section{display:none;}
   .app-section.active{display:block;}
   .workspace-main.evaluation-mode .app-section.active{display:block;}
@@ -598,6 +597,7 @@
       <button class="nav-btn" data-section="history"><span id="navHistory">History</span><span class="nav-index">03</span></button>
       <button class="nav-btn" data-section="alerts"><span id="navAlerts">Comp Alerts</span><span class="nav-index">04</span></button>
       <button class="nav-btn" data-section="admin"><span id="navAdmin">Admin</span><span class="nav-index">05</span></button>
+      <button class="nav-btn" data-section="workflow"><span id="navWorkflow">Governance</span><span class="nav-index">06</span></button>
     </nav>
 
     <main class="workspace-main">
@@ -649,6 +649,12 @@
           <h3 id="moduleAdminTitle">Admin / User Management</h3>
           <p id="moduleAdminText">เพิ่มผู้ใช้ กำหนด role และเปิด/ปิดสิทธิ์การใช้งานสำหรับ HR Analyst, Committee และ HR Head</p>
           <span class="module-action" id="moduleAdminAction">เปิด Admin</span>
+        </button>
+        <button class="module-card" type="button" onclick="openSuiteModule('workflow')">
+          <span class="module-icon">GV</span>
+          <h3 id="moduleWorkflowTitle">Governance Workflow</h3>
+          <p id="moduleWorkflowText">หน้าแยกสำหรับ workflow อนุมัติในระบบ ใช้เมื่อองค์กรต้องการเปิด electronic approval</p>
+          <span class="module-action" id="moduleWorkflowAction">เปิด Governance</span>
         </button>
       </div>
     </div>
@@ -1005,15 +1011,15 @@ const UI = {
   th: {
     pageTitle: 'HR Compensation & Job Evaluation Suite — ZG Industries',
     hTitle: 'HR Compensation & Job Evaluation Suite',
-    hSub: 'ZG Industries (Thailand) Limited — ระบบประเมินค่างาน Workflow อนุมัติ และ Dashboard ค่าตอบแทน',
+    hSub: 'ZG Industries (Thailand) Limited — ระบบประเมินค่างาน แบบฟอร์มลงนาม และ Dashboard ค่าตอบแทน',
     appSignedIn: 'เข้าสู่ระบบ: {email}',
     authKicker: 'Secure HR Workspace',
     authTitle: 'กรุณาเข้าสู่ระบบก่อนใช้งานระบบประเมินค่างาน',
-    authSubtitle: 'ข้อมูลตำแหน่ง คะแนน Workflow ประวัติ และการจัดการผู้ใช้ถูกป้องกันด้วย Supabase Authentication และ role-based permissions',
+    authSubtitle: 'ข้อมูลตำแหน่ง คะแนน ประวัติ และการจัดการผู้ใช้ถูกป้องกันด้วย Supabase Authentication และ role-based permissions',
     authPoint1Title: 'ข้อมูลประเมินปลอดภัย',
     authPoint1Text: 'ประวัติและ audit trail จะเปิดให้ดูหลัง login เท่านั้น',
     authPoint2Title: 'แยกสิทธิ์ตามบทบาท',
-    authPoint2Text: 'HR Analyst, JE Committee และ HR Head ทำงานคนละขั้นตอน',
+    authPoint2Text: 'HR Analyst, JE Committee และ HR Head เห็นและจัดการข้อมูลตามสิทธิ์',
     authPoint3Title: 'ควบคุมผู้ใช้จากระบบ',
     authPoint3Text: 'HR Head เพิ่มผู้ใช้และกำหนด role ได้ในหน้า Admin',
     authCardTitle: 'เข้าสู่ระบบ',
@@ -1024,7 +1030,7 @@ const UI = {
     navEvaluation: 'แบบฟอร์มประเมิน/พิมพ์',
     navJob: 'ข้อมูลงาน',
     navScore: 'ให้คะแนน',
-    navWorkflow: 'Workflow',
+    navWorkflow: 'Governance',
     navHistory: 'Register',
     navAlerts: 'Comp Alerts',
     navAdmin: 'ผู้ใช้',
@@ -1036,9 +1042,9 @@ const UI = {
     sectionScoreTitle: 'ให้คะแนน 12 ปัจจัย',
     sectionScoreDesc: 'เลือกคะแนนแต่ละปัจจัยและบันทึกเหตุผล/หลักฐานประกอบให้ครบก่อนเสนอระดับงาน',
     sectionScoreChip: '12 ปัจจัย',
-    sectionWorkflowTitle: 'Workflow อนุมัติ',
-    sectionWorkflowDesc: 'ส่งงานให้คณะกรรมการ ทบทวน อนุมัติ ตีกลับ หรือปรับเทียบเวอร์ชันใหม่',
-    sectionWorkflowChip: 'Governance',
+    sectionWorkflowTitle: 'Governance Workflow',
+    sectionWorkflowDesc: 'หน้าแยกสำหรับ electronic approval, audit trail และ recalibration เมื่อองค์กรต้องการใช้ workflow ในระบบ',
+    sectionWorkflowChip: 'Advanced',
     sectionHistoryTitle: 'Evaluation Register',
     sectionHistoryDesc: 'ทะเบียนติดตาม evaluation, pending with, record link และ audit trail จากฐานข้อมูล',
     sectionHistoryChip: 'Database',
@@ -1058,8 +1064,8 @@ const UI = {
     moduleHomeDesc: 'เลือกงานที่ต้องทำจากหน้าเดียว: ประเมินค่างาน, ตรวจ Dashboard ค่าตอบแทน, ดูทะเบียนประวัติ หรือจัดการผู้ใช้',
     moduleStatusLabel: 'Session',
     moduleStatusText: 'Secure workspace',
-    moduleJeTitle: 'Job Evaluation Workflow',
-    moduleJeText: 'กรอกข้อมูลงาน ให้คะแนน 12 ปัจจัย ทำ workflow อนุมัติ และพิมพ์แบบฟอร์มลงนาม',
+    moduleJeTitle: 'Job Evaluation & Sign-off Form',
+    moduleJeText: 'กรอกข้อมูลงาน ให้คะแนน 12 ปัจจัย ตรวจ Salary Range และพิมพ์แบบฟอร์มให้หัวหน้าเซ็นอนุมัติ',
     moduleJeAction: 'เปิดแบบฟอร์มประเมิน',
     moduleCompTitle: 'HR Compensation Dashboard',
     moduleCompText: 'ดูภาพรวมค่าตอบแทน ความเป็นธรรม Compa-Ratio และข้อมูลกำลังคนระดับองค์กร',
@@ -1076,6 +1082,9 @@ const UI = {
     moduleAdminTitle: 'Admin / User Management',
     moduleAdminText: 'เพิ่มผู้ใช้ กำหนด role และเปิด/ปิดสิทธิ์การใช้งานสำหรับ HR Analyst, Committee และ HR Head',
     moduleAdminAction: 'เปิด Admin',
+    moduleWorkflowTitle: 'Governance Workflow',
+    moduleWorkflowText: 'หน้าแยกสำหรับ workflow อนุมัติในระบบ ใช้เมื่อองค์กรต้องการเปิด electronic approval',
+    moduleWorkflowAction: 'เปิด Governance',
     jobInfo: 'ข้อมูลตำแหน่งงานที่ประเมิน',
     jobTitle: 'ชื่อตำแหน่งงาน (Job Title)', jobTitlePh: 'เช่น หัวหน้าแผนกผลิต',
     dept: 'แผนก (Department)', deptPh: 'เช่น Production',
@@ -1084,7 +1093,7 @@ const UI = {
     evalStatus: 'สถานะปัจจุบัน',
     currentSalary: 'เงินเดือนปัจจุบัน / เดือน',
     currentSalaryPh: 'เช่น 85000',
-    workflow: 'Approval Workflow & Audit Trail',
+    workflow: 'Governance Workflow & Audit Trail',
     auditTrail: 'Audit Trail',
     notificationLog: 'Email Notification Log',
     notificationEmpty: 'ยังไม่มี notification log สำหรับ evaluation นี้',
@@ -1311,15 +1320,15 @@ const UI = {
   en: {
     pageTitle: 'HR Compensation & Job Evaluation Suite — ZG Industries',
     hTitle: 'HR Compensation & Job Evaluation Suite',
-    hSub: 'ZG Industries (Thailand) Limited — job evaluation workflow, approvals, and compensation dashboard',
+    hSub: 'ZG Industries (Thailand) Limited — job evaluation, sign-off form, and compensation dashboard',
     appSignedIn: 'Signed in: {email}',
     authKicker: 'Secure HR Workspace',
     authTitle: 'Sign in before using the Job Evaluation system',
-    authSubtitle: 'Job data, scoring records, workflow, history, and user management are protected by Supabase authentication and role-based permissions.',
+    authSubtitle: 'Job data, scoring records, history, and user management are protected by Supabase authentication and role-based permissions.',
     authPoint1Title: 'Protected records',
     authPoint1Text: 'Evaluation history and audit trail stay behind login.',
     authPoint2Title: 'Role workflow',
-    authPoint2Text: 'HR Analyst, JE Committee, and HR Head actions remain separated.',
+    authPoint2Text: 'HR Analyst, JE Committee, and HR Head access stays separated by role.',
     authPoint3Title: 'Admin control',
     authPoint3Text: 'HR Head manages user access from the system.',
     authCardTitle: 'Sign In',
@@ -1330,7 +1339,7 @@ const UI = {
     navEvaluation: 'Evaluation / Print Form',
     navJob: 'Job Setup',
     navScore: 'Scoring',
-    navWorkflow: 'Workflow',
+    navWorkflow: 'Governance',
     navHistory: 'Register',
     navAlerts: 'Comp Alerts',
     navAdmin: 'Users',
@@ -1342,9 +1351,9 @@ const UI = {
     sectionScoreTitle: '12-Factor Scoring',
     sectionScoreDesc: 'Score each factor and complete the rationale before proposing the job level.',
     sectionScoreChip: '12 factors',
-    sectionWorkflowTitle: 'Approval Workflow',
-    sectionWorkflowDesc: 'Submit, review, approve, reject, or recalibrate an evaluation version.',
-    sectionWorkflowChip: 'Governance',
+    sectionWorkflowTitle: 'Governance Workflow',
+    sectionWorkflowDesc: 'Separated page for electronic approval, audit trail, and recalibration when the organization is ready to use system workflow.',
+    sectionWorkflowChip: 'Advanced',
     sectionHistoryTitle: 'Evaluation Register',
     sectionHistoryDesc: 'Track evaluations, pending owner, record links, and database audit trails.',
     sectionHistoryChip: 'Database',
@@ -1364,8 +1373,8 @@ const UI = {
     moduleHomeDesc: 'Choose the work area from one place: job evaluation, compensation dashboard, evaluation register, or user management.',
     moduleStatusLabel: 'Session',
     moduleStatusText: 'Secure workspace',
-    moduleJeTitle: 'Job Evaluation Workflow',
-    moduleJeText: 'Capture job details, score the 12 factors, route approval workflow, and print the sign-off form.',
+    moduleJeTitle: 'Job Evaluation & Sign-off Form',
+    moduleJeText: 'Capture job details, score the 12 factors, check salary range, and print the sign-off form for manual approval.',
     moduleJeAction: 'Open evaluation form',
     moduleCompTitle: 'HR Compensation Dashboard',
     moduleCompText: 'Review enterprise compensation, pay equity, compa-ratio, and workforce summary analytics.',
@@ -1382,6 +1391,9 @@ const UI = {
     moduleAdminTitle: 'Admin / User Management',
     moduleAdminText: 'Add users, assign roles, and activate or deactivate access for HR Analyst, Committee, and HR Head.',
     moduleAdminAction: 'Open admin',
+    moduleWorkflowTitle: 'Governance Workflow',
+    moduleWorkflowText: 'Separated page for system-based approval workflow when electronic approval is needed.',
+    moduleWorkflowAction: 'Open governance',
     jobInfo: 'Job Being Evaluated',
     jobTitle: 'Job Title', jobTitlePh: 'e.g. Production Section Head',
     dept: 'Department', deptPh: 'e.g. Production',
@@ -1390,7 +1402,7 @@ const UI = {
     evalStatus: 'Current Status',
     currentSalary: 'Current Monthly Salary',
     currentSalaryPh: 'e.g. 85000',
-    workflow: 'Approval Workflow & Audit Trail',
+    workflow: 'Governance Workflow & Audit Trail',
     auditTrail: 'Audit Trail',
     notificationLog: 'Email Notification Log',
     notificationEmpty: 'No notification log exists for this evaluation yet.',
@@ -1617,15 +1629,15 @@ const UI = {
   zh: {
     pageTitle: 'HR Compensation & Job Evaluation Suite — ZG Industries',
     hTitle: 'HR Compensation & Job Evaluation Suite',
-    hSub: 'ZG Industries (Thailand) Limited — 职位评估流程、审批与薪酬仪表板',
+    hSub: 'ZG Industries (Thailand) Limited — 职位评估、签署表单与薪酬仪表板',
     appSignedIn: '已登录：{email}',
     authKicker: '安全 HR 工作区',
     authTitle: '使用职位评估系统前请先登录',
-    authSubtitle: '职位数据、评分记录、审批流程、历史记录和用户管理均受 Supabase 身份验证与角色权限保护。',
+    authSubtitle: '职位数据、评分记录、历史记录和用户管理均受 Supabase 身份验证与角色权限保护。',
     authPoint1Title: '受保护记录',
     authPoint1Text: '评估历史和审计记录仅在登录后显示。',
     authPoint2Title: '角色流程',
-    authPoint2Text: 'HR Analyst、JE Committee 和 HR Head 的操作权限相互分离。',
+    authPoint2Text: 'HR Analyst、JE Committee 和 HR Head 按角色区分访问权限。',
     authPoint3Title: '管理员控制',
     authPoint3Text: 'HR Head 可在系统内管理用户访问权限。',
     authCardTitle: '登录',
@@ -1636,7 +1648,7 @@ const UI = {
     navEvaluation: '评估/打印表单',
     navJob: '职位信息',
     navScore: '评分',
-    navWorkflow: '流程',
+    navWorkflow: '治理',
     navHistory: '登记表',
     navAlerts: '薪酬提醒',
     navAdmin: '用户',
@@ -1648,9 +1660,9 @@ const UI = {
     sectionScoreTitle: '12要素评分',
     sectionScoreDesc: '为每个要素评分，并完成评分理由后再提出职位等级。',
     sectionScoreChip: '12要素',
-    sectionWorkflowTitle: '审批流程',
-    sectionWorkflowDesc: '提交、复核、批准、驳回或重新校准评估版本。',
-    sectionWorkflowChip: '治理',
+    sectionWorkflowTitle: '治理流程',
+    sectionWorkflowDesc: '电子审批、审计记录和重新校准的独立页面，适用于组织准备启用系统流程时。',
+    sectionWorkflowChip: '高级',
     sectionHistoryTitle: '评估登记表',
     sectionHistoryDesc: '跟踪评估、待处理人、记录链接和数据库审计轨迹。',
     sectionHistoryChip: '数据库',
@@ -1670,8 +1682,8 @@ const UI = {
     moduleHomeDesc: '从一个入口选择工作区：职位评估、薪酬仪表板、评估登记表或用户管理。',
     moduleStatusLabel: '会话',
     moduleStatusText: '安全工作区',
-    moduleJeTitle: '职位评估流程',
-    moduleJeText: '填写职位信息、12要素评分、流转审批流程，并打印签署表。',
+    moduleJeTitle: '职位评估与签署表单',
+    moduleJeText: '填写职位信息、12要素评分、检查薪资区间，并打印签署表进行人工审批。',
     moduleJeAction: '打开评估表',
     moduleCompTitle: '薪酬仪表板',
     moduleCompText: '查看企业薪酬、薪酬公平性、薪酬比率和人员概览。',
@@ -1688,6 +1700,9 @@ const UI = {
     moduleAdminTitle: '用户管理',
     moduleAdminText: '新增用户、分配角色，并启用或停用HR Analyst、Committee和HR Head权限。',
     moduleAdminAction: '打开用户管理',
+    moduleWorkflowTitle: '治理流程',
+    moduleWorkflowText: '系统电子审批流程的独立页面，仅在需要电子审批时使用。',
+    moduleWorkflowAction: '打开治理',
     jobInfo: '被评估职位信息',
     jobTitle: '职位名称 (Job Title)', jobTitlePh: '例如：生产科科长',
     dept: '部门 (Department)', deptPh: '例如：生产部',
@@ -1696,7 +1711,7 @@ const UI = {
     evalStatus: '当前状态',
     currentSalary: '当前月薪',
     currentSalaryPh: '例如 85000',
-    workflow: '审批流程与审计记录',
+    workflow: '治理流程与审计记录',
     auditTrail: '审计记录',
     notificationLog: '邮件通知记录',
     notificationEmpty: '该评估暂无邮件通知记录。',
@@ -4379,10 +4394,10 @@ function renderRationaleState(key){
 }
 
 function switchSection(section){
-  if (!['home', 'evaluation', 'history', 'alerts', 'admin'].includes(section)) section = 'home';
+  if (!['home', 'evaluation', 'history', 'alerts', 'admin', 'workflow'].includes(section)) section = 'home';
   activeSection = section;
   sessionStorage.setItem('jeActiveSection', section);
-  const evaluationPanels = ['job', 'score', 'workflow', 'reference', 'signatures'];
+  const evaluationPanels = ['job', 'score', 'reference', 'signatures'];
   document.querySelectorAll('[data-section-panel]').forEach(panel => {
     const panelName = panel.dataset.sectionPanel;
     const shouldShow = section === 'evaluation'
@@ -4771,6 +4786,7 @@ function applyStaticText(){
   document.getElementById('navHistory').textContent = ui.navHistory;
   document.getElementById('navAlerts').textContent = ui.navAlerts;
   document.getElementById('navAdmin').textContent = ui.navAdmin;
+  document.getElementById('navWorkflow').textContent = ui.navWorkflow;
   document.getElementById('moduleHomeTitle').textContent = ui.moduleHomeTitle;
   document.getElementById('moduleHomeDesc').textContent = ui.moduleHomeDesc;
   document.getElementById('moduleStatusLabel').textContent = ui.moduleStatusLabel;
@@ -4793,6 +4809,9 @@ function applyStaticText(){
   document.getElementById('moduleAdminTitle').textContent = ui.moduleAdminTitle;
   document.getElementById('moduleAdminText').textContent = ui.moduleAdminText;
   document.getElementById('moduleAdminAction').textContent = ui.moduleAdminAction;
+  document.getElementById('moduleWorkflowTitle').textContent = ui.moduleWorkflowTitle;
+  document.getElementById('moduleWorkflowText').textContent = ui.moduleWorkflowText;
+  document.getElementById('moduleWorkflowAction').textContent = ui.moduleWorkflowAction;
   document.getElementById('sectionJobTitle').textContent = ui.sectionJobTitle;
   document.getElementById('sectionJobDesc').textContent = ui.sectionJobDesc;
   document.getElementById('sectionJobChip').textContent = ui.sectionJobChip;
